@@ -6,7 +6,13 @@
   display: flex;
   gap: 0.5rem;
   overflow-x: auto;
-  padding-bottom: 0.5rem;
+  overflow-y: visible;
+  padding: 0.5rem 0 0.75rem;
+}
+
+.heatmap__grid,
+.heatmap__week {
+  overflow: visible;
 }
 
 .heatmap__weekdays {
@@ -67,8 +73,16 @@
 }
 
 .heatmap__cell--l4 {
-  background: var(--accent);
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--accent) 85%, white),
+    var(--accent)
+  );
+  box-shadow:
+    0 0 8px color-mix(in srgb, var(--accent) 50%, transparent),
+    inset 0 0 4px color-mix(in srgb, white 22%, transparent);
 }
+
 
 button.heatmap__cell {
   cursor: pointer;
@@ -78,6 +92,7 @@ button.heatmap__cell {
 button.heatmap__cell:hover {
   outline: 1px solid var(--text-muted);
   transform: scale(1.15);
+  z-index: 1;
 }
 
 button.heatmap__cell--selected {

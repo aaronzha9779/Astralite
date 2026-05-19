@@ -1,5 +1,10 @@
+import { useState } from 'react'
 import type { Habit } from '../types'
 import './HabitCard.css'
+
+const checkSound = new Audio('/sounds/check.mp3')
+checkSound.volume = 0.35
+
 
 type HabitCardProps = {
   habit: Habit
@@ -12,12 +17,31 @@ export function HabitCard({
   linkedNames = [],
   onToggle,
 }: HabitCardProps) {
+  const [showXp, setShowXp] = useState(false)
+
+
+  function playCompleteSound() {
+    checkSound.currentTime = 0
+    checkSound.play().catch(() => {})
+  }
+
+function handleToggle() {
+  const wasIncomplete = !habit.doneToday
+
+  onToggle(habit.id)
+
+  if (wasIncomplete) {
+    playCompleteSound()
+    setShowXp(true)
+    setTimeout(() => setShowXp(false), 900)
+  }
+}
   return (
     <li className={`habit-card${habit.category === 'hobby' ? ' habit-card--hobby' : ''}`}>
       <button
         type="button"
         className={`habit-card__btn${habit.doneToday ? ' habit-card__btn--done' : ''}`}
-        onClick={() => onToggle(habit.id)}
+        onClick={handleToggle}
         aria-pressed={habit.doneToday}
       >
         <span
@@ -42,6 +66,7 @@ export function HabitCard({
         ) : (
           <span className="habit-card__meta">No streak</span>
         )}
+        {showXp ? <span className="habit-card__xp-pop">+10 XP</span> : null}
       </button>
     </li>
   )
