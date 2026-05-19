@@ -118,6 +118,7 @@ export function Layout() {
         mainNavItems={mainNavItems}
         shopNavItem={shopNavItem}
         activeNavId={activeNavId}
+        availableXp={profile.availableXp}
         onNavClick={setActiveNavId}
       />
       <div className="layout__body">

@@ -5,6 +5,7 @@ type HeaderProps = {
   mainNavItems: NavItem[]
   shopNavItem: NavItem
   activeNavId: string
+  availableXp: number
   onNavClick: (id: string) => void
 }
 
@@ -12,6 +13,7 @@ export function Header({
   mainNavItems,
   shopNavItem,
   activeNavId,
+  availableXp,
   onNavClick,
 }: HeaderProps) {
   return (
@@ -39,9 +41,11 @@ export function Header({
           className={`header__nav-btn header__shop-btn${activeNavId === shopNavItem.id ? ' header__nav-btn--active' : ''}`}
           onClick={() => onNavClick(shopNavItem.id)}
         >
-          {shopNavItem.label}
+          <span>{shopNavItem.label}</span>
+          <span className="header__shop-xp">{availableXp} XP</span>
         </button>
       </div>
     </header>
   )
 }
+
