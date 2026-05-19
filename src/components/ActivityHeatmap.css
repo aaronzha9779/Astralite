@@ -1,0 +1,176 @@
+.heatmap {
+  margin-bottom: 2rem;
+}
+
+.heatmap__grid-wrap {
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  padding-bottom: 0.5rem;
+}
+
+.heatmap__weekdays {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  gap: 2px;
+  padding-top: 2px;
+  flex-shrink: 0;
+}
+
+.heatmap__weekday {
+  height: 12px;
+  font-size: 0.625rem;
+  color: var(--text-muted);
+  line-height: 12px;
+}
+
+.heatmap__grid {
+  display: flex;
+  gap: 3px;
+}
+
+.heatmap__week {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.heatmap__cell {
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  border: none;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.heatmap__cell--empty {
+  background: transparent;
+  pointer-events: none;
+}
+
+.heatmap__cell--l0 {
+  background: var(--surface-hover);
+}
+
+.heatmap__cell--l1 {
+  background: color-mix(in srgb, var(--accent) 25%, var(--surface-hover));
+}
+
+.heatmap__cell--l2 {
+  background: color-mix(in srgb, var(--accent) 45%, var(--surface-hover));
+}
+
+.heatmap__cell--l3 {
+  background: color-mix(in srgb, var(--accent) 70%, var(--surface-hover));
+}
+
+.heatmap__cell--l4 {
+  background: var(--accent);
+}
+
+button.heatmap__cell {
+  cursor: pointer;
+  transition: outline 0.1s, transform 0.1s;
+}
+
+button.heatmap__cell:hover {
+  outline: 1px solid var(--text-muted);
+  transform: scale(1.15);
+}
+
+button.heatmap__cell--selected {
+  outline: 2px solid var(--text);
+  outline-offset: 1px;
+}
+
+button.heatmap__cell:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.heatmap__legend {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 0.75rem;
+}
+
+.heatmap__legend-label {
+  font-size: 0.6875rem;
+  color: var(--text-muted);
+  margin: 0 0.25rem;
+}
+
+.heatmap__day-log {
+  margin-top: 1rem;
+  padding: 1rem;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface-raised);
+}
+
+.heatmap__day-log-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.heatmap__day-log-title {
+  margin: 0;
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+
+.heatmap__day-log-close {
+  width: 1.5rem;
+  height: 1.5rem;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 1.125rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.heatmap__day-log-close:hover {
+  color: var(--text);
+  background: var(--surface-hover);
+}
+
+.heatmap__day-log-empty {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--text-muted);
+}
+
+.heatmap__day-log-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.heatmap__day-log-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.heatmap__day-log-check {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.heatmap__day-log-count {
+  margin: 0.75rem 0 0;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}

@@ -1,0 +1,83 @@
+import type { Habit, HabitCategory } from '../types'
+import { AddHabitForm } from './AddHabitForm'
+import { HabitCard } from './HabitCard'
+import './TaskColumn.css'
+
+const COLUMN_META: Record<
+  HabitCategory,
+  { title: string; subtitle: string; placeholder: string }
+> = {
+  daily: {
+    title: 'Dailies',
+    subtitle: 'Every day essentials',
+    placeholder: 'Add daily…',
+  },
+  habit: {
+    title: 'Habits',
+    subtitle: 'Build consistency',
+    placeholder: 'Add habit…',
+  },
+  hobby: {
+    title: 'Hobbies',
+    subtitle: 'Grow mastery through time',
+    placeholder: 'Add hobby…',
+  },
+}
+
+type TaskColumnProps = {
+  category: HabitCategory
+  habits: Habit[]
+  allHabits: Habit[]
+  onToggle: (id: string) => void
+  onAdd: (name: string, category: HabitCategory) => void
+  getLinkedNames: (all: Habit[], habit: Habit) => string[]
+}
+
+export function TaskColumn({
+  category,
+  habits,
+  allHabits,
+  onToggle,
+  onAdd,
+  getLinkedNames,
+}: TaskColumnProps) {
+  const meta = COLUMN_META[category]
+  const completed = habits.filter((h) => h.doneToday).length
+
+  return (
+    <section className="task-column" aria-label={meta.title}>
+      <header className="task-column__header">
+        <div>
+          <h2 className="task-column__title">{meta.title}</h2>
+          <p className="task-column__subtitle">{meta.subtitle}</p>
+        </div>
+        {habits.length > 0 ? (
+          <span className="task-column__count">
+            {completed}/{habits.length}
+          </span>
+        ) : null}
+      </header>
+
+      <AddHabitForm
+        compact
+        placeholder={meta.placeholder}
+        onAdd={(name) => onAdd(name, category)}
+      />
+
+      {habits.length === 0 ? (
+        <p className="task-column__empty">Nothing here yet.</p>
+      ) : (
+        <ul className="task-column__list">
+          {habits.map((habit) => (
+            <HabitCard
+              key={habit.id}
+              habit={habit}
+              linkedNames={getLinkedNames(allHabits, habit)}
+              onToggle={onToggle}
+            />
+          ))}
+        </ul>
+      )}
+    </section>
+  )
+}

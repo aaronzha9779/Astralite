@@ -1,0 +1,135 @@
+.time-tracker {
+  padding: 1rem 1.25rem;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface-raised);
+}
+
+.time-tracker__header {
+  margin-bottom: 1rem;
+}
+
+.time-tracker__title {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.time-tracker__subtitle {
+  margin-top: 0.25rem;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.time-tracker__body {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 1.25rem;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .time-tracker__body {
+    grid-template-columns: 1fr;
+  }
+}
+
+.time-tracker__controls {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.time-tracker__field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.time-tracker__select,
+.time-tracker__input {
+  font: inherit;
+  font-size: 0.875rem;
+  padding: 0.5rem 0.625rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+}
+
+.time-tracker__timer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.time-tracker__ring {
+  width: 7rem;
+  height: 7rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: conic-gradient(
+    var(--accent) var(--progress),
+    var(--border) var(--progress)
+  );
+  position: relative;
+}
+
+.time-tracker__ring::before {
+  content: '';
+  position: absolute;
+  inset: 6px;
+  border-radius: 50%;
+  background: var(--surface-raised);
+}
+
+.time-tracker__countdown {
+  position: relative;
+  z-index: 1;
+  font-size: 1.25rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.time-tracker__btns {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.time-tracker__btn {
+  font-size: 0.8125rem;
+  padding: 0.4375rem 0.875rem;
+  border-radius: 6px;
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.time-tracker__btn--primary {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 15%, var(--surface));
+  color: var(--accent);
+}
+
+.time-tracker__btn:hover {
+  border-color: var(--accent);
+}
+
+.time-tracker__hint {
+  font-size: 0.6875rem;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.time-tracker__manual {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  justify-content: flex-end;
+}

@@ -1,0 +1,66 @@
+.add-habit {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.add-habit--compact {
+  margin-bottom: 0.5rem;
+}
+
+.add-habit--compact .add-habit__input {
+  padding: 0.5rem 0.625rem;
+  font-size: 0.8125rem;
+}
+
+.add-habit--compact .add-habit__btn {
+  padding: 0.5rem 0.75rem;
+  font-size: 0.8125rem;
+}
+
+.add-habit__input {
+  flex: 1;
+  padding: 0.625rem 0.75rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface-raised);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.875rem;
+}
+
+.add-habit__input::placeholder {
+  color: var(--text-muted);
+}
+
+.add-habit__input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.add-habit__btn {
+  padding: 0.625rem 1rem;
+  border-radius: 8px;
+  border: none;
+  background: var(--accent);
+  color: var(--bg);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.add-habit__btn:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.add-habit__btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.add-habit__btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
