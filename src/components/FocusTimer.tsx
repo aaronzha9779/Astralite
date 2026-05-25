@@ -14,6 +14,7 @@ function formatTime(totalSeconds: number): string {
   return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
 }
 
+
 export function FocusTimer({
   habitName,
   minutes,
@@ -32,6 +33,8 @@ export function FocusTimer({
       intervalRef.current = null
     }
   }, [])
+
+
 
   useEffect(() => {
     setRemaining(totalSeconds)
@@ -78,6 +81,12 @@ export function FocusTimer({
     setRunning(false)
     setRemaining(totalSeconds)
   }
+  
+
+  function handleStop() {
+    setRunning(false)
+    clearTimer()
+  }
 
   return (
     <div className="focus-timer">
@@ -119,7 +128,6 @@ export function FocusTimer({
             />
             <span className="focus-timer__duration-value">{minutes} min</span>
           </div>
-
           <div className="focus-timer__actions">
             <button
               type="button"
@@ -128,6 +136,16 @@ export function FocusTimer({
             >
               {running ? 'Pause' : done ? 'Restart' : 'Start'}
             </button>
+
+            <button
+              type="button"
+              className="focus-timer__btn"
+              onClick={handleStop}
+              disabled={!running}
+            >
+              Stop
+            </button>
+
             <button
               type="button"
               className="focus-timer__btn"

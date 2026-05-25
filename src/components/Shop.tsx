@@ -1,33 +1,105 @@
-import { useState } from 'react'
-import { rewards } from '../data/rewards'
-import type { PurchasedReward, UserProfile } from '../types'
+import { useRef, useState } from 'react'
+import type { Reward, UserProfile, PurchasedReward } from '../types'
 import './Shop.css'
+
+type PurchaseResult = 'success' | 'owned' | 'insufficient' | 'missing'
 
 type ShopProps = {
   profile: UserProfile
+  rewards: Reward[]
   purchasedRewards: PurchasedReward[]
-  onPurchase: (rewardId: string) => boolean
+  onPurchase: (rewardId: string) => PurchaseResult
+  onAddReward: (reward: Omit<Reward, 'id'>) => void
+  onUpdateReward: (rewardId: string, patch: Partial<Omit<Reward, 'id'>>) => void
+  onRemoveReward: (rewardId: string) => void
+  onReorderReward: (draggedId: string, targetId: string) => void
 }
 
-export function Shop({ profile, purchasedRewards, onPurchase }: ShopProps) {
+const EMPTY_REWARD: Omit<Reward, 'id'> = {
+  name: '',
+  description: '',
+  cost: 50,
+  emoji: '🎁',
+  imageUrl: null,
+  oneTime: false,
+}
+
+function readFileAsDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(String(reader.result ?? ''))
+    reader.onerror = () => reject(reader.error)
+    reader.readAsDataURL(file)
+  })
+}
+
+export function Shop({
+  profile,
+  rewards,
+  purchasedRewards,
+  onPurchase,
+  onAddReward,
+  onUpdateReward,
+  onRemoveReward,
+  onReorderReward,
+}: ShopProps) {
   const [message, setMessage] = useState<string | null>(null)
+  const [draft, setDraft] = useState<Omit<Reward, 'id'>>(EMPTY_REWARD)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [draggedId, setDraggedId] = useState<string | null>(null)
+  const imageInputRef = useRef<HTMLInputElement | null>(null)
+
+  function showMessage(next: string) {
+    setMessage(next)
+    setTimeout(() => setMessage(null), 3000)
+  }
+
+  function loadRewardIntoEditor(reward: Reward) {
+    setEditingId(reward.id)
+    setDraft({
+      name: reward.name,
+      description: reward.description,
+      cost: reward.cost,
+      emoji: reward.emoji,
+      imageUrl: reward.imageUrl ?? null,
+      oneTime: reward.oneTime,
+    })
+  }
+
+  function resetEditor() {
+    setEditingId(null)
+    setDraft(EMPTY_REWARD)
+  }
 
   function handlePurchase(rewardId: string) {
-    const ok = onPurchase(rewardId)
-    const reward = rewards.find((r) => r.id === rewardId)
-    if (ok && reward) {
-      setMessage(`Purchased ${reward.name}!`)
-    } else if (!ok && reward) {
-      const owned =
-        reward.oneTime &&
-        purchasedRewards.some((p) => p.rewardId === rewardId)
-      setMessage(
-        owned
-          ? 'You already own this reward.'
-          : 'Not enough XP to purchase.',
-      )
+    const result = onPurchase(rewardId)
+    const reward = rewards.find((item) => item.id === rewardId)
+    if (!reward) return
+
+    if (result === 'success') showMessage(`Purchased ${reward.name}!`)
+    else if (result === 'owned') showMessage('You already own this reward.')
+    else if (result === 'insufficient') showMessage('Not enough XP to purchase.')
+  }
+
+  function handleSaveReward() {
+    if (!draft.name.trim() || !draft.description.trim()) return
+
+    if (editingId) {
+      onUpdateReward(editingId, draft)
+      showMessage(`Updated ${draft.name.trim()}.`)
+    } else {
+      onAddReward(draft)
+      showMessage(`Added ${draft.name.trim()} to the shop.`)
     }
-    setTimeout(() => setMessage(null), 3000)
+
+    resetEditor()
+  }
+
+  async function handleImageUpload(file: File | null) {
+    if (!file) return
+    const imageUrl = await readFileAsDataUrl(file)
+    setDraft((prev) => ({ ...prev, imageUrl }))
+    if (imageInputRef.current) imageInputRef.current.value = ''
   }
 
   return (
@@ -35,36 +107,85 @@ export function Shop({ profile, purchasedRewards, onPurchase }: ShopProps) {
       <header className="dashboard__header">
         <h1 className="dashboard__title">Rewards Shop</h1>
         <p className="dashboard__subtitle">
-          Spend XP on perks and cosmetics ·{' '}
+          Spend XP on perks and cosmetics and drag cards to change their order.{' '}
           <strong className="shop__balance">{profile.availableXp} XP</strong>{' '}
           available
         </p>
       </header>
 
-      {message && (
+      {message ? (
         <p className="shop__toast" role="status">
           {message}
         </p>
-      )}
+      ) : null}
 
       <ul className="shop__grid">
         {rewards.map((reward) => {
           const owned =
             reward.oneTime &&
-            purchasedRewards.some((p) => p.rewardId === reward.id)
+            purchasedRewards.some((purchase) => purchase.rewardId === reward.id)
           const canAfford = profile.availableXp >= reward.cost
 
           return (
-            <li key={reward.id} className="shop__card">
-              <span className="shop__emoji" aria-hidden="true">
-                {reward.emoji}
-              </span>
+            <li
+              key={reward.id}
+              className={`shop__card${draggedId === reward.id ? ' shop__card--dragging' : ''}`}
+              draggable
+              onDragStart={() => setDraggedId(reward.id)}
+              onDragEnd={() => setDraggedId(null)}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={() => {
+                if (!draggedId) return
+                onReorderReward(draggedId, reward.id)
+                setDraggedId(null)
+              }}
+            >
+              <div className="shop__card-top">
+                <span className="shop__drag" aria-hidden="true">
+                  ⋮⋮
+                </span>
+                {reward.imageUrl ? (
+                  <img
+                    className="shop__symbol-img"
+                    src={reward.imageUrl}
+                    alt=""
+                  />
+                ) : (
+                  <span className="shop__emoji" aria-hidden="true">
+                    {reward.emoji}
+                  </span>
+                )}
+              </div>
               <div className="shop__info">
                 <h2 className="shop__name">{reward.name}</h2>
                 <p className="shop__desc">{reward.description}</p>
               </div>
-              <div className="shop__footer">
+              <div className="shop__meta">
                 <span className="shop__cost">{reward.cost} XP</span>
+                <span className="shop__type">
+                  {reward.oneTime ? 'One-time' : 'Repeatable'}
+                </span>
+              </div>
+              <div className="shop__footer">
+                <div className="shop__footer-actions">
+                  <button
+                    type="button"
+                    className="shop__edit"
+                    onClick={() => loadRewardIntoEditor(reward)}
+                  >
+                    Edit
+                  </button>
+                  <button
+                    type="button"
+                    className="shop__delete"
+                    onClick={() => {
+                      if (editingId === reward.id) resetEditor()
+                      onRemoveReward(reward.id)
+                    }}
+                  >
+                    Delete
+                  </button>
+                </div>
                 <button
                   type="button"
                   className="shop__buy"
@@ -78,6 +199,139 @@ export function Shop({ profile, purchasedRewards, onPurchase }: ShopProps) {
           )
         })}
       </ul>
+
+      <section className="shop__editor" aria-label="Reward editor">
+        <div className="shop__editor-head">
+          <div>
+            <h2 className="dashboard__section-title">
+              {editingId ? 'Edit reward' : 'Add reward'}
+            </h2>
+            <p className="shop__editor-hint">
+              One editor for both creation and editing. Upload an image or keep a text symbol.
+            </p>
+          </div>
+          {editingId ? (
+            <button
+              type="button"
+              className="shop__edit"
+              onClick={resetEditor}
+            >
+              New reward
+            </button>
+          ) : null}
+        </div>
+
+        <div className="shop__editor-grid">
+          <div className="shop__symbol-panel">
+            <div className="shop__symbol-preview">
+              {draft.imageUrl ? (
+                <img className="shop__symbol-img" src={draft.imageUrl} alt="" />
+              ) : (
+                <span className="shop__emoji" aria-hidden="true">
+                  {draft.emoji || '🎁'}
+                </span>
+              )}
+            </div>
+            <div className="shop__symbol-actions">
+              <label className="shop__field">
+                <span>Fallback text symbol</span>
+                <input
+                  className="shop__input shop__input--symbol"
+                  type="text"
+                  maxLength={4}
+                  value={draft.emoji}
+                  onChange={(e) =>
+                    setDraft((prev) => ({ ...prev, emoji: e.target.value }))
+                  }
+                />
+              </label>
+              <div className="shop__upload-actions">
+                <button
+                  type="button"
+                  className="shop__save"
+                  onClick={() => imageInputRef.current?.click()}
+                >
+                  Upload image
+                </button>
+                <button
+                  type="button"
+                  className="shop__delete"
+                  onClick={() => setDraft((prev) => ({ ...prev, imageUrl: null }))}
+                >
+                  Clear image
+                </button>
+              </div>
+              <input
+                ref={imageInputRef}
+                className="shop__file"
+                type="file"
+                accept="image/*"
+                onChange={(e) => {
+                  const file = e.target.files?.[0] ?? null
+                  void handleImageUpload(file)
+                }}
+              />
+            </div>
+          </div>
+
+          <label className="shop__field">
+            <span>Name</span>
+            <input
+              className="shop__input"
+              type="text"
+              value={draft.name}
+              onChange={(e) => setDraft((prev) => ({ ...prev, name: e.target.value }))}
+            />
+          </label>
+          <label className="shop__field shop__field--wide">
+            <span>Description</span>
+            <textarea
+              className="shop__input shop__input--textarea"
+              rows={3}
+              value={draft.description}
+              onChange={(e) =>
+                setDraft((prev) => ({ ...prev, description: e.target.value }))
+              }
+            />
+          </label>
+          <label className="shop__field">
+            <span>XP cost</span>
+            <input
+              className="shop__input"
+              type="number"
+              min={0}
+              value={draft.cost}
+              onChange={(e) =>
+                setDraft((prev) => ({ ...prev, cost: Number(e.target.value) || 0 }))
+              }
+            />
+          </label>
+          <label className="shop__checkbox">
+            <input
+              type="checkbox"
+              checked={draft.oneTime}
+              onChange={(e) =>
+                setDraft((prev) => ({ ...prev, oneTime: e.target.checked }))
+              }
+            />
+            One-time reward
+          </label>
+        </div>
+
+        <div className="shop__editor-actions">
+          <button
+            type="button"
+            className="shop__save"
+            onClick={handleSaveReward}
+            disabled={!draft.name.trim() || !draft.description.trim()}
+          >
+            {editingId ? 'Save reward' : 'Add reward'}
+          </button>
+          <button type="button" className="shop__edit" onClick={resetEditor}>
+            Clear editor
+          </button>
+        </div>
+      </section>
     </main>
   )
 }

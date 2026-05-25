@@ -17,18 +17,16 @@ type HabitsPageProps = {
   habits: Habit[]
   timeRecords: TimeRecord[]
   onToggle: (id: string) => void
-  onManualCompletion: (id: string, date: string) => void
   onSetLinked: (habitId: string, linkedIds: string[]) => void
-  onSetWeights: (habitId: string, difficulty: number, priority: number) => void
+  onResetToday: () => void
 }
 
 export function HabitsPage({
   habits,
   timeRecords,
   onToggle,
-  onManualCompletion,
   onSetLinked,
-  onSetWeights,
+  onResetToday,
 }: HabitsPageProps) {
   const byCategory = useMemo(() => {
     const map: Record<HabitCategory, Habit[]> = {
@@ -47,7 +45,7 @@ export function HabitsPage({
       <header className="dashboard__header">
         <h1 className="dashboard__title">Habits & Hobbies</h1>
         <p className="dashboard__subtitle">
-          Rank up by hours invested · tune difficulty & priority for XP rewards
+          Track progress, link related items, and manage your testing resets
         </p>
       </header>
 
@@ -74,9 +72,7 @@ export function HabitsPage({
                     allHabits={habits}
                     timeRecords={timeRecords}
                     onToggle={onToggle}
-                    onManualCompletion={onManualCompletion}
                     onSetLinked={onSetLinked}
-                    onSetWeights={onSetWeights}
                   />
                 ))}
               </div>
@@ -84,6 +80,27 @@ export function HabitsPage({
           </section>
         )
       })}
+
+      <section className="habits-page__section" aria-label="Reset controls">
+        <header className="habits-page__section-header">
+          <div>
+            <h2 className="habits-page__section-title">Reset controls</h2>
+            <p className="habits-page__section-subtitle">
+              Daily checkboxes also auto-reset when a new day starts.
+            </p>
+          </div>
+        </header>
+
+        <div className="habits-page__reset-card">
+          <button
+            type="button"
+            className="habits-page__reset-btn"
+            onClick={onResetToday}
+          >
+            Reset today&apos;s checkmarks
+          </button>
+        </div>
+      </section>
     </main>
   )
 }

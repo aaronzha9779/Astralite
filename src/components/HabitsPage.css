@@ -42,3 +42,28 @@
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 1rem;
 }
+
+.habits-page__reset-card {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  padding: 1rem;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface-raised);
+}
+
+.habits-page__reset-btn {
+  font: inherit;
+  font-size: 0.875rem;
+  padding: 0.625rem 0.95rem;
+  border-radius: 8px;
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.habits-page__reset-btn:hover {
+  border-color: var(--accent);
+}

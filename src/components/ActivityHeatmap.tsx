@@ -1,18 +1,35 @@
 import { useMemo, useState } from 'react'
 import { buildHeatmapDays, formatHeatmapDate } from '../lib/heatmap'
 import { getCompletionsForDate } from '../lib/completions'
-import type { CompletionRecord, HeatmapDay } from '../types'
+import { formatMinutes } from '../lib/time'
+import type { CompletionRecord, Habit, HeatmapDay, TimeRecord } from '../types'
 import './ActivityHeatmap.css'
 
 type ActivityHeatmapProps = {
+  habits: Habit[]
   completions: CompletionRecord[]
+  timeRecords: TimeRecord[]
 }
 
 const WEEKDAY_LABELS = ['', 'Mon', '', 'Wed', '', 'Fri', '']
 
-export function ActivityHeatmap({ completions }: ActivityHeatmapProps) {
-  const days = useMemo(() => buildHeatmapDays(completions), [completions])
+export function ActivityHeatmap({
+  habits,
+  completions,
+  timeRecords,
+}: ActivityHeatmapProps) {
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
+  const [selectedHabitId, setSelectedHabitId] = useState('all')
+
+  const filteredCompletions = useMemo(() => {
+    if (selectedHabitId === 'all') return completions
+    return completions.filter((entry) => entry.habitId === selectedHabitId)
+  }, [completions, selectedHabitId])
+
+  const days = useMemo(
+    () => buildHeatmapDays(filteredCompletions),
+    [filteredCompletions],
+  )
 
   const weeks = useMemo(() => {
     const cols: HeatmapDay[][] = []
@@ -41,11 +58,46 @@ export function ActivityHeatmap({ completions }: ActivityHeatmapProps) {
   }, [days])
 
   const selectedEntries = selectedDate
-    ? getCompletionsForDate(completions, selectedDate)
+    ? getCompletionsForDate(filteredCompletions, selectedDate)
     : []
+
+  const dayMinutes = selectedDate
+    ? timeRecords
+        .filter((record) => {
+          if (record.date !== selectedDate) return false
+          return selectedHabitId === 'all' || record.habitId === selectedHabitId
+        })
+        .reduce((sum, record) => sum + record.minutes, 0)
+    : 0
+
+  const options = useMemo(
+    () => habits.slice().sort((a, b) => a.name.localeCompare(b.name)),
+    [habits],
+  )
 
   return (
     <section className="heatmap" aria-label="Activity heatmap">
+      <div className="heatmap__toolbar">
+        <label className="heatmap__filter">
+          <span>Show</span>
+          <select
+            className="heatmap__filter-select"
+            value={selectedHabitId}
+            onChange={(e) => {
+              setSelectedHabitId(e.target.value)
+              setSelectedDate(null)
+            }}
+          >
+            <option value="all">All activity</option>
+            {options.map((habit) => (
+              <option key={habit.id} value={habit.id}>
+                {habit.name}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+
       <div className="heatmap__grid-wrap">
         <div className="heatmap__weekdays" aria-hidden="true">
           {WEEKDAY_LABELS.map((label, i) => (
@@ -121,7 +173,7 @@ export function ActivityHeatmap({ completions }: ActivityHeatmapProps) {
                   <span className="heatmap__day-log-check" aria-hidden="true">
                     ✓
                   </span>
-                  {entry.habitName}
+                  <span className="heatmap__day-log-name">{entry.habitName}</span>
                 </li>
               ))}
             </ul>
@@ -129,6 +181,8 @@ export function ActivityHeatmap({ completions }: ActivityHeatmapProps) {
           <p className="heatmap__day-log-count">
             {selectedEntries.length} habit
             {selectedEntries.length === 1 ? '' : 's'} completed
+            {' · '}
+            {formatMinutes(dayMinutes)} tracked
           </p>
         </aside>
       )}

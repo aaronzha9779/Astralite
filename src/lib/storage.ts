@@ -1,13 +1,24 @@
-import type { AppState, DashboardPrefs, Habit, HabitCategory } from '../types'
+import { createEmptyAppState } from '../data/seedData'
+import { rewards as defaultRewards } from '../data/rewards'
+import { getNowLocalISO, getTodayISO } from './dates'
+import type { AccountSummary, AppState, DashboardPrefs, Habit, HabitCategory } from '../types'
 
-const STORAGE_KEY = 'grind-app-v4'
+const STORAGE_KEY = 'grind-app-v5'
 const V3_KEY = 'grind-app-v3'
 const V2_KEY = 'grind-app-v2'
 const LEGACY_KEY = 'grind-app-v1'
+const SINGLE_STATE_KEY = 'grind-app-v4'
 
 type LegacyState = {
   habits: AppState['habits']
-  profile: { name: string; handle: string; totalXp?: number; totalMinutes?: number }
+  profile: {
+    name: string
+    handle: string
+    avatarUrl?: string | null
+    accentColor?: string
+    totalXp?: number
+    totalMinutes?: number
+  }
   lastActiveDate: string
 }
 
@@ -20,10 +31,24 @@ type LegacyHabit = Habit & {
 type LegacyProfile = {
   name: string
   handle: string
+  avatarUrl?: string | null
+  accentColor?: string
   totalXp?: number
   spentXp?: number
   totalMinutes?: number
   spentMinutes?: number
+}
+
+type StoredAccounts = {
+  activeAccountId: string
+  accounts: Record<string, AppState>
+}
+
+export type SaveFilePayload = {
+  version: 1
+  exportedAt: string
+  accountName: string
+  appState: AppState
 }
 
 function migrate(raw: unknown): AppState | null {
@@ -43,6 +68,8 @@ function migrate(raw: unknown): AppState | null {
     profile: {
       name: legacy.profile?.name ?? 'Grinder',
       handle: legacy.profile?.handle ?? '@you',
+      avatarUrl: legacy.profile?.avatarUrl ?? null,
+      accentColor: legacy.profile?.accentColor ?? '#a3e635',
       totalMinutes:
         legacy.profile?.totalMinutes ??
         (legacy.profile as { totalXp?: number })?.totalXp ??
@@ -52,6 +79,7 @@ function migrate(raw: unknown): AppState | null {
       spentXp: 0,
     },
     lastActiveDate: legacy.lastActiveDate ?? new Date().toISOString().slice(0, 10),
+    rewards: defaultRewards,
     completions: [],
     timeRecords: [],
     purchasedRewards: [],
@@ -113,6 +141,8 @@ function normalizeProfile(profile: LegacyProfile): AppState['profile'] {
   return {
     name: profile.name ?? 'Grinder',
     handle: profile.handle ?? '@you',
+    avatarUrl: profile.avatarUrl ?? null,
+    accentColor: profile.accentColor ?? '#a3e635',
     totalMinutes,
     spentMinutes,
     totalXp:
@@ -139,22 +169,27 @@ function normalizeState(state: AppState): AppState {
           : defaultDashboard.quotes,
     },
     profile,
-    completions: state.completions ?? [],
+    rewards: (state.rewards?.length ? state.rewards : defaultRewards).map((reward) => ({
+      ...reward,
+      imageUrl: reward.imageUrl ?? null,
+    })),
+    completions: (state.completions ?? []).map((completion) => ({
+      ...completion,
+      completedAt:
+        completion.completedAt ?? `${completion.date}T12:00:00`,
+    })),
     timeRecords: state.timeRecords ?? [],
     purchasedRewards: state.purchasedRewards ?? [],
   }
 }
 
-export function loadState(): AppState | null {
+function loadLegacySingleState(): AppState | null {
   try {
-    for (const key of [STORAGE_KEY, V3_KEY, V2_KEY, LEGACY_KEY]) {
+    for (const key of [SINGLE_STATE_KEY, V3_KEY, V2_KEY, LEGACY_KEY]) {
       const raw = localStorage.getItem(key)
       if (!raw) continue
       const migrated = migrate(JSON.parse(raw))
       if (migrated) {
-        if (key !== STORAGE_KEY) {
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(migrated))
-        }
         return migrated
       }
     }
@@ -164,6 +199,125 @@ export function loadState(): AppState | null {
   }
 }
 
-export function saveState(state: AppState): void {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
+function buildAccountSummary(id: string, state: AppState): AccountSummary {
+  const lastCompletionAt = state.completions.reduce(
+    (latest, completion) =>
+      completion.completedAt > latest ? completion.completedAt : latest,
+    '',
+  )
+  const lastTimeRecordAt = state.timeRecords.reduce(
+    (latest, record) =>
+      `${record.date}T23:59:59` > latest ? `${record.date}T23:59:59` : latest,
+    '',
+  )
+
+  return {
+    id,
+    name: state.profile.name,
+    handle: state.profile.handle,
+    lastUpdatedAt:
+      lastCompletionAt || lastTimeRecordAt || `${state.lastActiveDate}T00:00:00`,
+  }
+}
+
+function normalizeStoredAccounts(raw: StoredAccounts): StoredAccounts {
+  const accounts = Object.fromEntries(
+    Object.entries(raw.accounts ?? {}).map(([id, state]) => [
+      id,
+      normalizeState(state),
+    ]),
+  )
+  const activeAccountId =
+    raw.activeAccountId && accounts[raw.activeAccountId]
+      ? raw.activeAccountId
+      : Object.keys(accounts)[0] ?? ''
+
+  return { activeAccountId, accounts }
+}
+
+function migrateToAccounts(): StoredAccounts {
+  const existing = localStorage.getItem(STORAGE_KEY)
+  if (existing) {
+    return normalizeStoredAccounts(JSON.parse(existing) as StoredAccounts)
+  }
+
+  const legacyState = loadLegacySingleState() ?? createEmptyAppState()
+  const accountId = crypto.randomUUID()
+  const stored: StoredAccounts = {
+    activeAccountId: accountId,
+    accounts: {
+      [accountId]: normalizeState(legacyState),
+    },
+  }
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(stored))
+  return stored
+}
+
+export function loadAccounts() {
+  const stored = migrateToAccounts()
+  return {
+    activeAccountId: stored.activeAccountId,
+    accountsById: stored.accounts,
+    accounts: Object.entries(stored.accounts)
+      .map(([id, accountState]) => buildAccountSummary(id, accountState))
+      .sort((a, b) => b.lastUpdatedAt.localeCompare(a.lastUpdatedAt)),
+  }
+}
+
+export function saveAccounts(
+  activeAccountId: string,
+  accounts: Record<string, AppState>,
+): void {
+  const normalized = Object.fromEntries(
+    Object.entries(accounts).map(([id, state]) => [id, normalizeState(state)]),
+  )
+  localStorage.setItem(
+    STORAGE_KEY,
+    JSON.stringify({ activeAccountId, accounts: normalized }),
+  )
+}
+
+export function createAccountState(name: string, handle?: string): AppState {
+  const base = createEmptyAppState()
+  const cleanName = name.trim() || 'Grinder'
+  const cleanHandle =
+    handle?.trim() ||
+    `@${cleanName
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '')
+      .slice(0, 16) || 'you'}`
+
+  return {
+    ...base,
+    profile: {
+      ...base.profile,
+      name: cleanName,
+      handle: cleanHandle.startsWith('@') ? cleanHandle : `@${cleanHandle}`,
+    },
+    lastActiveDate: getTodayISO(),
+  }
+}
+
+export function createSaveFilePayload(state: AppState): SaveFilePayload {
+  return {
+    version: 1,
+    exportedAt: getNowLocalISO(),
+    accountName: state.profile.name,
+    appState: normalizeState(state),
+  }
+}
+
+export function parseSaveFilePayload(raw: string): AppState | null {
+  try {
+    const parsed = JSON.parse(raw) as Partial<SaveFilePayload> | AppState
+    if ('appState' in parsed && parsed.appState) {
+      return normalizeState(parsed.appState)
+    }
+    if ('habits' in parsed && Array.isArray(parsed.habits)) {
+      return normalizeState(parsed as AppState)
+    }
+    return null
+  } catch {
+    return null
+  }
 }

@@ -4,6 +4,7 @@ import { useAppState } from '../hooks/useAppState'
 import { Dashboard } from './Dashboard'
 import { HabitsPage } from './HabitsPage'
 import { Header } from './Header'
+import { SettingsPage } from './SettingsPage'
 import { Shop } from './Shop'
 import { Sidebar } from './Sidebar'
 import { StatsPage } from './StatsPage'
@@ -13,31 +14,43 @@ import './Layout.css'
 export function Layout() {
   const [activeNavId, setActiveNavId] = useState('dashboard')
   const {
+    activeAccountId,
+    accounts,
     habits,
     weeklyTasks,
     dashboard,
     completions,
     timeRecords,
+    rewards,
     purchasedRewards,
     profile,
     stats,
     statsPageSummary,
     toggleHabit,
-    addManualCompletion,
     addManualTime,
     logTimerSession,
     setLinkedHabits,
-    setHabitWeights,
     addHabit,
     addWeeklyTask,
     toggleWeeklyTask,
     removeWeeklyTask,
     setWeeklyOpen,
     setDailyGoal,
+    resetToday,
+    fullReset,
     addQuote,
     removeQuote,
     shuffleQuote,
     purchaseReward,
+    addReward,
+    updateReward,
+    removeReward,
+    reorderReward,
+    updateProfile,
+    createAccount,
+    switchAccount,
+    exportSaveFile,
+    importSaveFile,
   } = useAppState()
 
   function renderMain() {
@@ -78,16 +91,20 @@ export function Layout() {
           habits={habits}
           timeRecords={timeRecords}
           onToggle={toggleHabit}
-          onManualCompletion={addManualCompletion}
           onSetLinked={setLinkedHabits}
-          onSetWeights={setHabitWeights}
+          onResetToday={resetToday}
         />
       )
     }
 
     if (activeNavId === 'stats') {
       return (
-        <StatsPage completions={completions} stats={statsPageSummary} />
+        <StatsPage
+          habits={habits}
+          completions={completions}
+          timeRecords={timeRecords}
+          stats={statsPageSummary}
+        />
       )
     }
 
@@ -95,8 +112,23 @@ export function Layout() {
       return (
         <Shop
           profile={profile}
+          rewards={rewards}
           purchasedRewards={purchasedRewards}
           onPurchase={purchaseReward}
+          onAddReward={addReward}
+          onUpdateReward={updateReward}
+          onRemoveReward={removeReward}
+          onReorderReward={reorderReward}
+        />
+      )
+    }
+
+    if (activeNavId === 'settings') {
+      return (
+        <SettingsPage
+          profile={profile}
+          onUpdateProfile={updateProfile}
+          onFullReset={fullReset}
         />
       )
     }
@@ -122,7 +154,15 @@ export function Layout() {
         onNavClick={setActiveNavId}
       />
       <div className="layout__body">
-        <Sidebar profile={profile} />
+        <Sidebar
+          profile={profile}
+          accounts={accounts}
+          activeAccountId={activeAccountId}
+          onSwitchAccount={switchAccount}
+          onCreateAccount={createAccount}
+          onExportSaveFile={exportSaveFile}
+          onImportSaveFile={importSaveFile}
+        />
         {renderMain()}
       </div>
     </div>

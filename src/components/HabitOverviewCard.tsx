@@ -1,7 +1,6 @@
 import { useMemo, useState } from 'react'
 import type { Habit, TimeRecord } from '../types'
 import { getHabitMaturity } from '../lib/maturity'
-import { getHabitWeight } from '../lib/xp'
 import { formatMinutes, getHabitTimeBreakdown } from '../lib/time'
 import './HabitOverviewCard.css'
 
@@ -10,9 +9,7 @@ type HabitOverviewCardProps = {
   allHabits: Habit[]
   timeRecords: TimeRecord[]
   onToggle: (id: string) => void
-  onManualCompletion: (id: string, date: string) => void
   onSetLinked: (habitId: string, linkedIds: string[]) => void
-  onSetWeights: (habitId: string, difficulty: number, priority: number) => void
 }
 
 export function HabitOverviewCard({
@@ -20,15 +17,11 @@ export function HabitOverviewCard({
   allHabits,
   timeRecords,
   onToggle,
-  onManualCompletion,
   onSetLinked,
-  onSetWeights,
 }: HabitOverviewCardProps) {
   const [showLink, setShowLink] = useState(false)
-  const [backfillDate, setBackfillDate] = useState('')
 
   const maturity = getHabitMaturity(habit.totalMinutes)
-  const weight = getHabitWeight(habit)
   const timeStats = useMemo(
     () => getHabitTimeBreakdown(timeRecords, habit.id),
     [timeRecords, habit.id],
@@ -115,40 +108,7 @@ export function HabitOverviewCard({
           <dt>All time</dt>
           <dd>{formatMinutes(timeStats.totalMinutes || habit.totalMinutes)}</dd>
         </div>
-        <div>
-          <dt>XP weight</dt>
-          <dd>{weight.toFixed(2)}×</dd>
-        </div>
       </dl>
-
-      <div className="habit-overview__weights">
-        <label>
-          Difficulty
-          <input
-            type="range"
-            min={1}
-            max={5}
-            value={habit.difficulty ?? 3}
-            onChange={(e) =>
-              onSetWeights(habit.id, Number(e.target.value), habit.priority ?? 3)
-            }
-          />
-          <span>{habit.difficulty ?? 3}</span>
-        </label>
-        <label>
-          Priority
-          <input
-            type="range"
-            min={1}
-            max={5}
-            value={habit.priority ?? 3}
-            onChange={(e) =>
-              onSetWeights(habit.id, habit.difficulty ?? 3, Number(e.target.value))
-            }
-          />
-          <span>{habit.priority ?? 3}</span>
-        </label>
-      </div>
 
       {linkedNames.length > 0 ? (
         <p className="habit-overview__linked">
@@ -183,28 +143,6 @@ export function HabitOverviewCard({
           ))}
         </ul>
       ) : null}
-
-      <div className="habit-overview__manual">
-        <label>
-          Backfill date
-          <input
-            type="date"
-            value={backfillDate}
-            max={new Date().toISOString().slice(0, 10)}
-            onChange={(e) => setBackfillDate(e.target.value)}
-          />
-        </label>
-        <button
-          type="button"
-          disabled={!backfillDate}
-          onClick={() => {
-            onManualCompletion(habit.id, backfillDate)
-            setBackfillDate('')
-          }}
-        >
-          Mark done
-        </button>
-      </div>
     </article>
   )
 }

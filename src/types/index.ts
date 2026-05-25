@@ -6,6 +6,8 @@ export type NavItem = {
 export type UserProfile = {
   name: string
   handle: string
+  avatarUrl: string | null
+  accentColor: string
   rank: string
   level: number
   /** Minutes toward next level (rank is time-based). */
@@ -58,6 +60,7 @@ export type CompletionRecord = {
   habitId: string
   habitName: string
   date: string
+  completedAt: string
 }
 
 export type TimeRecord = {
@@ -77,6 +80,8 @@ export type PurchasedReward = {
 export type ProfileData = {
   name: string
   handle: string
+  avatarUrl: string | null
+  accentColor: string
   totalMinutes: number
   spentMinutes: number
   totalXp: number
@@ -88,10 +93,18 @@ export type AppState = {
   weeklyTasks: WeeklyTask[]
   dashboard: DashboardPrefs
   profile: ProfileData
+  rewards: Reward[]
   lastActiveDate: string
   completions: CompletionRecord[]
   timeRecords: TimeRecord[]
   purchasedRewards: PurchasedReward[]
+}
+
+export type AccountSummary = {
+  id: string
+  name: string
+  handle: string
+  lastUpdatedAt: string
 }
 
 export type DashboardStat = {
@@ -106,6 +119,7 @@ export type Reward = {
   description: string
   cost: number
   emoji: string
+  imageUrl?: string | null
   oneTime: boolean
 }
 

@@ -2,6 +2,30 @@
   margin-bottom: 2rem;
 }
 
+.heatmap__toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 0.5rem;
+}
+
+.heatmap__filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.heatmap__filter-select {
+  font: inherit;
+  font-size: 0.8125rem;
+  padding: 0.35rem 0.5rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+}
+
 .heatmap__grid-wrap {
   display: flex;
   gap: 0.5rem;
@@ -177,6 +201,10 @@ button.heatmap__cell:focus-visible {
   align-items: center;
   gap: 0.5rem;
   font-size: 0.875rem;
+}
+
+.heatmap__day-log-name {
+  flex: 1;
 }
 
 .heatmap__day-log-check {

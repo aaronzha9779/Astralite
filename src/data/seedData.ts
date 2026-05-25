@@ -1,4 +1,5 @@
 import { getTodayISO } from '../lib/dates'
+import { rewards } from './rewards'
 import type { AppState, CompletionRecord, Habit } from '../types'
 
 const today = getTodayISO()
@@ -111,6 +112,14 @@ function toLocalISODate(d: Date): string {
   return `${y}-${m}-${day}`
 }
 
+function toLocalISODateTime(d: Date): string {
+  const date = toLocalISODate(d)
+  const hours = String(d.getHours()).padStart(2, '0')
+  const minutes = String(d.getMinutes()).padStart(2, '0')
+  const seconds = String(d.getSeconds()).padStart(2, '0')
+  return `${date}T${hours}:${minutes}:${seconds}`
+}
+
 function buildSampleCompletions(habits: Habit[]): CompletionRecord[] {
   const records: CompletionRecord[] = []
   const now = new Date()
@@ -132,6 +141,9 @@ function buildSampleCompletions(habits: Habit[]): CompletionRecord[] {
         habitId: habit.id,
         habitName: habit.name,
         date,
+        completedAt: toLocalISODateTime(
+          new Date(d.getFullYear(), d.getMonth(), d.getDate(), 7 + j, 15, 0),
+        ),
       })
     }
   }
@@ -158,13 +170,48 @@ export const defaultAppState: AppState = {
   profile: {
     name: 'Grinder',
     handle: '@you',
+    avatarUrl: null,
+    accentColor: '#a3e635',
     totalMinutes: 600,
     spentMinutes: 0,
     totalXp: 450,
     spentXp: 0,
   },
+  rewards,
   lastActiveDate: today,
   completions: buildSampleCompletions(seedHabits),
   timeRecords: [],
   purchasedRewards: [],
+}
+
+export function createEmptyAppState(): AppState {
+  return {
+    habits: [],
+    weeklyTasks: [],
+    dashboard: {
+      quotes: [
+        'Small steps every day beat big bursts once a month.',
+        'You do not have to be extreme — just consistent.',
+        'Discipline is choosing what you want most over what you want now.',
+      ],
+      dailyGoal: '',
+      weeklyOpen: false,
+      activeQuoteIndex: null,
+    },
+    profile: {
+      name: 'Grinder',
+      handle: '@you',
+      avatarUrl: null,
+      accentColor: '#a3e635',
+      totalMinutes: 0,
+      spentMinutes: 0,
+      totalXp: 0,
+      spentXp: 0,
+    },
+    rewards: structuredClone(rewards),
+    lastActiveDate: getTodayISO(),
+    completions: [],
+    timeRecords: [],
+    purchasedRewards: [],
+  }
 }

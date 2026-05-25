@@ -69,7 +69,7 @@ export function TimerPage({
     setRunning(true)
   }
 
-  function handleReset() {
+  function finishSession() {
     setRunning(false)
     if (elapsed >= 60 && habitId) {
       const minutes = Math.round(elapsed / 60)
@@ -79,13 +79,21 @@ export function TimerPage({
     setElapsed(0)
   }
 
+  function handleReset() {
+    finishSession()
+  }
+
+  function handleStop() {
+    setRunning(false)
+  }
+
   return (
     <main className="dashboard timer-page">
       <header className="dashboard__header">
         <div>
           <h1 className="dashboard__title">Timer</h1>
           <p className="dashboard__subtitle">
-            Live stopwatch for any skill · reset saves sessions over 1 minute
+            Live stopwatch for any skill · stop pauses, reset saves sessions over 1 minute
           </p>
         </div>
       </header>
@@ -130,6 +138,14 @@ export function TimerPage({
               onClick={handleStart}
             >
               Start
+            </button>
+            <button
+              type="button"
+              className="timer-page__btn"
+              disabled={!running && elapsed === 0}
+              onClick={handleStop}
+            >
+              Stop
             </button>
             <button type="button" className="timer-page__btn" onClick={handleReset}>
               Reset

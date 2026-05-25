@@ -1,3 +1,4 @@
+import { getNowLocalISO } from './dates'
 import type { CompletionRecord } from '../types'
 
 export function addCompletion(
@@ -5,6 +6,7 @@ export function addCompletion(
   habitId: string,
   habitName: string,
   date: string,
+  completedAt = getNowLocalISO(),
 ): CompletionRecord[] {
   const exists = completions.some(
     (c) => c.habitId === habitId && c.date === date,
@@ -18,6 +20,7 @@ export function addCompletion(
       habitId,
       habitName,
       date,
+      completedAt,
     },
   ]
 }

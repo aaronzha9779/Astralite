@@ -9,11 +9,9 @@ export type XpBreakdown = {
   bonusLabel?: string
 }
 
-/** Weight from difficulty (1–5) and priority (1–5). */
 export function getHabitWeight(habit: Habit): number {
-  const difficulty = habit.difficulty ?? 3
-  const priority = habit.priority ?? 3
-  return 0.5 + (difficulty / 5) * 0.55 + (priority / 5) * 0.45
+  void habit
+  return 1
 }
 
 /** Variable bonus — law-of-maybe style intermittent rewards. */
@@ -39,8 +37,8 @@ export function rollBonusXp(base: number): { amount: number; label?: string } {
 }
 
 export function calculateTimeXp(habit: Habit, minutes: number): XpBreakdown {
-  const weight = getHabitWeight(habit)
-  const base = Math.max(1, Math.round(minutes * weight * 0.6))
+  void habit
+  const base = Math.max(1, Math.round(minutes * 0.6))
   const bonusRoll = rollBonusXp(base)
   return {
     base,
@@ -51,8 +49,8 @@ export function calculateTimeXp(habit: Habit, minutes: number): XpBreakdown {
 }
 
 export function calculateCompletionXp(habit: Habit): XpBreakdown {
-  const weight = getHabitWeight(habit)
-  const base = Math.max(5, Math.round(12 * weight))
+  void habit
+  const base = 15
   const bonusRoll = rollBonusXp(base)
   return {
     base,
@@ -71,6 +69,8 @@ export function toUserProfile(profile: ProfileData): UserProfile {
   return {
     name: profile.name,
     handle: profile.handle,
+    avatarUrl: profile.avatarUrl,
+    accentColor: profile.accentColor,
     rank: getRankForLevel(level),
     level,
     progressMinutes: current,
