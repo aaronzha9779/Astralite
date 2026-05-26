@@ -15,6 +15,7 @@ export function applyDailyReset(habits: Habit[], lastActiveDate: string): Habit[
     return {
       ...habit,
       doneToday: false,
+      progressToday: 0,
       streak: keptStreak ? habit.streak : 0,
     }
   })
@@ -37,6 +38,7 @@ export function completeHabit(habit: Habit, today: string): Habit {
   return {
     ...habit,
     doneToday: true,
+    progressToday: habit.category === 'hobby' ? Math.max(1, habit.progressToday) : habit.progressToday,
     streak,
     lastCompletedDate: today,
   }
@@ -44,6 +46,9 @@ export function completeHabit(habit: Habit, today: string): Habit {
 
 export function uncompleteHabit(habit: Habit, today: string): Habit {
   if (!habit.doneToday) return habit
+  if (habit.category === 'hobby' && habit.progressToday > 0) {
+    return habit
+  }
 
   let { streak, lastCompletedDate } = habit
 
@@ -61,6 +66,7 @@ export function uncompleteHabit(habit: Habit, today: string): Habit {
   return {
     ...habit,
     doneToday: false,
+    progressToday: habit.category === 'hobby' ? habit.progressToday : 0,
     streak,
     lastCompletedDate,
   }
@@ -98,6 +104,10 @@ export function applyCompletionOnDate(habit: Habit, date: string): Habit {
     streak,
     lastCompletedDate,
     doneToday: date === today ? true : habit.doneToday,
+    progressToday:
+      habit.category === 'hobby' && date === today
+        ? Math.max(1, habit.progressToday)
+        : habit.progressToday,
   }
 }
 
@@ -109,9 +119,12 @@ export function createHabit(name: string, category: HabitCategory = 'habit'): Ha
     category,
     streak: 0,
     doneToday: false,
+    progressToday: 0,
+    totalProgress: 0,
     lastCompletedDate: null,
     createdAt: today,
     totalMinutes: 0,
+    totalXpEarned: 0,
     difficulty: 3,
     priority: 3,
     linkedHabitIds: [],

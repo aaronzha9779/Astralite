@@ -1,6 +1,13 @@
+import { getFlatCompletionXp, getFlatTimeXp } from './xp'
 import { formatMinutes } from './time'
 import { groupCompletionsByDate } from './completions'
-import type { CompletionRecord, DashboardStat, Habit, TimeRecord } from '../types'
+import type {
+  AppPreferences,
+  CompletionRecord,
+  DashboardStat,
+  Habit,
+  TimeRecord,
+} from '../types'
 
 export type RecentHistoryDay = {
   date: string
@@ -12,25 +19,43 @@ export function getStatsPageSummary(
   habits: Habit[],
   completions: CompletionRecord[],
   timeRecords: TimeRecord[],
+  preferences: AppPreferences,
+  totalXp: number,
 ): DashboardStat[] {
   const byDate = groupCompletionsByDate(completions)
+  const habitById = new Map(habits.map((habit) => [habit.id, habit]))
   const totalCompletions = completions.length
-  const activeDays = byDate.size
   const bestStreak = habits.reduce((max, h) => Math.max(max, h.streak), 0)
   let bestDayCount = 0
   let bestDayMinutes = 0
+  let bestDayXp = 0
 
   for (const [date, dayCompletions] of byDate.entries()) {
     const dayMinutes = timeRecords
       .filter((record) => record.date === date)
       .reduce((sum, record) => sum + record.minutes, 0)
+    const completionXp = dayCompletions.reduce((sum, record) => {
+      const habit = habitById.get(record.habitId)
+      const baseXp = preferences.itemCompletionXp[record.habitId] ?? 15
+      return sum + getFlatCompletionXp(habit ? baseXp : 15)
+    }, 0)
+    const timeXp = timeRecords
+      .filter((record) => record.date === date)
+      .reduce((sum, record) => sum + getFlatTimeXp(record.minutes), 0)
+    const dayXp = completionXp + timeXp
 
     if (
       dayCompletions.length > bestDayCount ||
-      (dayCompletions.length === bestDayCount && dayMinutes > bestDayMinutes)
+      (dayCompletions.length === bestDayCount && dayXp > bestDayXp) ||
+      (
+        dayCompletions.length === bestDayCount &&
+        dayXp === bestDayXp &&
+        dayMinutes > bestDayMinutes
+      )
     ) {
       bestDayCount = dayCompletions.length
       bestDayMinutes = dayMinutes
+      bestDayXp = dayXp
     }
   }
 
@@ -41,9 +66,9 @@ export function getStatsPageSummary(
       value: String(totalCompletions),
     },
     {
-      id: 'active-days',
-      label: 'Active days',
-      value: String(activeDays),
+      id: 'total-xp',
+      label: 'All-time XP',
+      value: `${totalXp} XP`,
     },
     {
       id: 'best-streak',
@@ -56,7 +81,7 @@ export function getStatsPageSummary(
       value:
         bestDayCount === 0
           ? '—'
-          : `${bestDayCount} habits · ${formatMinutes(bestDayMinutes)}`,
+          : `${bestDayCount} habits · ${formatMinutes(bestDayMinutes)} · ${bestDayXp} XP`,
     },
   ]
 }

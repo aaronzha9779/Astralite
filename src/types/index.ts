@@ -3,20 +3,31 @@ export type NavItem = {
   label: string
 }
 
+export type RankTier = {
+  id: string
+  name: string
+  minLevel: number
+  imageUrl: string | null
+}
+
 export type UserProfile = {
   name: string
   handle: string
   avatarUrl: string | null
   accentColor: string
+  streakSymbol: string
+  streakSymbolImageUrl: string | null
   rank: string
+  rankImageUrl?: string | null
   level: number
-  /** Minutes toward next level (rank is time-based). */
-  progressMinutes: number
+  /** XP progress inside the current level. */
+  progressXp: number
   progressToNext: number
   availableMinutes: number
   totalMinutes: number
-  /** Spendable XP for the shop (secondary currency). */
+  /** Spendable XP for the shop only. */
   availableXp: number
+  shopXp: number
   totalXp: number
 }
 
@@ -28,10 +39,13 @@ export type Habit = {
   category: HabitCategory
   streak: number
   doneToday: boolean
+  progressToday: number
+  totalProgress: number
   lastCompletedDate: string | null
   createdAt: string
   /** Lifetime minutes logged for this item. */
   totalMinutes: number
+  totalXpEarned: number
   /** 1 (easy) – 5 (hard); affects baseline XP. */
   difficulty: number
   /** 1 (low) – 5 (high); affects baseline XP. */
@@ -50,9 +64,18 @@ export type WeeklyTask = {
 export type DashboardPrefs = {
   quotes: string[]
   dailyGoal: string
+  checksOpen: boolean
   weeklyOpen: boolean
+  collapsedCategories: Partial<Record<HabitCategory, boolean>>
   /** Index into quotes when showing a fixed quote; null = random on load. */
   activeQuoteIndex: number | null
+}
+
+export type AppPreferences = {
+  itemCompletionXp: Record<string, number>
+  itemBaseMinutes: Record<string, number>
+  levelUpXp: number
+  ranks: RankTier[]
 }
 
 export type CompletionRecord = {
@@ -82,17 +105,22 @@ export type ProfileData = {
   handle: string
   avatarUrl: string | null
   accentColor: string
+  streakSymbol: string
+  streakSymbolImageUrl: string | null
   totalMinutes: number
   spentMinutes: number
   totalXp: number
+  shopXp: number
   spentXp: number
 }
 
 export type AppState = {
   habits: Habit[]
+  checks: WeeklyTask[]
   weeklyTasks: WeeklyTask[]
   dashboard: DashboardPrefs
   profile: ProfileData
+  preferences: AppPreferences
   rewards: Reward[]
   lastActiveDate: string
   completions: CompletionRecord[]
@@ -104,6 +132,7 @@ export type AccountSummary = {
   id: string
   name: string
   handle: string
+  avatarUrl: string | null
   lastUpdatedAt: string
 }
 

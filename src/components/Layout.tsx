@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { mainNavItems, shopNavItem } from '../data/fakeData'
 import { useAppState } from '../hooks/useAppState'
 import { Dashboard } from './Dashboard'
@@ -17,26 +17,33 @@ export function Layout() {
     activeAccountId,
     accounts,
     habits,
+    checks,
     weeklyTasks,
     dashboard,
     completions,
     timeRecords,
     rewards,
+    preferences,
     purchasedRewards,
     profile,
-    stats,
     statsPageSummary,
     toggleHabit,
+    incrementHobby,
     addManualTime,
     logTimerSession,
     setLinkedHabits,
     addHabit,
+    addCheck,
     addWeeklyTask,
+    toggleCheck,
     toggleWeeklyTask,
+    removeCheck,
     removeWeeklyTask,
+    setChecksOpen,
     setWeeklyOpen,
     setDailyGoal,
     resetToday,
+    softReset,
     fullReset,
     addQuote,
     removeQuote,
@@ -47,22 +54,63 @@ export function Layout() {
     removeReward,
     reorderReward,
     updateProfile,
+    updatePreferences,
     createAccount,
     switchAccount,
+    deleteAccount,
     exportSaveFile,
     importSaveFile,
   } = useAppState()
+  const [timerHabitId, setTimerHabitId] = useState(habits[0]?.id ?? '')
+  const [timerElapsed, setTimerElapsed] = useState(0)
+  const [timerRunning, setTimerRunning] = useState(false)
+  const rawXpByHabit = useMemo(() => {
+    return Object.fromEntries(
+      habits.map((habit) => [habit.id, habit.totalXpEarned ?? 0]),
+    )
+  }, [habits])
+
+  useEffect(() => {
+    if (!habits.some((habit) => habit.id === timerHabitId)) {
+      setTimerHabitId(habits[0]?.id ?? '')
+    }
+  }, [habits, timerHabitId])
+
+  useEffect(() => {
+    if (!timerRunning) return
+    const intervalId = window.setInterval(() => {
+      setTimerElapsed((value) => value + 1)
+    }, 1000)
+    return () => window.clearInterval(intervalId)
+  }, [timerRunning])
+
+  function handleTimerReset() {
+    setTimerRunning(false)
+    if (timerElapsed >= 60 && timerHabitId) {
+      logTimerSession(timerHabitId, Math.round(timerElapsed / 60))
+    }
+    setTimerElapsed(0)
+  }
 
   function renderMain() {
     if (activeNavId === 'dashboard') {
       return (
         <Dashboard
           habits={habits}
+          checks={checks}
           weeklyTasks={weeklyTasks}
+          streakSymbol={profile.streakSymbol}
+          streakSymbolImageUrl={profile.streakSymbolImageUrl}
+          preferences={preferences}
+          rawXpByHabit={rawXpByHabit}
           dashboard={dashboard}
-          stats={stats}
           onToggle={toggleHabit}
+          onIncrementHobby={incrementHobby}
           onAdd={addHabit}
+          onCheckToggle={toggleCheck}
+          onCheckAdd={addCheck}
+          onCheckRemove={removeCheck}
+          onChecksOpenChange={setChecksOpen}
           onWeeklyToggle={toggleWeeklyTask}
           onWeeklyAdd={addWeeklyTask}
           onWeeklyRemove={removeWeeklyTask}
@@ -79,7 +127,13 @@ export function Layout() {
       return (
         <TimerPage
           habits={habits}
-          onSessionComplete={logTimerSession}
+          habitId={timerHabitId}
+          elapsed={timerElapsed}
+          running={timerRunning}
+          onHabitIdChange={setTimerHabitId}
+          onStart={() => setTimerRunning(true)}
+          onStop={() => setTimerRunning(false)}
+          onReset={handleTimerReset}
           onManualTime={addManualTime}
         />
       )
@@ -90,8 +144,12 @@ export function Layout() {
         <HabitsPage
           habits={habits}
           timeRecords={timeRecords}
+          preferences={preferences}
+          streakSymbol={profile.streakSymbol}
+          streakSymbolImageUrl={profile.streakSymbolImageUrl}
           onToggle={toggleHabit}
           onSetLinked={setLinkedHabits}
+          onUpdatePreferences={updatePreferences}
           onResetToday={resetToday}
         />
       )
@@ -127,7 +185,14 @@ export function Layout() {
       return (
         <SettingsPage
           profile={profile}
+          accounts={accounts}
+          activeAccountId={activeAccountId}
           onUpdateProfile={updateProfile}
+          onCreateAccount={createAccount}
+          onDeleteAccount={deleteAccount}
+          preferences={preferences}
+          onUpdatePreferences={updatePreferences}
+          onSoftReset={softReset}
           onFullReset={fullReset}
         />
       )
@@ -159,7 +224,6 @@ export function Layout() {
           accounts={accounts}
           activeAccountId={activeAccountId}
           onSwitchAccount={switchAccount}
-          onCreateAccount={createAccount}
           onExportSaveFile={exportSaveFile}
           onImportSaveFile={importSaveFile}
         />

@@ -28,9 +28,11 @@ import {
 } from '../lib/xp'
 import type {
   AccountSummary,
+  AppPreferences,
   AppState,
   CompletionRecord,
   DashboardPrefs,
+  Habit,
   HabitCategory,
   Reward,
 } from '../types'
@@ -49,19 +51,84 @@ export type PurchaseRewardResult =
 function prepareState(base: AppState): AppState {
   const today = getTodayISO()
   const habits = applyDailyReset(base.habits, base.lastActiveDate)
+  const checks =
+    base.lastActiveDate === today
+      ? base.checks
+      : base.checks.map((item) => ({ ...item, done: false }))
 
   return {
     ...base,
     habits,
+    checks,
     lastActiveDate: today,
   }
 }
 
 const WEEKLY_TASK_XP = 10
+const CHECK_TASK_XP = 2
 
 function sanitizeAccentColor(color: string | undefined): string {
   const trimmed = color?.trim() ?? ''
   return /^#(?:[0-9a-fA-F]{6})$/.test(trimmed) ? trimmed : '#a3e635'
+}
+
+function applyCompletionRewards(
+  prev: AppState,
+  targetIds: string[],
+  today: string,
+) {
+  let totalBaseMinutes = 0
+  let totalCompletionXp = 0
+  let totalTimeXp = 0
+  let timeRecords = prev.timeRecords
+  const awardedByHabit: Record<
+    string,
+    { baseMinutes: number; completionXp: number; timeXp: number; totalXp: number }
+  > = {}
+
+  for (const completedId of targetIds) {
+    const completedHabit = prev.habits.find((entry) => entry.id === completedId)
+    if (!completedHabit) continue
+
+    const completionXpValue = prev.preferences.itemCompletionXp[completedId] ?? 15
+    const baseMinutes = Math.max(
+      0,
+      Math.round(prev.preferences.itemBaseMinutes[completedId] ?? 0),
+    )
+
+    const completionXp = calculateCompletionXp(completedHabit, completionXpValue)
+    const timeXp =
+      baseMinutes > 0 ? calculateTimeXp(completedHabit, baseMinutes) : null
+
+    totalCompletionXp += completionXp.total
+    totalBaseMinutes += baseMinutes
+    totalTimeXp += timeXp?.total ?? 0
+    awardedByHabit[completedId] = {
+      baseMinutes,
+      completionXp: completionXp.total,
+      timeXp: timeXp?.total ?? 0,
+      totalXp: completionXp.total + (timeXp?.total ?? 0),
+    }
+
+    if (baseMinutes > 0) {
+      timeRecords = addTimeRecord(
+        timeRecords,
+        completedHabit.id,
+        completedHabit.name,
+        today,
+        baseMinutes,
+        'manual',
+      )
+    }
+  }
+
+  return {
+    totalBaseMinutes,
+    totalCompletionXp,
+    totalTimeXp,
+    timeRecords,
+    awardedByHabit,
+  }
 }
 
 export function useAppState() {
@@ -121,6 +188,9 @@ export function useAppState() {
         return {
           ...prev,
           habits: applyDailyReset(prev.habits, prev.lastActiveDate),
+          checks: prev.checks.map((item) =>
+            item.done ? { ...item, done: false } : item,
+          ),
           lastActiveDate: today,
         }
       })
@@ -131,7 +201,11 @@ export function useAppState() {
     return () => window.clearInterval(intervalId)
   }, [updateCurrentState])
 
-  const profile = useMemo(() => toUserProfile(state.profile), [state.profile])
+  const profile = useMemo(
+    () => toUserProfile(state.profile, state.preferences),
+    [state.preferences, state.profile],
+  )
+  const preferences = useMemo(() => state.preferences, [state.preferences])
   const accounts = useMemo<AccountSummary[]>(
     () =>
       Object.entries(accountsState.accountsById)
@@ -139,6 +213,7 @@ export function useAppState() {
           id,
           name: accountState.profile.name,
           handle: accountState.profile.handle,
+          avatarUrl: accountState.profile.avatarUrl,
           lastUpdatedAt: [
             ...accountState.completions.map((completion) => completion.completedAt),
             ...accountState.timeRecords.map((record) => `${record.date}T23:59:59`),
@@ -155,8 +230,21 @@ export function useAppState() {
     [state.habits],
   )
   const statsPageSummary = useMemo(
-    () => getStatsPageSummary(state.habits, state.completions, state.timeRecords),
-    [state.habits, state.completions, state.timeRecords],
+    () =>
+      getStatsPageSummary(
+        state.habits,
+        state.completions,
+        state.timeRecords,
+        state.preferences,
+        state.profile.totalXp ?? 0,
+      ),
+    [
+      state.habits,
+      state.completions,
+      state.timeRecords,
+      state.preferences,
+      state.profile.totalXp,
+    ],
   )
 
   const applyHabitToggle = useCallback(
@@ -171,11 +259,13 @@ export function useAppState() {
       const targetIds = new Set([id, ...linked])
 
       let nextCompletions = completions
+      const completedHabitIds: string[] = []
       let nextHabits = habits.map((habit) => {
         if (!targetIds.has(habit.id)) return habit
 
         if (completing) {
           if (habit.doneToday) return habit
+          completedHabitIds.push(habit.id)
           nextCompletions = addCompletion(
             nextCompletions,
             habit.id,
@@ -186,11 +276,12 @@ export function useAppState() {
         }
 
         if (!habit.doneToday) return habit
+        if (habit.category === 'hobby' && habit.progressToday > 0) return habit
         nextCompletions = removeCompletion(nextCompletions, habit.id, today)
         return uncompleteHabit(habit, today)
       })
 
-      return { habits: nextHabits, completions: nextCompletions }
+      return { habits: nextHabits, completions: nextCompletions, completedHabitIds }
     },
     [],
   )
@@ -203,7 +294,7 @@ export function useAppState() {
       if (!habit) return prev
 
       const completing = !habit.doneToday
-      const { habits, completions } = applyHabitToggle(
+      const { habits, completions, completedHabitIds } = applyHabitToggle(
         prev.habits,
         prev.completions,
         id,
@@ -212,19 +303,61 @@ export function useAppState() {
       )
 
       let profile = prev.profile
+      let timeRecords = prev.timeRecords
+      let awardedByHabit: Record<
+        string,
+        { baseMinutes: number; completionXp: number; timeXp: number; totalXp: number }
+      > = {}
       if (completing) {
-        const xp = calculateCompletionXp(habit)
+        const rewards = applyCompletionRewards(prev, completedHabitIds, today)
+        const { totalBaseMinutes, totalCompletionXp, totalTimeXp } = rewards
+        timeRecords = rewards.timeRecords
+        awardedByHabit = rewards.awardedByHabit
+
         profile = {
           ...profile,
-          totalXp: (profile.totalXp ?? 0) + xp.total,
+          totalMinutes: profile.totalMinutes + totalBaseMinutes,
+          shopXp:
+            (profile.shopXp ?? 0) + totalCompletionXp + totalTimeXp,
+          totalXp:
+            (profile.totalXp ?? 0) + totalCompletionXp + totalTimeXp,
         }
       }
 
+      const nextHabits =
+        completing
+          ? habits.map((entry) =>
+              completedHabitIds.includes(entry.id)
+                ? {
+                    ...entry,
+                    progressToday:
+                      entry.category === 'hobby'
+                        ? Math.max(1, entry.progressToday)
+                        : entry.progressToday,
+                    totalProgress:
+                      entry.category === 'hobby'
+                        ? entry.totalProgress + 1
+                        : entry.totalProgress,
+                    totalMinutes:
+                      entry.totalMinutes +
+                      Math.max(
+                        0,
+                        Math.round(prev.preferences.itemBaseMinutes[entry.id] ?? 0),
+                      ),
+                    totalXpEarned:
+                      entry.totalXpEarned +
+                      (awardedByHabit[entry.id]?.totalXp ?? 0),
+                  }
+                : entry,
+            )
+          : habits
+
       return {
         ...prev,
-        habits,
+        habits: nextHabits,
         completions,
         profile,
+        timeRecords,
         lastActiveDate: today,
       }
     })
@@ -250,15 +383,24 @@ export function useAppState() {
       const habits = prev.habits.map((h) => {
         if (!targetIds.has(h.id)) return h
         if (h.id === habitId) {
-          xpGain = calculateCompletionXp(h).total
+          const baseXp = prev.preferences.itemCompletionXp[h.id] ?? 15
+          xpGain = calculateCompletionXp(h, baseXp).total
         }
         completions = addCompletion(completions, h.id, h.name, date)
-        return applyCompletionOnDate(h, date)
+        return {
+          ...applyCompletionOnDate(h, date),
+          totalXpEarned:
+            h.totalXpEarned + (h.id === habitId ? xpGain : 0),
+        }
       })
 
       const profile =
         xpGain > 0
-          ? { ...prev.profile, totalXp: (prev.profile.totalXp ?? 0) + xpGain }
+          ? {
+              ...prev.profile,
+              totalXp: (prev.profile.totalXp ?? 0) + xpGain,
+              shopXp: (prev.profile.shopXp ?? 0) + xpGain,
+            }
           : prev.profile
 
       return { ...prev, habits, completions, profile }
@@ -296,13 +438,18 @@ export function useAppState() {
 
         const habits = prev.habits.map((h) =>
           h.id === habitId
-            ? { ...h, totalMinutes: h.totalMinutes + clamped }
+            ? {
+                ...h,
+                totalMinutes: h.totalMinutes + clamped,
+                totalXpEarned: h.totalXpEarned + xp.total,
+              }
             : h,
         )
 
         const profile = {
           ...prev.profile,
           totalMinutes: prev.profile.totalMinutes + clamped,
+          shopXp: (prev.profile.shopXp ?? 0) + xp.total,
           totalXp: (prev.profile.totalXp ?? 0) + xp.total,
         }
 
@@ -342,6 +489,80 @@ export function useAppState() {
         return h
       }),
     }))
+  }, [updateCurrentState])
+
+  const incrementHobby = useCallback((id: string) => {
+    const today = getTodayISO()
+
+    updateCurrentState((prev) => {
+      const hobby = prev.habits.find((entry) => entry.id === id)
+      if (!hobby || hobby.category !== 'hobby') return prev
+
+      const linked = collectLinkedIds(prev.habits, id)
+      const targetIds = [id, ...linked].filter((targetId, index, arr) => arr.indexOf(targetId) === index)
+      const completedTodayIds: string[] = []
+      let completions = prev.completions
+
+      const habits = prev.habits.map((entry) => {
+        if (!targetIds.includes(entry.id)) return entry
+        if (entry.category !== 'hobby') return entry
+
+        const nextProgress = (entry.progressToday ?? 0) + 1
+        let nextEntry: Habit = {
+          ...entry,
+          progressToday: nextProgress,
+          totalProgress: entry.totalProgress + 1,
+        }
+
+        if (!entry.doneToday) {
+          nextEntry = completeHabit(nextEntry, today)
+          completions = addCompletion(completions, entry.id, entry.name, today)
+          completedTodayIds.push(entry.id)
+        }
+
+        return nextEntry
+      })
+
+      const rewards = applyCompletionRewards(prev, targetIds, today)
+      const profile = {
+        ...prev.profile,
+        totalMinutes: prev.profile.totalMinutes + rewards.totalBaseMinutes,
+        shopXp:
+          (prev.profile.shopXp ?? 0) +
+          rewards.totalCompletionXp +
+          rewards.totalTimeXp,
+        totalXp:
+          (prev.profile.totalXp ?? 0) +
+          rewards.totalCompletionXp +
+          rewards.totalTimeXp,
+      }
+
+      const nextHabits = habits.map((entry) =>
+        targetIds.includes(entry.id)
+          ? {
+              ...entry,
+              totalMinutes:
+                entry.totalMinutes +
+                Math.max(
+                  0,
+                  Math.round(prev.preferences.itemBaseMinutes[entry.id] ?? 0),
+                ),
+              totalXpEarned:
+                entry.totalXpEarned +
+                (rewards.awardedByHabit[entry.id]?.totalXp ?? 0),
+            }
+          : entry,
+      )
+
+      return {
+        ...prev,
+        habits: nextHabits,
+        completions,
+        profile,
+        timeRecords: rewards.timeRecords,
+        lastActiveDate: today,
+      }
+    })
   }, [updateCurrentState])
 
   const setHabitWeights = useCallback(
@@ -394,6 +615,18 @@ export function useAppState() {
     }))
   }, [updateCurrentState])
 
+  const addCheck = useCallback((name: string) => {
+    const trimmed = name.trim()
+    if (!trimmed) return
+
+    updateCurrentState((prev) => ({
+      ...prev,
+      checks: [
+        ...prev.checks,
+        { id: crypto.randomUUID(), name: trimmed, done: false },
+      ],
+    }))
+  }, [updateCurrentState])
 
   const toggleWeeklyTask = useCallback((id: string) => {
     updateCurrentState((prev) => {
@@ -419,6 +652,7 @@ export function useAppState() {
           ? {
               ...prev.profile,
               totalXp: (prev.profile.totalXp ?? 0) + xpGain,
+              shopXp: (prev.profile.shopXp ?? 0) + xpGain,
             }
           : prev.profile
   
@@ -430,10 +664,50 @@ export function useAppState() {
     })
   }, [updateCurrentState])
 
+  const toggleCheck = useCallback((id: string) => {
+    updateCurrentState((prev) => {
+      let xpGain = 0
+
+      const checks = prev.checks.map((item) => {
+        if (item.id !== id) return item
+        const nextDone = !item.done
+        if (nextDone) xpGain = CHECK_TASK_XP
+        return { ...item, done: nextDone }
+      })
+
+      return {
+        ...prev,
+        checks,
+        profile:
+          xpGain > 0
+            ? {
+                ...prev.profile,
+                totalXp: (prev.profile.totalXp ?? 0) + xpGain,
+                shopXp: (prev.profile.shopXp ?? 0) + xpGain,
+              }
+            : prev.profile,
+      }
+    })
+  }, [updateCurrentState])
+
   const removeWeeklyTask = useCallback((id: string) => {
     updateCurrentState((prev) => ({
       ...prev,
       weeklyTasks: prev.weeklyTasks.filter((t) => t.id !== id),
+    }))
+  }, [updateCurrentState])
+
+  const removeCheck = useCallback((id: string) => {
+    updateCurrentState((prev) => ({
+      ...prev,
+      checks: prev.checks.filter((item) => item.id !== id),
+    }))
+  }, [updateCurrentState])
+
+  const setChecksOpen = useCallback((open: boolean) => {
+    updateCurrentState((prev) => ({
+      ...prev,
+      dashboard: { ...prev.dashboard, checksOpen: open },
     }))
   }, [updateCurrentState])
 
@@ -443,6 +717,22 @@ export function useAppState() {
       dashboard: { ...prev.dashboard, weeklyOpen: open },
     }))
   }, [updateCurrentState])
+
+  const setCategoryCollapsed = useCallback(
+    (category: HabitCategory, collapsed: boolean) => {
+      updateCurrentState((prev) => ({
+        ...prev,
+        dashboard: {
+          ...prev.dashboard,
+          collapsedCategories: {
+            ...prev.dashboard.collapsedCategories,
+            [category]: collapsed,
+          },
+        },
+      }))
+    },
+    [updateCurrentState],
+  )
 
   const updateDashboard = useCallback(
     (patch: Partial<DashboardPrefs>) => {
@@ -458,6 +748,32 @@ export function useAppState() {
     updateDashboard({ dailyGoal })
   }, [updateDashboard])
 
+  const updatePreferences = useCallback(
+    (patch: Partial<AppPreferences>) => {
+      updateCurrentState((prev) => ({
+        ...prev,
+        preferences: {
+          ...prev.preferences,
+          ...patch,
+          itemCompletionXp: {
+            ...prev.preferences.itemCompletionXp,
+            ...patch.itemCompletionXp,
+          },
+          itemBaseMinutes: {
+            ...prev.preferences.itemBaseMinutes,
+            ...patch.itemBaseMinutes,
+          },
+          levelUpXp:
+            patch.levelUpXp == null
+              ? prev.preferences.levelUpXp
+              : Math.max(25, Math.round(patch.levelUpXp)),
+          ranks: patch.ranks ?? prev.preferences.ranks,
+        },
+      }))
+    },
+    [updateCurrentState],
+  )
+
   const resetToday = useCallback(() => {
     const today = getTodayISO()
     updateCurrentState((prev) => {
@@ -465,12 +781,41 @@ export function useAppState() {
         habit.doneToday ? uncompleteHabit(habit, today) : habit,
       )
       const completions = prev.completions.filter((entry) => entry.date !== today)
+      const checks = prev.checks.map((item) =>
+        item.done ? { ...item, done: false } : item,
+      )
 
       return {
         ...prev,
         habits,
+        checks,
         completions,
         lastActiveDate: today,
+      }
+    })
+  }, [updateCurrentState])
+
+  const softReset = useCallback(() => {
+    updateCurrentState((prev) => {
+      const empty = createEmptyAppState()
+      return {
+        ...empty,
+        profile: {
+          ...empty.profile,
+          name: prev.profile.name,
+          handle: prev.profile.handle,
+          avatarUrl: prev.profile.avatarUrl,
+          accentColor: prev.profile.accentColor,
+          streakSymbol: prev.profile.streakSymbol,
+          streakSymbolImageUrl: prev.profile.streakSymbolImageUrl,
+        },
+        preferences: prev.preferences,
+        rewards: prev.rewards,
+        dashboard: {
+          ...empty.dashboard,
+          quotes: prev.dashboard.quotes,
+          activeQuoteIndex: prev.dashboard.activeQuoteIndex,
+        },
       }
     })
   }, [updateCurrentState])
@@ -542,8 +887,7 @@ export function useAppState() {
       const reward = prev.rewards.find((r) => r.id === rewardId)
       if (!reward) return prev
 
-      const available =
-        (prev.profile.totalXp ?? 0) - (prev.profile.spentXp ?? 0)
+      const available = prev.profile.shopXp ?? 0
       if (available < reward.cost) {
         result = 'insufficient'
         return prev
@@ -564,6 +908,7 @@ export function useAppState() {
         ...prev,
         profile: {
           ...prev.profile,
+          shopXp: Math.max(0, (prev.profile.shopXp ?? 0) - reward.cost),
           spentXp: (prev.profile.spentXp ?? 0) + reward.cost,
         },
         purchasedRewards: [
@@ -592,6 +937,7 @@ export function useAppState() {
           name,
           description,
           emoji,
+          imageUrl: input.imageUrl ?? null,
           cost,
           oneTime: input.oneTime,
         },
@@ -667,6 +1013,12 @@ export function useAppState() {
             patch.accentColor === undefined
               ? prev.profile.accentColor
               : sanitizeAccentColor(patch.accentColor),
+          streakSymbol:
+            patch.streakSymbol?.trim() || prev.profile.streakSymbol,
+          streakSymbolImageUrl:
+            patch.streakSymbolImageUrl === undefined
+              ? prev.profile.streakSymbolImageUrl
+              : patch.streakSymbolImageUrl,
         },
       }))
     },
@@ -693,6 +1045,32 @@ export function useAppState() {
     )
   }, [])
 
+  const deleteAccount = useCallback((accountId: string) => {
+    setAccountsState((prev) => {
+      const accountIds = Object.keys(prev.accountsById)
+      if (!prev.accountsById[accountId] || accountIds.length <= 1) return prev
+
+      const nextAccounts = { ...prev.accountsById }
+      delete nextAccounts[accountId]
+
+      const fallbackId =
+        prev.activeAccountId === accountId
+          ? Object.keys(nextAccounts)
+              .sort(
+                (a, b) =>
+                  nextAccounts[b].lastActiveDate.localeCompare(
+                    nextAccounts[a].lastActiveDate,
+                  ),
+              )[0]
+          : prev.activeAccountId
+
+      return {
+        activeAccountId: fallbackId,
+        accountsById: nextAccounts,
+      }
+    })
+  }, [])
+
   const importSaveFile = useCallback((raw: string) => {
     const parsed = parseSaveFilePayload(raw)
     if (!parsed) return false
@@ -716,8 +1094,10 @@ export function useAppState() {
     activeAccountId: accountsState.activeAccountId,
     accounts,
     habits: state.habits,
+    checks: state.checks,
     weeklyTasks: state.weeklyTasks,
     dashboard: state.dashboard,
+    preferences,
     completions: state.completions,
     timeRecords: state.timeRecords,
     rewards: state.rewards,
@@ -733,12 +1113,20 @@ export function useAppState() {
     setHabitTags,
     setHabitWeights,
     addHabit,
+    incrementHobby,
+    addCheck,
     addWeeklyTask,
+    toggleCheck,
     toggleWeeklyTask,
+    removeCheck,
     removeWeeklyTask,
+    setChecksOpen,
+    setCategoryCollapsed,
     setWeeklyOpen,
     setDailyGoal,
+    updatePreferences,
     resetToday,
+    softReset,
     fullReset,
     addQuote,
     removeQuote,
@@ -751,6 +1139,7 @@ export function useAppState() {
     updateProfile,
     createAccount,
     switchAccount,
+    deleteAccount,
     exportSaveFile,
     importSaveFile,
   }

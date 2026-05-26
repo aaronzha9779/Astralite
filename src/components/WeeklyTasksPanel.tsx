@@ -1,10 +1,15 @@
 import { useState, type FormEvent } from 'react'
+import { playCompletionChime } from '../lib/audio'
 import type { WeeklyTask } from '../types'
 import './WeeklyTasksPanel.css'
 
 type WeeklyTasksPanelProps = {
   tasks: WeeklyTask[]
   open: boolean
+  title?: string
+  xpReward?: number
+  placeholder?: string
+  emptyMessage?: string
   onOpenChange: (open: boolean) => void
   onToggle: (id: string) => void
   onAdd: (name: string) => void
@@ -14,12 +19,17 @@ type WeeklyTasksPanelProps = {
 export function WeeklyTasksPanel({
   tasks,
   open,
+  title = 'Weekly tasks',
+  xpReward = 10,
+  placeholder = 'Add weekly task…',
+  emptyMessage = 'No weekly tasks — add one when you need it.',
   onOpenChange,
   onToggle,
   onAdd,
   onRemove,
 }: WeeklyTasksPanelProps) {
   const [name, setName] = useState('')
+  const [xpPopId, setXpPopId] = useState<string | null>(null)
   const doneCount = tasks.filter((t) => t.done).length
 
   function handleSubmit(e: FormEvent) {
@@ -30,6 +40,15 @@ export function WeeklyTasksPanel({
     setName('')
   }
 
+  function handleToggle(task: WeeklyTask) {
+    onToggle(task.id)
+    if (!task.done) {
+      playCompletionChime()
+      setXpPopId(task.id)
+      setTimeout(() => setXpPopId(null), 900)
+    }
+  }
+
   return (
     <section className="weekly-panel">
       <button
@@ -38,9 +57,9 @@ export function WeeklyTasksPanel({
         onClick={() => onOpenChange(!open)}
         aria-expanded={open}
       >
-        <span className="weekly-panel__toggle-label">Weekly tasks</span>
+        <span className="weekly-panel__toggle-label">{title}</span>
         <span className="weekly-panel__toggle-meta">
-          {tasks.length > 0 ? `${doneCount}/${tasks.length} done` : 'None yet'}
+          {doneCount}/{tasks.length} done
         </span>
         <span className={`weekly-panel__chevron${open ? ' weekly-panel__chevron--open' : ''}`} aria-hidden="true">
           ▾
@@ -55,9 +74,9 @@ export function WeeklyTasksPanel({
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Add weekly task…"
+              placeholder={placeholder}
               maxLength={80}
-              aria-label="Weekly task name"
+              aria-label={`${title} item name`}
             />
             <button
               className="weekly-panel__add-btn"
@@ -69,7 +88,7 @@ export function WeeklyTasksPanel({
           </form>
 
           {tasks.length === 0 ? (
-            <p className="weekly-panel__empty">No weekly tasks — add one when you need it.</p>
+            <p className="weekly-panel__empty">{emptyMessage}</p>
           ) : (
             <ul className="weekly-panel__list">
               {tasks.map((task) => (
@@ -77,7 +96,7 @@ export function WeeklyTasksPanel({
                   <button
                     type="button"
                     className={`weekly-task__check${task.done ? ' weekly-task__check--done' : ''}`}
-                    onClick={() => onToggle(task.id)}
+                    onClick={() => handleToggle(task)}
                     aria-pressed={task.done}
                     aria-label={task.done ? `Mark "${task.name}" incomplete` : `Mark "${task.name}" complete`}
                   />
@@ -86,6 +105,9 @@ export function WeeklyTasksPanel({
                   >
                     {task.name}
                   </span>
+                  {xpPopId === task.id ? (
+                    <span className="weekly-task__xp-pop">+{xpReward} XP</span>
+                  ) : null}
                   <button
                     type="button"
                     className="weekly-task__remove"

@@ -1,4 +1,3 @@
-import { useEffect, useRef, useState } from 'react'
 import type { Habit } from '../types'
 import type { XpBreakdown } from '../lib/xp'
 import { formatMinutes } from '../lib/time'
@@ -7,7 +6,13 @@ import './TimerPage.css'
 
 type TimerPageProps = {
   habits: Habit[]
-  onSessionComplete: (habitId: string, minutes: number) => XpBreakdown | null
+  habitId: string
+  elapsed: number
+  running: boolean
+  onHabitIdChange: (habitId: string) => void
+  onStart: () => void
+  onStop: () => void
+  onReset: () => void
   onManualTime: (habitId: string, minutes: number) => XpBreakdown | null
 }
 
@@ -23,69 +28,16 @@ function formatStopwatch(totalSeconds: number): string {
 
 export function TimerPage({
   habits,
-  onSessionComplete,
+  habitId,
+  elapsed,
+  running,
+  onHabitIdChange,
+  onStart,
+  onStop,
+  onReset,
   onManualTime,
 }: TimerPageProps) {
-  const [habitId, setHabitId] = useState(habits[0]?.id ?? '')
-  const [elapsed, setElapsed] = useState(0)
-  const [running, setRunning] = useState(false)
-  const [xpToast, setXpToast] = useState<string | null>(null)
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
-
   const selected = habits.find((h) => h.id === habitId)
-
-  useEffect(() => {
-    if (!habits.some((h) => h.id === habitId)) {
-      setHabitId(habits[0]?.id ?? '')
-    }
-  }, [habits, habitId])
-
-  useEffect(() => {
-    if (!running) {
-      if (intervalRef.current) clearInterval(intervalRef.current)
-      return
-    }
-
-    intervalRef.current = setInterval(() => {
-      setElapsed((e) => e + 1)
-    }, 1000)
-
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current)
-    }
-  }, [running])
-
-  function showXpToast(breakdown: XpBreakdown | null) {
-    if (!breakdown || breakdown.total <= 0) return
-    const bonus =
-      breakdown.bonus > 0
-        ? ` (+${breakdown.bonus} ${breakdown.bonusLabel ?? 'bonus'}!)`
-        : ''
-    setXpToast(`+${breakdown.total} XP${bonus}`)
-    setTimeout(() => setXpToast(null), 3500)
-  }
-
-  function handleStart() {
-    setRunning(true)
-  }
-
-  function finishSession() {
-    setRunning(false)
-    if (elapsed >= 60 && habitId) {
-      const minutes = Math.round(elapsed / 60)
-      const result = onSessionComplete(habitId, minutes)
-      showXpToast(result)
-    }
-    setElapsed(0)
-  }
-
-  function handleReset() {
-    finishSession()
-  }
-
-  function handleStop() {
-    setRunning(false)
-  }
 
   return (
     <main className="dashboard timer-page">
@@ -97,12 +49,6 @@ export function TimerPage({
           </p>
         </div>
       </header>
-
-      {xpToast ? (
-        <p className="timer-page__toast" role="status">
-          {xpToast}
-        </p>
-      ) : null}
 
       {habits.length === 0 ? (
         <p className="timer-page__empty">
@@ -116,7 +62,7 @@ export function TimerPage({
               className="timer-page__select"
               value={habitId}
               disabled={running}
-              onChange={(e) => setHabitId(e.target.value)}
+              onChange={(e) => onHabitIdChange(e.target.value)}
             >
               {habits.map((h) => (
                 <option key={h.id} value={h.id}>
@@ -135,7 +81,7 @@ export function TimerPage({
               type="button"
               className="timer-page__btn timer-page__btn--primary"
               disabled={running}
-              onClick={handleStart}
+              onClick={onStart}
             >
               Start
             </button>
@@ -143,11 +89,11 @@ export function TimerPage({
               type="button"
               className="timer-page__btn"
               disabled={!running && elapsed === 0}
-              onClick={handleStop}
+              onClick={onStop}
             >
               Stop
             </button>
-            <button type="button" className="timer-page__btn" onClick={handleReset}>
+            <button type="button" className="timer-page__btn" onClick={onReset}>
               Reset
             </button>
           </div>

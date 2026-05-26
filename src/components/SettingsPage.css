@@ -63,12 +63,41 @@
   gap: 0.75rem;
 }
 
+.settings-page__streak-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+}
+
+.settings-page__streak-preview {
+  width: 4rem;
+  height: 4rem;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.settings-page__streak-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: inherit;
+}
+
+.settings-page__streak-emoji {
+  font-size: 1.5rem;
+}
+
 .settings-page__grid,
 .settings-page__color-row {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 0.85rem;
 }
+
 
 .settings-page__field {
   display: flex;
@@ -82,6 +111,10 @@
   max-width: 8rem;
 }
 
+.settings-page__field--threshold {
+  max-width: 14rem;
+}
+
 .settings-page__input,
 .settings-page__picker,
 .settings-page__btn,
@@ -93,6 +126,12 @@
   border: 1px solid var(--border);
   background: var(--surface);
   color: var(--text);
+}
+
+.settings-page__btn--file {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .settings-page__picker {
@@ -148,4 +187,120 @@
 
 .settings-page__file {
   display: none;
+}
+
+.settings-page__account-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.settings-page__account-card {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.9rem;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 0.9rem;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.settings-page__account-card--active {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+}
+
+.settings-page__account-name {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.settings-page__account-handle,
+.settings-page__account-meta {
+  margin: 0.2rem 0 0;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.settings-page__account-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  align-items: center;
+}
+
+.settings-page__account-badge {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--accent);
+}
+
+.settings-page__account-delete {
+  width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: flex-end;
+}
+
+.settings-page__btn--danger {
+  color: #b91c1c;
+  border-color: color-mix(in srgb, #b91c1c 40%, var(--border));
+}
+
+.settings-page__rank-list {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.settings-page__rank-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  padding: 0.95rem;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.settings-page__rank-card--dragging {
+  opacity: 0.6;
+}
+
+.settings-page__rank-head {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.settings-page__rank-drag {
+  color: var(--text-muted);
+  cursor: grab;
+}
+
+.settings-page__rank-preview {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  background: var(--surface-raised);
+  flex-shrink: 0;
+}
+
+.settings-page__rank-preview-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.settings-page__rank-preview-fallback {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--accent);
 }

@@ -80,6 +80,14 @@
   flex-shrink: 0;
 }
 
+.habit-overview__streak-image {
+  width: 1rem;
+  height: 1rem;
+  border-radius: 999px;
+  object-fit: cover;
+  vertical-align: text-bottom;
+}
+
 .habit-overview__rank {
   display: flex;
   flex-wrap: wrap;
@@ -198,4 +206,12 @@
   font-size: 0.625rem;
   color: var(--text-muted);
   text-transform: capitalize;
+}
+
+.habit-overview__xp-earned {
+  margin: 0;
+  align-self: flex-end;
+  font-size: 0.75rem;
+  color: var(--accent);
+  font-weight: 600;
 }

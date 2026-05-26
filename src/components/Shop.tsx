@@ -1,5 +1,6 @@
-import { useRef, useState } from 'react'
-import type { Reward, UserProfile, PurchasedReward } from '../types'
+import { useMemo, useRef, useState } from 'react'
+import { playRewardChime } from '../lib/audio'
+import type { PurchasedReward, Reward, UserProfile } from '../types'
 import './Shop.css'
 
 type PurchaseResult = 'success' | 'owned' | 'insufficient' | 'missing'
@@ -47,7 +48,29 @@ export function Shop({
   const [draft, setDraft] = useState<Omit<Reward, 'id'>>(EMPTY_REWARD)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [draggedId, setDraggedId] = useState<string | null>(null)
+  const [sparkleId, setSparkleId] = useState<string | null>(null)
+  const [purchaseFlashId, setPurchaseFlashId] = useState<string | null>(null)
+  const [balancePulse, setBalancePulse] = useState(false)
+  const [selectedRewardId, setSelectedRewardId] = useState<string | null>(
+    rewards[0]?.id ?? null,
+  )
   const imageInputRef = useRef<HTMLInputElement | null>(null)
+
+  const selectedReward = useMemo(
+    () => rewards.find((reward) => reward.id === selectedRewardId) ?? rewards[0] ?? null,
+    [rewards, selectedRewardId],
+  )
+  const selectedOwned =
+    !!selectedReward &&
+    selectedReward.oneTime &&
+    purchasedRewards.some((purchase) => purchase.rewardId === selectedReward.id)
+  const selectedCanAfford = !!selectedReward && profile.availableXp >= selectedReward.cost
+  const selectedProgress = selectedReward
+    ? Math.min(
+        100,
+        Math.round((profile.availableXp / Math.max(1, selectedReward.cost)) * 100),
+      )
+    : 0
 
   function showMessage(next: string) {
     setMessage(next)
@@ -55,6 +78,7 @@ export function Shop({
   }
 
   function loadRewardIntoEditor(reward: Reward) {
+    setSelectedRewardId(reward.id)
     setEditingId(reward.id)
     setDraft({
       name: reward.name,
@@ -76,9 +100,20 @@ export function Shop({
     const reward = rewards.find((item) => item.id === rewardId)
     if (!reward) return
 
-    if (result === 'success') showMessage(`Purchased ${reward.name}!`)
-    else if (result === 'owned') showMessage('You already own this reward.')
-    else if (result === 'insufficient') showMessage('Not enough XP to purchase.')
+    if (result === 'success') {
+      playRewardChime()
+      setSparkleId(rewardId)
+      setPurchaseFlashId(rewardId)
+      setBalancePulse(true)
+      setTimeout(() => setSparkleId(null), 1100)
+      setTimeout(() => setPurchaseFlashId(null), 1400)
+      setTimeout(() => setBalancePulse(false), 700)
+      showMessage(`Purchased ${reward.name}!`)
+    } else if (result === 'owned') {
+      showMessage('You already own this reward.')
+    } else if (result === 'insufficient') {
+      showMessage('Not enough XP to purchase.')
+    }
   }
 
   function handleSaveReward() {
@@ -108,7 +143,7 @@ export function Shop({
         <h1 className="dashboard__title">Rewards Shop</h1>
         <p className="dashboard__subtitle">
           Spend XP on perks and cosmetics and drag cards to change their order.{' '}
-          <strong className="shop__balance">{profile.availableXp} XP</strong>{' '}
+          <strong className={`shop__balance${balancePulse ? ' shop__balance--pulse' : ''}`}>{profile.availableXp} shop XP</strong>{' '}
           available
         </p>
       </header>
@@ -117,6 +152,70 @@ export function Shop({
         <p className="shop__toast" role="status">
           {message}
         </p>
+      ) : null}
+
+      {selectedReward ? (
+        <section
+          className={`shop__spotlight${purchaseFlashId === selectedReward.id ? ' shop__spotlight--success' : ''}`}
+          aria-label="Selected reward"
+        >
+          <div className="shop__spotlight-symbol">
+            {selectedReward.imageUrl ? (
+              <img className="shop__symbol-img" src={selectedReward.imageUrl} alt="" />
+            ) : (
+              <span className="shop__emoji" aria-hidden="true">
+                {selectedReward.emoji}
+              </span>
+            )}
+          </div>
+          <div className="shop__spotlight-copy">
+            <p className="shop__spotlight-kicker">Selected reward</p>
+            <h2 className="shop__spotlight-title">{selectedReward.name}</h2>
+            <p className="shop__spotlight-desc">{selectedReward.description}</p>
+            <div className="shop__spotlight-meta">
+              <span>{selectedReward.cost} XP</span>
+              <span>{selectedReward.oneTime ? 'One-time unlock' : 'Repeatable reward'}</span>
+            </div>
+            <div className="shop__spotlight-progress" aria-hidden="true">
+              <span
+                className="shop__spotlight-progress-fill"
+                style={{ width: `${selectedProgress}%` }}
+              />
+            </div>
+            <p className={`shop__spotlight-hint${purchaseFlashId === selectedReward.id ? ' shop__spotlight-hint--success' : ''}`}>
+              {purchaseFlashId === selectedReward.id
+                ? `${selectedReward.name} unlocked successfully.`
+                : selectedOwned
+                ? 'Already unlocked on this account.'
+                : selectedCanAfford
+                  ? 'You can afford this right now.'
+                  : `${Math.max(0, selectedReward.cost - profile.availableXp)} XP more to go.`}
+            </p>
+          </div>
+          <div className="shop__spotlight-actions">
+            <button
+              type="button"
+              className={`shop__buy${purchaseFlashId === selectedReward.id ? ' shop__buy--success' : ''}`}
+              disabled={selectedOwned || !selectedCanAfford}
+              onClick={() => handlePurchase(selectedReward.id)}
+            >
+              {purchaseFlashId === selectedReward.id
+                ? 'Purchased!'
+                : selectedOwned
+                  ? 'Owned'
+                  : selectedCanAfford
+                    ? 'Buy reward'
+                    : 'Need more XP'}
+            </button>
+            <button
+              type="button"
+              className="shop__edit"
+              onClick={() => loadRewardIntoEditor(selectedReward)}
+            >
+              Edit selected
+            </button>
+          </div>
+        </section>
       ) : null}
 
       <ul className="shop__grid">
@@ -129,8 +228,9 @@ export function Shop({
           return (
             <li
               key={reward.id}
-              className={`shop__card${draggedId === reward.id ? ' shop__card--dragging' : ''}`}
+              className={`shop__card${draggedId === reward.id ? ' shop__card--dragging' : ''}${sparkleId === reward.id ? ' shop__card--sparkle' : ''}${selectedRewardId === reward.id ? ' shop__card--selected' : ''}`}
               draggable
+              onClick={() => setSelectedRewardId(reward.id)}
               onDragStart={() => setDraggedId(reward.id)}
               onDragEnd={() => setDraggedId(null)}
               onDragOver={(e) => e.preventDefault()}
@@ -145,11 +245,7 @@ export function Shop({
                   ⋮⋮
                 </span>
                 {reward.imageUrl ? (
-                  <img
-                    className="shop__symbol-img"
-                    src={reward.imageUrl}
-                    alt=""
-                  />
+                  <img className="shop__symbol-img" src={reward.imageUrl} alt="" />
                 ) : (
                   <span className="shop__emoji" aria-hidden="true">
                     {reward.emoji}
@@ -171,14 +267,18 @@ export function Shop({
                   <button
                     type="button"
                     className="shop__edit"
-                    onClick={() => loadRewardIntoEditor(reward)}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      loadRewardIntoEditor(reward)
+                    }}
                   >
                     Edit
                   </button>
                   <button
                     type="button"
                     className="shop__delete"
-                    onClick={() => {
+                    onClick={(e) => {
+                      e.stopPropagation()
                       if (editingId === reward.id) resetEditor()
                       onRemoveReward(reward.id)
                     }}
@@ -190,7 +290,10 @@ export function Shop({
                   type="button"
                   className="shop__buy"
                   disabled={owned || !canAfford}
-                  onClick={() => handlePurchase(reward.id)}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handlePurchase(reward.id)
+                  }}
                 >
                   {owned ? 'Owned' : canAfford ? 'Buy' : 'Need more XP'}
                 </button>
@@ -207,15 +310,11 @@ export function Shop({
               {editingId ? 'Edit reward' : 'Add reward'}
             </h2>
             <p className="shop__editor-hint">
-              One editor for both creation and editing. Upload an image or keep a text symbol.
+              One editor for both creation and editing, with a live preview while you type.
             </p>
           </div>
           {editingId ? (
-            <button
-              type="button"
-              className="shop__edit"
-              onClick={resetEditor}
-            >
+            <button type="button" className="shop__edit" onClick={resetEditor}>
               New reward
             </button>
           ) : null}
@@ -272,6 +371,31 @@ export function Shop({
                 }}
               />
             </div>
+          </div>
+
+          <div className="shop__live-preview">
+            <p className="shop__spotlight-kicker">Live preview</p>
+            <article className="shop__preview-card">
+              {draft.imageUrl ? (
+                <img className="shop__symbol-img" src={draft.imageUrl} alt="" />
+              ) : (
+                <span className="shop__emoji" aria-hidden="true">
+                  {draft.emoji || '🎁'}
+                </span>
+              )}
+              <div className="shop__info">
+                <h3 className="shop__name">{draft.name || 'Reward name'}</h3>
+                <p className="shop__desc">
+                  {draft.description || 'Reward description will preview here as you type.'}
+                </p>
+              </div>
+              <div className="shop__meta">
+                <span className="shop__cost">{draft.cost} XP</span>
+                <span className="shop__type">
+                  {draft.oneTime ? 'One-time' : 'Repeatable'}
+                </span>
+              </div>
+            </article>
           </div>
 
           <label className="shop__field">

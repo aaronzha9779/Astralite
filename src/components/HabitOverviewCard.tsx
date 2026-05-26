@@ -1,11 +1,16 @@
 import { useMemo, useState } from 'react'
-import type { Habit, TimeRecord } from '../types'
-import { getHabitMaturity } from '../lib/maturity'
+import { playCompletionChime } from '../lib/audio'
+import type { AppPreferences, Habit, TimeRecord } from '../types'
+import { getHabitMaturity, getHobbyMaturity } from '../lib/maturity'
 import { formatMinutes, getHabitTimeBreakdown } from '../lib/time'
 import './HabitOverviewCard.css'
 
 type HabitOverviewCardProps = {
   habit: Habit
+  streakSymbol: string
+  streakSymbolImageUrl: string | null
+  rawXpEarned: number
+  preferences: AppPreferences
   allHabits: Habit[]
   timeRecords: TimeRecord[]
   onToggle: (id: string) => void
@@ -14,14 +19,22 @@ type HabitOverviewCardProps = {
 
 export function HabitOverviewCard({
   habit,
+  streakSymbol,
+  streakSymbolImageUrl,
+  rawXpEarned,
+  preferences,
   allHabits,
   timeRecords,
   onToggle,
   onSetLinked,
 }: HabitOverviewCardProps) {
   const [showLink, setShowLink] = useState(false)
+  const displayStreakSymbol = habit.streak > 30 ? '❤️‍🔥' : streakSymbol
 
-  const maturity = getHabitMaturity(habit.totalMinutes)
+  const isHobby = habit.category === 'hobby'
+  const maturity = isHobby
+    ? getHobbyMaturity(habit.totalProgress)
+    : getHabitMaturity(rawXpEarned, preferences)
   const timeStats = useMemo(
     () => getHabitTimeBreakdown(timeRecords, habit.id),
     [timeRecords, habit.id],
@@ -40,6 +53,12 @@ export function HabitOverviewCard({
     onSetLinked(habit.id, next)
   }
 
+  function handleToggle() {
+    const wasIncomplete = !habit.doneToday
+    onToggle(habit.id)
+    if (wasIncomplete) playCompletionChime()
+  }
+
   return (
     <article
       className={`habit-overview${habit.doneToday ? ' habit-overview--done' : ''}`}
@@ -48,7 +67,7 @@ export function HabitOverviewCard({
         <button
           type="button"
           className="habit-overview__check"
-          onClick={() => onToggle(habit.id)}
+          onClick={handleToggle}
           aria-pressed={habit.doneToday}
           aria-label={habit.doneToday ? 'Mark incomplete' : 'Mark complete'}
         >
@@ -70,7 +89,12 @@ export function HabitOverviewCard({
         </div>
         {habit.streak > 0 ? (
           <span className="habit-overview__streak" title="Current streak">
-            🔥 {habit.streak}
+            {habit.streak > 30 || !streakSymbolImageUrl ? (
+              <>{displayStreakSymbol}</>
+            ) : (
+              <img className="habit-overview__streak-image" src={streakSymbolImageUrl} alt="" />
+            )}{' '}
+            {habit.streak}
           </span>
         ) : null}
       </header>
@@ -91,7 +115,9 @@ export function HabitOverviewCard({
           />
         </div>
         <span className="habit-overview__progress-label">
-          {formatMinutes(maturity.minutes)} / {formatMinutes(maturity.minutesToNext)} to next
+          {isHobby
+            ? `${maturity.minutes} / ${maturity.minutesToNext} progress`
+            : `${maturity.minutes} / ${maturity.minutesToNext} XP to next`}
         </span>
       </div>
 
@@ -143,6 +169,8 @@ export function HabitOverviewCard({
           ))}
         </ul>
       ) : null}
+
+      <p className="habit-overview__xp-earned">{rawXpEarned} XP earned</p>
     </article>
   )
 }

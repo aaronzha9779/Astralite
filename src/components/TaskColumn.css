@@ -41,6 +41,26 @@
   border: 1px solid var(--border);
 }
 
+.task-column__collapse {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface-raised);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: transform 0.2s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.task-column__collapse:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.task-column__collapse--closed {
+  transform: rotate(-90deg);
+}
+
 .task-column__list {
   margin: 0;
   padding: 0;

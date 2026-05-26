@@ -1,0 +1,564 @@
+{
+  "version": 1,
+  "exportedAt": "2026-05-24T19:50:41",
+  "accountName": "Grinder",
+  "appState": {
+    "habits": [
+      {
+        "id": "1",
+        "name": "Morning workout",
+        "category": "daily",
+        "streak": 14,
+        "doneToday": false,
+        "lastCompletedDate": null,
+        "createdAt": "2026-05-24",
+        "totalMinutes": 420,
+        "difficulty": 4,
+        "priority": 4,
+        "linkedHabitIds": [
+          "7"
+        ],
+        "tags": [
+          "fitness"
+        ]
+      },
+      {
+        "id": "2",
+        "name": "Read 30 minutes",
+        "category": "hobby",
+        "streak": 9,
+        "doneToday": false,
+        "lastCompletedDate": null,
+        "createdAt": "2026-05-24",
+        "totalMinutes": 540,
+        "difficulty": 3,
+        "priority": 3,
+        "linkedHabitIds": [],
+        "tags": [
+          "learning"
+        ]
+      },
+      {
+        "id": "3",
+        "name": "No social media",
+        "category": "habit",
+        "streak": 5,
+        "doneToday": false,
+        "lastCompletedDate": null,
+        "createdAt": "2026-05-24",
+        "totalMinutes": 0,
+        "difficulty": 5,
+        "priority": 5,
+        "linkedHabitIds": [],
+        "tags": []
+      },
+      {
+        "id": "4",
+        "name": "Journal",
+        "category": "habit",
+        "streak": 21,
+        "doneToday": false,
+        "lastCompletedDate": null,
+        "createdAt": "2026-05-24",
+        "totalMinutes": 180,
+        "difficulty": 2,
+        "priority": 3,
+        "linkedHabitIds": [],
+        "tags": [
+          "mindfulness"
+        ]
+      },
+      {
+        "id": "5",
+        "name": "Drink 2L water",
+        "category": "daily",
+        "streak": 7,
+        "doneToday": false,
+        "lastCompletedDate": null,
+        "createdAt": "2026-05-24",
+        "totalMinutes": 0,
+        "difficulty": 2,
+        "priority": 4,
+        "linkedHabitIds": [],
+        "tags": [
+          "health"
+        ]
+      },
+      {
+        "id": "6",
+        "name": "Guitar practice",
+        "category": "hobby",
+        "streak": 3,
+        "doneToday": false,
+        "lastCompletedDate": null,
+        "createdAt": "2026-05-24",
+        "totalMinutes": 210,
+        "difficulty": 3,
+        "priority": 4,
+        "linkedHabitIds": [],
+        "tags": [
+          "music"
+        ]
+      },
+      {
+        "id": "7",
+        "name": "Fitness",
+        "category": "hobby",
+        "streak": 14,
+        "doneToday": false,
+        "lastCompletedDate": null,
+        "createdAt": "2026-05-24",
+        "totalMinutes": 600,
+        "difficulty": 4,
+        "priority": 3,
+        "linkedHabitIds": [
+          "1"
+        ],
+        "tags": [
+          "fitness"
+        ]
+      }
+    ],
+    "weeklyTasks": [
+      {
+        "id": "w1",
+        "name": "Meal prep Sunday",
+        "done": false
+      },
+      {
+        "id": "w2",
+        "name": "Review goals",
+        "done": true
+      }
+    ],
+    "dashboard": {
+      "quotes": [
+        "Small steps every day beat big bursts once a month.",
+        "You do not have to be extreme — just consistent.",
+        "Discipline is choosing what you want most over what you want now."
+      ],
+      "dailyGoal": "",
+      "weeklyOpen": false,
+      "activeQuoteIndex": null
+    },
+    "profile": {
+      "name": "Grinder",
+      "handle": "@you",
+      "totalMinutes": 600,
+      "spentMinutes": 0,
+      "totalXp": 450,
+      "spentXp": 0
+    },
+    "lastActiveDate": "2026-05-24",
+    "completions": [
+      {
+        "id": "seed-2026-03-25-1",
+        "habitId": "1",
+        "habitName": "Morning workout",
+        "date": "2026-03-25",
+        "completedAt": "2026-03-25T07:15:00"
+      },
+      {
+        "id": "seed-2026-03-25-2",
+        "habitId": "2",
+        "habitName": "Read 30 minutes",
+        "date": "2026-03-25",
+        "completedAt": "2026-03-25T08:15:00"
+      },
+      {
+        "id": "seed-2026-03-26-1",
+        "habitId": "1",
+        "habitName": "Morning workout",
+        "date": "2026-03-26",
+        "completedAt": "2026-03-26T07:15:00"
+      },
+      {
+        "id": "seed-2026-03-26-2",
+        "habitId": "2",
+        "habitName": "Read 30 minutes",
+        "date": "2026-03-26",
+        "completedAt": "2026-03-26T08:15:00"
+      },
+      {
+        "id": "seed-2026-03-27-1",
+        "habitId": "1",
+        "habitName": "Morning workout",
+        "date": "2026-03-27",
+        "completedAt": "2026-03-27T07:15:00"
+      },
+      {
+        "id": "seed-2026-03-27-2",
+        "habitId": "2",
+        "habitName": "Read 30 minutes",
+        "date": "2026-03-27",
+        "completedAt": "2026-03-27T08:15:00"
+      },
+      {
+        "id": "seed-2026-03-28-1",
+        "habitId": "1",
+        "habitName": "Morning workout",
+        "date": "2026-03-28",
+        "completedAt": "2026-03-28T07:15:00"
+      },
+      {
+        "id": "seed-2026-03-28-2",
+        "habitId": "2",
+        "habitName": "Read 30 minutes",
+        "date": "2026-03-28",
+        "completedAt": "2026-03-28T08:15:00"
+      },
+      {
+        "id": "seed-2026-03-30-1",
+        "habitId": "1",
+        "habitName": "Morning workout",
+        "date": "2026-03-30",
+        "completedAt": "2026-03-30T07:15:00"
+      },
+      {
+        "id": "seed-2026-03-30-2",
+        "habitId": "2",
+        "habitName": "Read 30 minutes",
+        "date": "2026-03-30",
+        "completedAt": "2026-03-30T08:15:00"
+      },
+      {
+        "id": "seed-2026-03-31-1",
+        "habitId": "1",
+        "habitName": "Morning workout",
+        "date": "2026-03-31",
+        "completedAt": "2026-03-31T07:15:00"
+      },
+      {
+        "id": "seed-2026-03-31-2",
+        "habitId": "2",
+        "habitName": "Read 30 minutes",
+        "date": "2026-03-31",
+        "completedAt": "2026-03-31T08:15:00"
+      },
+      {
+        "id": "seed-2026-04-01-1",
+        "habitId": "1",
+        "habitName": "Morning workout",
+        "date": "2026-04-01",
+        "completedAt": "2026-04-01T07:15:00"
+      },
+      {
+        "id": "seed-2026-04-02-1",
+        "habitId": "1",
+        "habitName": "Morning workout",
+        "date": "2026-04-02",
+        "completedAt": "2026-04-02T07:15:00"
+      },
+      {
+        "id": "seed-2026-04-03-1",
+        "habitId": "1",
+        "habitName": "Morning workout",
+        "date": "2026-04-03",
+        "completedAt": "2026-04-03T07:15:00"
+      },
+      {
+        "id": "seed-2026-04-04-1",
+        "habitId": "1",
+        "habitName": "Morning workout",
+        "date": "2026-04-04",
+        "completedAt": "2026-04-04T07:15:00"
+      },
+      {
+        "id": "seed-2026-04-06-1",
+        "habitId": "1",
+        "habitName": "Morning workout",
+        "date": "2026-04-06",
+        "completedAt": "2026-04-06T07:15:00"
+      },
+      {
+        "id": "seed-2026-04-07-1",
+        "habitId": "1",
+        "habitName": "Morning workout",
+        "date": "2026-04-07",
+        "completedAt": "2026-04-07T07:15:00"
+      },
+      {
+        "id": "seed-2026-04-08-1",
+        "habitId": "1",
+        "habitName": "Morning workout",
+        "date": "2026-04-08",
+        "completedAt": "2026-04-08T07:15:00"
+      },
+      {
+        "id": "seed-2026-04-09-1",
+        "habitId": "1",
+        "habitName": "Morning workout",
+        "date": "2026-04-09",
+        "completedAt": "2026-04-09T07:15:00"
+      },
+      {
+        "id": "seed-2026-04-10-1",
+        "habitId": "1",
+        "habitName": "Morning workout",
+        "date": "2026-04-10",
+        "completedAt": "2026-04-10T07:15:00"
+      },
+      {
+        "id": "seed-2026-04-11-1",
+        "habitId": "1",
+        "habitName": "Morning workout",
+        "date": "2026-04-11",
+        "completedAt": "2026-04-11T07:15:00"
+      },
+      {
+        "id": "seed-2026-04-13-1",
+        "habitId": "1",
+        "habitName": "Morning workout",
+        "date": "2026-04-13",
+        "completedAt": "2026-04-13T07:15:00"
+      },
+      {
+        "id": "seed-2026-04-14-1",
+        "habitId": "1",
+        "habitName": "Morning workout",
+        "date": "2026-04-14",
+        "completedAt": "2026-04-14T07:15:00"
+      },
+      {
+        "id": "seed-2026-04-15-1",
+        "habitId": "1",
+        "habitName": "Morning workout",
+        "date": "2026-04-15",
+        "completedAt": "2026-04-15T07:15:00"
+      },
+      {
+        "id": "seed-2026-04-16-1",
+        "habitId": "1",
+        "habitName": "Morning workout",
+        "date": "2026-04-16",
+        "completedAt": "2026-04-16T07:15:00"
+      },
+      {
+        "id": "seed-2026-04-17-1",
+        "habitId": "1",
+        "habitName": "Morning workout",
+        "date": "2026-04-17",
+        "completedAt": "2026-04-17T07:15:00"
+      },
+      {
+        "id": "seed-2026-04-18-1",
+        "habitId": "1",
+        "habitName": "Morning workout",
+        "date": "2026-04-18",
+        "completedAt": "2026-04-18T07:15:00"
+      },
+      {
+        "id": "seed-2026-04-20-1",
+        "habitId": "1",
+        "habitName": "Morning workout",
+        "date": "2026-04-20",
+        "completedAt": "2026-04-20T07:15:00"
+      },
+      {
+        "id": "seed-2026-04-21-1",
+        "habitId": "1",
+        "habitName": "Morning workout",
+        "date": "2026-04-21",
+        "completedAt": "2026-04-21T07:15:00"
+      },
+      {
+        "id": "seed-2026-04-22-1",
+        "habitId": "1",
+        "habitName": "Morning workout",
+        "date": "2026-04-22",
+        "completedAt": "2026-04-22T07:15:00"
+      },
+      {
+        "id": "seed-2026-04-23-1",
+        "habitId": "1",
+        "habitName": "Morning workout",
+        "date": "2026-04-23",
+        "completedAt": "2026-04-23T07:15:00"
+      },
+      {
+        "id": "seed-2026-04-24-1",
+        "habitId": "1",
+        "habitName": "Morning workout",
+        "date": "2026-04-24",
+        "completedAt": "2026-04-24T07:15:00"
+      },
+      {
+        "id": "seed-2026-04-25-1",
+        "habitId": "1",
+        "habitName": "Morning workout",
+        "date": "2026-04-25",
+        "completedAt": "2026-04-25T07:15:00"
+      },
+      {
+        "id": "seed-2026-04-27-1",
+        "habitId": "1",
+        "habitName": "Morning workout",
+        "date": "2026-04-27",
+        "completedAt": "2026-04-27T07:15:00"
+      },
+      {
+        "id": "seed-2026-04-28-1",
+        "habitId": "1",
+        "habitName": "Morning workout",
+        "date": "2026-04-28",
+        "completedAt": "2026-04-28T07:15:00"
+      },
+      {
+        "id": "seed-2026-04-29-1",
+        "habitId": "1",
+        "habitName": "Morning workout",
+        "date": "2026-04-29",
+        "completedAt": "2026-04-29T07:15:00"
+      },
+      {
+        "id": "seed-2026-04-30-1",
+        "habitId": "1",
+        "habitName": "Morning workout",
+        "date": "2026-04-30",
+        "completedAt": "2026-04-30T07:15:00"
+      },
+      {
+        "id": "seed-2026-05-01-1",
+        "habitId": "1",
+        "habitName": "Morning workout",
+        "date": "2026-05-01",
+        "completedAt": "2026-05-01T07:15:00"
+      },
+      {
+        "id": "seed-2026-05-02-1",
+        "habitId": "1",
+        "habitName": "Morning workout",
+        "date": "2026-05-02",
+        "completedAt": "2026-05-02T07:15:00"
+      },
+      {
+        "id": "seed-2026-05-04-1",
+        "habitId": "1",
+        "habitName": "Morning workout",
+        "date": "2026-05-04",
+        "completedAt": "2026-05-04T07:15:00"
+      },
+      {
+        "id": "seed-2026-05-05-1",
+        "habitId": "1",
+        "habitName": "Morning workout",
+        "date": "2026-05-05",
+        "completedAt": "2026-05-05T07:15:00"
+      },
+      {
+        "id": "seed-2026-05-06-1",
+        "habitId": "1",
+        "habitName": "Morning workout",
+        "date": "2026-05-06",
+        "completedAt": "2026-05-06T07:15:00"
+      },
+      {
+        "id": "seed-2026-05-07-1",
+        "habitId": "1",
+        "habitName": "Morning workout",
+        "date": "2026-05-07",
+        "completedAt": "2026-05-07T07:15:00"
+      },
+      {
+        "id": "seed-2026-05-08-1",
+        "habitId": "1",
+        "habitName": "Morning workout",
+        "date": "2026-05-08",
+        "completedAt": "2026-05-08T07:15:00"
+      },
+      {
+        "id": "seed-2026-05-09-1",
+        "habitId": "1",
+        "habitName": "Morning workout",
+        "date": "2026-05-09",
+        "completedAt": "2026-05-09T07:15:00"
+      },
+      {
+        "id": "seed-2026-05-11-1",
+        "habitId": "1",
+        "habitName": "Morning workout",
+        "date": "2026-05-11",
+        "completedAt": "2026-05-11T07:15:00"
+      },
+      {
+        "id": "seed-2026-05-12-1",
+        "habitId": "1",
+        "habitName": "Morning workout",
+        "date": "2026-05-12",
+        "completedAt": "2026-05-12T07:15:00"
+      },
+      {
+        "id": "seed-2026-05-13-1",
+        "habitId": "1",
+        "habitName": "Morning workout",
+        "date": "2026-05-13",
+        "completedAt": "2026-05-13T07:15:00"
+      },
+      {
+        "id": "seed-2026-05-14-1",
+        "habitId": "1",
+        "habitName": "Morning workout",
+        "date": "2026-05-14",
+        "completedAt": "2026-05-14T07:15:00"
+      },
+      {
+        "id": "seed-2026-05-15-1",
+        "habitId": "1",
+        "habitName": "Morning workout",
+        "date": "2026-05-15",
+        "completedAt": "2026-05-15T07:15:00"
+      },
+      {
+        "id": "seed-2026-05-16-1",
+        "habitId": "1",
+        "habitName": "Morning workout",
+        "date": "2026-05-16",
+        "completedAt": "2026-05-16T07:15:00"
+      },
+      {
+        "id": "seed-2026-05-18-1",
+        "habitId": "1",
+        "habitName": "Morning workout",
+        "date": "2026-05-18",
+        "completedAt": "2026-05-18T07:15:00"
+      },
+      {
+        "id": "seed-2026-05-19-1",
+        "habitId": "1",
+        "habitName": "Morning workout",
+        "date": "2026-05-19",
+        "completedAt": "2026-05-19T07:15:00"
+      },
+      {
+        "id": "seed-2026-05-20-1",
+        "habitId": "1",
+        "habitName": "Morning workout",
+        "date": "2026-05-20",
+        "completedAt": "2026-05-20T07:15:00"
+      },
+      {
+        "id": "seed-2026-05-21-1",
+        "habitId": "1",
+        "habitName": "Morning workout",
+        "date": "2026-05-21",
+        "completedAt": "2026-05-21T07:15:00"
+      },
+      {
+        "id": "seed-2026-05-22-1",
+        "habitId": "1",
+        "habitName": "Morning workout",
+        "date": "2026-05-22",
+        "completedAt": "2026-05-22T07:15:00"
+      },
+      {
+        "id": "seed-2026-05-23-1",
+        "habitId": "1",
+        "habitName": "Morning workout",
+        "date": "2026-05-23",
+        "completedAt": "2026-05-23T07:15:00"
+      }
+    ],
+    "timeRecords": [],
+    "purchasedRewards": []
+  }
+}

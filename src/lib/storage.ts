@@ -1,7 +1,15 @@
 import { createEmptyAppState } from '../data/seedData'
+import { DEFAULT_RANKS, normalizeRanks } from '../data/ranks'
 import { rewards as defaultRewards } from '../data/rewards'
 import { getNowLocalISO, getTodayISO } from './dates'
-import type { AccountSummary, AppState, DashboardPrefs, Habit, HabitCategory } from '../types'
+import type {
+  AccountSummary,
+  AppPreferences,
+  AppState,
+  DashboardPrefs,
+  Habit,
+  HabitCategory,
+} from '../types'
 
 const STORAGE_KEY = 'grind-app-v5'
 const V3_KEY = 'grind-app-v3'
@@ -33,6 +41,8 @@ type LegacyProfile = {
   handle: string
   avatarUrl?: string | null
   accentColor?: string
+  streakSymbol?: string
+  streakSymbolImageUrl?: string | null
   totalXp?: number
   spentXp?: number
   totalMinutes?: number
@@ -70,19 +80,24 @@ function migrate(raw: unknown): AppState | null {
       handle: legacy.profile?.handle ?? '@you',
       avatarUrl: legacy.profile?.avatarUrl ?? null,
       accentColor: legacy.profile?.accentColor ?? '#a3e635',
+      streakSymbol: '🔥',
+      streakSymbolImageUrl: null,
       totalMinutes:
         legacy.profile?.totalMinutes ??
         (legacy.profile as { totalXp?: number })?.totalXp ??
         0,
       spentMinutes: 0,
       totalXp: 0,
+      shopXp: 0,
       spentXp: 0,
     },
     lastActiveDate: legacy.lastActiveDate ?? new Date().toISOString().slice(0, 10),
+    preferences: defaultPreferences,
     rewards: defaultRewards,
     completions: [],
     timeRecords: [],
     purchasedRewards: [],
+    checks: [],
     weeklyTasks: [],
     dashboard: defaultDashboard,
   } as AppState)
@@ -95,8 +110,17 @@ const defaultDashboard: DashboardPrefs = {
     'Discipline is choosing what you want most over what you want now.',
   ],
   dailyGoal: '',
+  checksOpen: false,
   weeklyOpen: false,
+  collapsedCategories: {},
   activeQuoteIndex: null,
+}
+
+const defaultPreferences: AppPreferences = {
+  itemCompletionXp: {},
+  itemBaseMinutes: {},
+  levelUpXp: 250,
+  ranks: DEFAULT_RANKS,
 }
 
 function normalizeHabit(h: LegacyHabit, index: number): Habit {
@@ -119,9 +143,16 @@ function normalizeHabit(h: LegacyHabit, index: number): Habit {
     category,
     streak: h.streak ?? 0,
     doneToday: h.doneToday ?? false,
+    progressToday: (h as Habit).progressToday ?? 0,
+    totalProgress: (h as Habit).totalProgress ?? 0,
     lastCompletedDate: h.lastCompletedDate ?? null,
     createdAt: h.createdAt ?? new Date().toISOString().slice(0, 10),
     totalMinutes: h.totalMinutes ?? legacyXp * 5 + legacyFocus,
+    totalXpEarned:
+      (h as Habit).totalXpEarned ??
+      (h.totalMinutes ?? legacyXp * 5 + legacyFocus > 0
+        ? legacyXp || Math.floor((h.totalMinutes ?? 0) * 0.6)
+        : 0),
     difficulty: (h as Habit).difficulty ?? 3,
     priority: (h as Habit).priority ?? 3,
     linkedHabitIds: h.linkedHabitIds ?? [],
@@ -143,11 +174,21 @@ function normalizeProfile(profile: LegacyProfile): AppState['profile'] {
     handle: profile.handle ?? '@you',
     avatarUrl: profile.avatarUrl ?? null,
     accentColor: profile.accentColor ?? '#a3e635',
+    streakSymbol: profile.streakSymbol ?? '🔥',
+    streakSymbolImageUrl: profile.streakSymbolImageUrl ?? null,
     totalMinutes,
     spentMinutes,
     totalXp:
       (profile as AppState['profile']).totalXp ??
       (legacyTotalXp != null ? legacyTotalXp : Math.floor(totalMinutes / 5)),
+    shopXp:
+      (profile as AppState['profile']).shopXp ??
+      Math.max(
+        0,
+        ((profile as AppState['profile']).shopXp ??
+          (legacyTotalXp != null ? legacyTotalXp : Math.floor(totalMinutes / 5))) -
+          ((profile as AppState['profile']).spentXp ?? legacySpentXp ?? 0),
+      ),
     spentXp:
       (profile as AppState['profile']).spentXp ??
       (legacySpentXp != null ? legacySpentXp : Math.floor(spentMinutes / 5)),
@@ -159,14 +200,36 @@ function normalizeState(state: AppState): AppState {
   return {
     ...state,
     habits: state.habits.map((h, i) => normalizeHabit(h as LegacyHabit, i)),
+    checks: state.checks ?? [],
     weeklyTasks: state.weeklyTasks ?? [],
     dashboard: {
       ...defaultDashboard,
       ...state.dashboard,
+      collapsedCategories: {
+        ...defaultDashboard.collapsedCategories,
+        ...state.dashboard?.collapsedCategories,
+      },
       quotes:
         state.dashboard?.quotes?.length
           ? state.dashboard.quotes
           : defaultDashboard.quotes,
+    },
+    preferences: {
+      ...defaultPreferences,
+      ...state.preferences,
+      itemCompletionXp: {
+        ...defaultPreferences.itemCompletionXp,
+        ...state.preferences?.itemCompletionXp,
+      },
+      itemBaseMinutes: {
+        ...defaultPreferences.itemBaseMinutes,
+        ...state.preferences?.itemBaseMinutes,
+      },
+      levelUpXp: Math.max(
+        25,
+        Math.round(state.preferences?.levelUpXp ?? defaultPreferences.levelUpXp),
+      ),
+      ranks: normalizeRanks(state.preferences?.ranks),
     },
     profile,
     rewards: (state.rewards?.length ? state.rewards : defaultRewards).map((reward) => ({
@@ -215,6 +278,7 @@ function buildAccountSummary(id: string, state: AppState): AccountSummary {
     id,
     name: state.profile.name,
     handle: state.profile.handle,
+    avatarUrl: state.profile.avatarUrl,
     lastUpdatedAt:
       lastCompletionAt || lastTimeRecordAt || `${state.lastActiveDate}T00:00:00`,
   }

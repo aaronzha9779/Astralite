@@ -53,6 +53,53 @@
   background: var(--surface-raised);
 }
 
+.habits-page__master-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface-raised);
+}
+
+.habits-page__master-row {
+  display: grid;
+  grid-template-columns: minmax(90px, 120px) repeat(3, minmax(150px, 1fr));
+  gap: 0.75rem;
+  align-items: end;
+}
+
+.habits-page__master-label {
+  font-size: 0.875rem;
+  text-transform: capitalize;
+  color: var(--text);
+}
+
+.habits-page__master-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.habits-page__master-input {
+  font: inherit;
+  font-size: 0.875rem;
+  padding: 0.55rem 0.65rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+}
+
+.habits-page__master-empty {
+  grid-column: span 3;
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+}
+
 .habits-page__reset-btn {
   font: inherit;
   font-size: 0.875rem;
@@ -66,4 +113,10 @@
 
 .habits-page__reset-btn:hover {
   border-color: var(--accent);
+}
+
+@media (max-width: 720px) {
+  .habits-page__master-row {
+    grid-template-columns: 1fr;
+  }
 }

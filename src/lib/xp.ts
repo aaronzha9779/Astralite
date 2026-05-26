@@ -1,79 +1,80 @@
-import { getRankForLevel } from '../data/ranks'
-import { getLevelFromMinutes } from './time'
-import type { Habit, ProfileData, UserProfile } from '../types'
+import { getRankForLevel, getRankTierForLevel } from '../data/ranks'
+import type { AppPreferences, Habit, ProfileData, UserProfile } from '../types'
 
 export type XpBreakdown = {
   base: number
-  bonus: number
   total: number
-  bonusLabel?: string
 }
 
-export function getHabitWeight(habit: Habit): number {
+export function calculateTimeXp(
+  habit: Habit,
+  minutes: number,
+  rate = 0.6,
+): XpBreakdown {
   void habit
-  return 1
-}
-
-/** Variable bonus — law-of-maybe style intermittent rewards. */
-export function rollBonusXp(base: number): { amount: number; label?: string } {
-  if (base <= 0) return { amount: 0 }
-
-  const roll = Math.random()
-  if (roll < 0.04) {
-    return { amount: Math.round(base * 5), label: 'Jackpot!' }
-  }
-  if (roll < 0.18) {
-    const mult = 1.5 + Math.random() * 2
-    return { amount: Math.round(base * mult), label: 'Big bonus!' }
-  }
-  if (roll < 0.38) {
-    const mult = 0.35 + Math.random() * 0.85
-    return { amount: Math.round(base * mult), label: 'Bonus!' }
-  }
-  if (roll < 0.55) {
-    return { amount: Math.round(base * 0.2), label: 'Nice!' }
-  }
-  return { amount: 0 }
-}
-
-export function calculateTimeXp(habit: Habit, minutes: number): XpBreakdown {
-  void habit
-  const base = Math.max(1, Math.round(minutes * 0.6))
-  const bonusRoll = rollBonusXp(base)
+  const base = getFlatTimeXp(minutes, rate)
   return {
     base,
-    bonus: bonusRoll.amount,
-    total: base + bonusRoll.amount,
-    bonusLabel: bonusRoll.label,
+    total: base,
   }
 }
 
-export function calculateCompletionXp(habit: Habit): XpBreakdown {
+export function calculateCompletionXp(
+  habit: Habit,
+  baseXp = 15,
+): XpBreakdown {
   void habit
-  const base = 15
-  const bonusRoll = rollBonusXp(base)
+  const base = getFlatCompletionXp(baseXp)
   return {
     base,
-    bonus: bonusRoll.amount,
-    total: base + bonusRoll.amount,
-    bonusLabel: bonusRoll.label,
+    total: base,
+  }
+}
+
+export function getFlatTimeXp(minutes: number, rate = 0.6): number {
+  return Math.max(1, Math.round(minutes * Math.max(0, rate)))
+}
+
+export function getFlatCompletionXp(baseXp = 15): number {
+  return Math.max(1, Math.round(baseXp))
+}
+
+export function getLevelFromXp(totalXp: number, xpPerLevel = 250) {
+  const threshold = Math.max(25, Math.round(xpPerLevel))
+  const level = Math.floor(Math.max(0, totalXp) / threshold) + 1
+  const current = Math.max(0, totalXp) % threshold
+  return {
+    level,
+    current,
+    toNext: threshold,
+    percent: Math.round((current / threshold) * 100),
   }
 }
 
 export function getAvailableXp(profile: ProfileData): number {
-  return Math.max(0, (profile.totalXp ?? 0) - (profile.spentXp ?? 0))
+  return Math.max(0, profile.shopXp ?? 0)
 }
 
-export function toUserProfile(profile: ProfileData): UserProfile {
-  const { level, current, toNext } = getLevelFromMinutes(profile.totalMinutes)
+export function toUserProfile(
+  profile: ProfileData,
+  preferences: AppPreferences,
+): UserProfile {
+  const { level, current, toNext } = getLevelFromXp(
+    profile.totalXp ?? 0,
+    preferences.levelUpXp,
+  )
+  const activeRank = getRankTierForLevel(level, preferences.ranks)
   return {
     name: profile.name,
     handle: profile.handle,
     avatarUrl: profile.avatarUrl,
     accentColor: profile.accentColor,
-    rank: getRankForLevel(level),
+    streakSymbol: profile.streakSymbol,
+    streakSymbolImageUrl: profile.streakSymbolImageUrl ?? null,
+    rank: getRankForLevel(level, preferences.ranks),
+    rankImageUrl: activeRank?.imageUrl ?? null,
     level,
-    progressMinutes: current,
+    progressXp: current,
     progressToNext: toNext,
     availableMinutes: Math.max(
       0,
@@ -81,6 +82,7 @@ export function toUserProfile(profile: ProfileData): UserProfile {
     ),
     totalMinutes: profile.totalMinutes,
     availableXp: getAvailableXp(profile),
+    shopXp: profile.shopXp ?? 0,
     totalXp: profile.totalXp ?? 0,
   }
 }

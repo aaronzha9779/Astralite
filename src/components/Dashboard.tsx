@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import type {
+  AppPreferences,
   DashboardPrefs,
-  DashboardStat,
   Habit,
   HabitCategory,
   WeeklyTask,
@@ -15,11 +15,20 @@ const COLUMNS: HabitCategory[] = ['daily', 'habit', 'hobby']
 
 type DashboardProps = {
   habits: Habit[]
+  checks: WeeklyTask[]
   weeklyTasks: WeeklyTask[]
+  streakSymbol: string
+  streakSymbolImageUrl: string | null
+  preferences: AppPreferences
+  rawXpByHabit: Record<string, number>
   dashboard: DashboardPrefs
-  stats: DashboardStat[]
   onToggle: (id: string) => void
+  onIncrementHobby: (id: string) => void
   onAdd: (name: string, category: HabitCategory) => void
+  onCheckToggle: (id: string) => void
+  onCheckAdd: (name: string) => void
+  onCheckRemove: (id: string) => void
+  onChecksOpenChange: (open: boolean) => void
   onWeeklyToggle: (id: string) => void
   onWeeklyAdd: (name: string) => void
   onWeeklyRemove: (id: string) => void
@@ -38,11 +47,20 @@ function getLinkedNames(habits: Habit[], habit: Habit): string[] {
 
 export function Dashboard({
   habits,
+  checks,
   weeklyTasks,
+  streakSymbol,
+  streakSymbolImageUrl,
+  preferences,
+  rawXpByHabit,
   dashboard,
-  stats,
   onToggle,
+  onIncrementHobby,
   onAdd,
+  onCheckToggle,
+  onCheckAdd,
+  onCheckRemove,
+  onChecksOpenChange,
   onWeeklyToggle,
   onWeeklyAdd,
   onWeeklyRemove,
@@ -65,7 +83,8 @@ export function Dashboard({
     return map
   }, [habits])
 
-  const completedCount = habits.filter((h) => h.doneToday).length
+  const dailyCount = byCategory.daily.length
+  const completedDailies = byCategory.daily.filter((h) => h.doneToday).length
 
   return (
     <main className="dashboard">
@@ -75,7 +94,7 @@ export function Dashboard({
           <p className="dashboard__subtitle">
             {habits.length === 0
               ? 'Add tasks in any column to start grinding'
-              : `${completedCount} of ${habits.length} complete · linked items check off together`}
+              : `${completedDailies} of ${dailyCount} dailies complete · linked items check off together`}
           </p>
         </div>
       </header>
@@ -88,15 +107,6 @@ export function Dashboard({
         onShuffleQuote={onShuffleQuote}
       />
 
-      <section className="dashboard__stats" aria-label="Summary">
-        {stats.map((stat) => (
-          <article key={stat.id} className="stat-card">
-            <span className="stat-card__label">{stat.label}</span>
-            <span className="stat-card__value">{stat.value}</span>
-          </article>
-        ))}
-      </section>
-
       <section className="dashboard__board" aria-label="Task board">
         {COLUMNS.map((category) => (
           <TaskColumn
@@ -104,7 +114,12 @@ export function Dashboard({
             category={category}
             habits={byCategory[category]}
             allHabits={habits}
+            preferences={preferences}
+            rawXpByHabit={rawXpByHabit}
+            streakSymbol={streakSymbol}
+            streakSymbolImageUrl={streakSymbolImageUrl}
             onToggle={onToggle}
+            onIncrementHobby={onIncrementHobby}
             onAdd={onAdd}
             getLinkedNames={getLinkedNames}
           />
@@ -112,7 +127,21 @@ export function Dashboard({
       </section>
 
       <WeeklyTasksPanel
+        tasks={checks}
+        title="Checks"
+        xpReward={2}
+        placeholder="Add quick check…"
+        emptyMessage="No checks yet — add a lightweight item when you want quick XP."
+        open={dashboard.checksOpen}
+        onOpenChange={onChecksOpenChange}
+        onToggle={onCheckToggle}
+        onAdd={onCheckAdd}
+        onRemove={onCheckRemove}
+      />
+
+      <WeeklyTasksPanel
         tasks={weeklyTasks}
+        xpReward={10}
         open={dashboard.weeklyOpen}
         onOpenChange={onWeeklyOpenChange}
         onToggle={onWeeklyToggle}

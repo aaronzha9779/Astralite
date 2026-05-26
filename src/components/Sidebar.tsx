@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useRef } from 'react'
 import { formatMinutes } from '../lib/time'
 import type { AccountSummary, UserProfile } from '../types'
 import './Sidebar.css'
@@ -8,7 +8,6 @@ type SidebarProps = {
   accounts: AccountSummary[]
   activeAccountId: string
   onSwitchAccount: (accountId: string) => void
-  onCreateAccount: (name: string, handle?: string) => void
   onExportSaveFile: () => string
   onImportSaveFile: (raw: string) => boolean
 }
@@ -27,23 +26,13 @@ export function Sidebar({
   accounts,
   activeAccountId,
   onSwitchAccount,
-  onCreateAccount,
   onExportSaveFile,
   onImportSaveFile,
 }: SidebarProps) {
-  const [accountName, setAccountName] = useState('')
-  const [accountHandle, setAccountHandle] = useState('')
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const progressPercent = Math.round(
-    (profile.progressMinutes / profile.progressToNext) * 100,
+    (profile.progressXp / profile.progressToNext) * 100,
   )
-
-  function handleCreateAccount() {
-    if (!accountName.trim()) return
-    onCreateAccount(accountName, accountHandle)
-    setAccountName('')
-    setAccountHandle('')
-  }
 
   function handleExport() {
     const payload = onExportSaveFile()
@@ -91,18 +80,22 @@ export function Sidebar({
         </div>
         <div className="profile-card__rank">
           <span className="profile-card__rank-label">Rank</span>
-          <span className="profile-card__rank-value">{profile.rank}</span>
+          <span className="profile-card__rank-value">
+            {profile.rankImageUrl ? (
+              <img className="profile-card__rank-image" src={profile.rankImageUrl} alt="" />
+            ) : null}
+            {profile.rank}
+          </span>
         </div>
         <div className="profile-card__level">
           <span>Level {profile.level}</span>
           <span>
-            {formatMinutes(profile.progressMinutes)} /{' '}
-            {formatMinutes(profile.progressToNext)}
+            {profile.progressXp} / {profile.progressToNext} XP
           </span>
         </div>
         <p className="profile-card__wallet">
-          <span className="profile-card__xp">{profile.availableXp} XP</span> to spend ·{' '}
-          {formatMinutes(profile.totalMinutes)} tracked · Lv {profile.level}
+          <span className="profile-card__xp">{profile.availableXp} shop XP</span> ·{' '}
+          {formatMinutes(profile.totalMinutes)} tracked · {profile.totalXp} lifetime XP
         </p>
         <div
           className="profile-card__xp-bar"
@@ -123,40 +116,30 @@ export function Sidebar({
             <span className="profile-card__section-label">Accounts</span>
             <span className="profile-card__section-meta">{accounts.length}</span>
           </div>
-          <select
-            className="profile-card__select"
-            value={activeAccountId}
-            onChange={(e) => onSwitchAccount(e.target.value)}
-          >
+          <div className="profile-card__accounts">
             {accounts.map((account) => (
-              <option key={account.id} value={account.id}>
-                {account.name} ({account.handle})
-              </option>
+              <button
+                key={account.id}
+                type="button"
+                className={`profile-card__account${account.id === activeAccountId ? ' profile-card__account--active' : ''}`}
+                onClick={() => onSwitchAccount(account.id)}
+              >
+                <span className="profile-card__account-avatar" aria-hidden="true">
+                  {account.avatarUrl ? (
+                    <img className="profile-card__account-avatar-img" src={account.avatarUrl} alt="" />
+                  ) : (
+                    getInitials(account.name)
+                  )}
+                </span>
+                <span className="profile-card__account-copy">
+                  <span className="profile-card__account-name">{account.name}</span>
+                  <span className="profile-card__account-handle">{account.handle}</span>
+                </span>
+                {account.id === activeAccountId ? (
+                  <span className="profile-card__account-badge">Active</span>
+                ) : null}
+              </button>
             ))}
-          </select>
-          <div className="profile-card__form">
-            <input
-              className="profile-card__input"
-              type="text"
-              placeholder="New account name"
-              value={accountName}
-              onChange={(e) => setAccountName(e.target.value)}
-            />
-            <input
-              className="profile-card__input"
-              type="text"
-              placeholder="Handle (optional)"
-              value={accountHandle}
-              onChange={(e) => setAccountHandle(e.target.value)}
-            />
-            <button
-              type="button"
-              className="profile-card__btn"
-              onClick={handleCreateAccount}
-              disabled={!accountName.trim()}
-            >
-              Create account
-            </button>
           </div>
         </div>
 

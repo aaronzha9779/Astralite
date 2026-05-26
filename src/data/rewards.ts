@@ -7,6 +7,7 @@ export const rewards: Reward[] = [
     description: 'Skip a day without breaking your streak (coming soon).',
     cost: 50,
     emoji: '🛋️',
+    imageUrl: null,
     oneTime: false,
   },
   {
@@ -15,6 +16,7 @@ export const rewards: Reward[] = [
     description: 'Unlock a gold accent theme for the app.',
     cost: 100,
     emoji: '✨',
+    imageUrl: null,
     oneTime: true,
   },
   {
@@ -23,6 +25,7 @@ export const rewards: Reward[] = [
     description: 'Bonus XP on your next 3 timer sessions.',
     cost: 75,
     emoji: '⚡',
+    imageUrl: null,
     oneTime: false,
   },
   {
@@ -31,6 +34,7 @@ export const rewards: Reward[] = [
     description: 'Show off an exclusive profile badge.',
     cost: 150,
     emoji: '🏅',
+    imageUrl: null,
     oneTime: true,
   },
   {
@@ -39,6 +43,7 @@ export const rewards: Reward[] = [
     description: '2× XP on timer sessions for one day.',
     cost: 200,
     emoji: '💎',
+    imageUrl: null,
     oneTime: false,
   },
   {
@@ -47,6 +52,7 @@ export const rewards: Reward[] = [
     description: 'Unlock the "Legend" rank title on your profile.',
     cost: 300,
     emoji: '👑',
+    imageUrl: null,
     oneTime: true,
   },
 ]

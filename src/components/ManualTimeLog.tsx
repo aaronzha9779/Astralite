@@ -27,11 +27,7 @@ export function ManualTimeLog({ habits, onLog }: ManualTimeLogProps) {
 
     const result = onLog(habitId, m)
     if (result) {
-      const bonus =
-        result.bonus > 0
-          ? ` (+${result.bonus} ${result.bonusLabel ?? 'bonus'} XP!)`
-          : ''
-      setFeedback(`+${result.total} XP${bonus}`)
+      setFeedback(`+${result.total} XP`)
       setTimeout(() => setFeedback(null), 3500)
     }
   }
@@ -40,7 +36,7 @@ export function ManualTimeLog({ habits, onLog }: ManualTimeLogProps) {
     <section className="manual-time-log" aria-label="Log missed time">
       <h3 className="manual-time-log__title">Log missed time</h3>
       <p className="manual-time-log__subtitle">
-        One place to backfill time on any habit or hobby. XP includes a random bonus roll.
+        One place to backfill time on any habit or hobby with flat, predictable XP.
       </p>
 
       <div className="manual-time-log__row">

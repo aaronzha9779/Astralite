@@ -1,8 +1,15 @@
 import { getTodayISO } from '../lib/dates'
+import { DEFAULT_RANKS } from './ranks'
 import { rewards } from './rewards'
 import type { AppState, CompletionRecord, Habit } from '../types'
 
 const today = getTodayISO()
+const defaultPreferences = {
+  itemCompletionXp: {},
+  itemBaseMinutes: {},
+  levelUpXp: 250,
+  ranks: DEFAULT_RANKS,
+} as const
 
 const seedHabits: Habit[] = [
   {
@@ -11,9 +18,12 @@ const seedHabits: Habit[] = [
     category: 'daily',
     streak: 14,
     doneToday: false,
+    progressToday: 0,
+    totalProgress: 0,
     lastCompletedDate: null,
     createdAt: today,
     totalMinutes: 420,
+    totalXpEarned: 0,
     difficulty: 4,
     priority: 4,
     linkedHabitIds: ['7'],
@@ -25,9 +35,12 @@ const seedHabits: Habit[] = [
     category: 'hobby',
     streak: 9,
     doneToday: false,
+    progressToday: 18,
+    totalProgress: 218,
     lastCompletedDate: null,
     createdAt: today,
     totalMinutes: 540,
+    totalXpEarned: 145,
     difficulty: 3,
     priority: 3,
     linkedHabitIds: [],
@@ -39,9 +52,12 @@ const seedHabits: Habit[] = [
     category: 'habit',
     streak: 5,
     doneToday: false,
+    progressToday: 0,
+    totalProgress: 0,
     lastCompletedDate: null,
     createdAt: today,
     totalMinutes: 0,
+    totalXpEarned: 0,
     difficulty: 5,
     priority: 5,
     linkedHabitIds: [],
@@ -53,9 +69,12 @@ const seedHabits: Habit[] = [
     category: 'habit',
     streak: 21,
     doneToday: false,
+    progressToday: 0,
+    totalProgress: 0,
     lastCompletedDate: null,
     createdAt: today,
     totalMinutes: 180,
+    totalXpEarned: 64,
     difficulty: 2,
     priority: 3,
     linkedHabitIds: [],
@@ -67,9 +86,12 @@ const seedHabits: Habit[] = [
     category: 'daily',
     streak: 7,
     doneToday: false,
+    progressToday: 0,
+    totalProgress: 0,
     lastCompletedDate: null,
     createdAt: today,
     totalMinutes: 0,
+    totalXpEarned: 0,
     difficulty: 2,
     priority: 4,
     linkedHabitIds: [],
@@ -81,9 +103,12 @@ const seedHabits: Habit[] = [
     category: 'hobby',
     streak: 3,
     doneToday: false,
+    progressToday: 42,
+    totalProgress: 142,
     lastCompletedDate: null,
     createdAt: today,
     totalMinutes: 210,
+    totalXpEarned: 92,
     difficulty: 3,
     priority: 4,
     linkedHabitIds: [],
@@ -95,9 +120,12 @@ const seedHabits: Habit[] = [
     category: 'hobby',
     streak: 14,
     doneToday: false,
+    progressToday: 67,
+    totalProgress: 367,
     lastCompletedDate: null,
     createdAt: today,
     totalMinutes: 600,
+    totalXpEarned: 220,
     difficulty: 4,
     priority: 3,
     linkedHabitIds: ['1'],
@@ -153,6 +181,10 @@ function buildSampleCompletions(habits: Habit[]): CompletionRecord[] {
 
 export const defaultAppState: AppState = {
   habits: seedHabits,
+  checks: [
+    { id: 'c1', name: 'Morning meds', done: false },
+    { id: 'c2', name: 'Inbox zero', done: true },
+  ],
   weeklyTasks: [
     { id: 'w1', name: 'Meal prep Sunday', done: false },
     { id: 'w2', name: 'Review goals', done: true },
@@ -164,7 +196,9 @@ export const defaultAppState: AppState = {
       'Discipline is choosing what you want most over what you want now.',
     ],
     dailyGoal: '',
+    checksOpen: false,
     weeklyOpen: false,
+    collapsedCategories: {},
     activeQuoteIndex: null,
   },
   profile: {
@@ -172,11 +206,15 @@ export const defaultAppState: AppState = {
     handle: '@you',
     avatarUrl: null,
     accentColor: '#a3e635',
+    streakSymbol: '🔥',
+    streakSymbolImageUrl: null,
     totalMinutes: 600,
     spentMinutes: 0,
     totalXp: 450,
+    shopXp: 450,
     spentXp: 0,
   },
+  preferences: structuredClone(defaultPreferences),
   rewards,
   lastActiveDate: today,
   completions: buildSampleCompletions(seedHabits),
@@ -187,6 +225,7 @@ export const defaultAppState: AppState = {
 export function createEmptyAppState(): AppState {
   return {
     habits: [],
+    checks: [],
     weeklyTasks: [],
     dashboard: {
       quotes: [
@@ -195,7 +234,9 @@ export function createEmptyAppState(): AppState {
         'Discipline is choosing what you want most over what you want now.',
       ],
       dailyGoal: '',
+      checksOpen: false,
       weeklyOpen: false,
+      collapsedCategories: {},
       activeQuoteIndex: null,
     },
     profile: {
@@ -203,11 +244,15 @@ export function createEmptyAppState(): AppState {
       handle: '@you',
       avatarUrl: null,
       accentColor: '#a3e635',
+      streakSymbol: '🔥',
+      streakSymbolImageUrl: null,
       totalMinutes: 0,
       spentMinutes: 0,
       totalXp: 0,
+      shopXp: 0,
       spentXp: 0,
     },
+    preferences: structuredClone(defaultPreferences),
     rewards: structuredClone(rewards),
     lastActiveDate: getTodayISO(),
     completions: [],
