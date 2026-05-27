@@ -57,6 +57,9 @@
 }
 
 .profile-card__rank-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
   font-size: 0.6875rem;
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -73,10 +76,12 @@
 }
 
 .profile-card__rank-image {
-  width: 1.25rem;
-  height: 1.25rem;
-  border-radius: 6px;
+  order: 2;
+  width: 1rem;
+  height: 1rem;
+  border-radius: 4px;
   object-fit: cover;
+  flex-shrink: 0;
 }
 
 .profile-card__level {
