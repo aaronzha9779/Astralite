@@ -98,6 +98,7 @@ function migrate(raw: unknown): AppState | null {
     timeRecords: [],
     purchasedRewards: [],
     lastDailySpinDate: null,
+    bountyTasks: [],
     checks: [],
     weeklyTasks: [],
     dashboard: defaultDashboard,
@@ -111,6 +112,7 @@ const defaultDashboard: DashboardPrefs = {
     'Discipline is choosing what you want most over what you want now.',
   ],
   dailyGoal: '',
+  bountiesOpen: false,
   checksOpen: false,
   weeklyOpen: false,
   collapsedCategories: {},
@@ -203,6 +205,7 @@ function normalizeState(state: AppState): AppState {
   return {
     ...state,
     habits: state.habits.map((h, i) => normalizeHabit(h as LegacyHabit, i)),
+    bountyTasks: state.bountyTasks ?? [],
     checks: state.checks ?? [],
     weeklyTasks: state.weeklyTasks ?? [],
     dashboard: {

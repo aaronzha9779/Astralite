@@ -17,6 +17,7 @@ export function Layout() {
     activeAccountId,
     accounts,
     habits,
+    bountyTasks,
     checks,
     weeklyTasks,
     dashboard,
@@ -35,12 +36,16 @@ export function Layout() {
     logTimerSession,
     setLinkedHabits,
     addHabit,
+    addBountyTask,
     addCheck,
     addWeeklyTask,
+    toggleBountyTask,
     toggleCheck,
     toggleWeeklyTask,
+    removeBountyTask,
     removeCheck,
     removeWeeklyTask,
+    setBountiesOpen,
     setChecksOpen,
     setWeeklyOpen,
     setDailyGoal,
@@ -100,6 +105,7 @@ export function Layout() {
       return (
         <Dashboard
           habits={habits}
+          bountyTasks={bountyTasks}
           checks={checks}
           weeklyTasks={weeklyTasks}
           streakSymbol={profile.streakSymbol}
@@ -110,6 +116,10 @@ export function Layout() {
           onToggle={toggleHabit}
           onIncrementHobby={incrementHobby}
           onAdd={addHabit}
+          onBountyToggle={toggleBountyTask}
+          onBountyAdd={addBountyTask}
+          onBountyRemove={removeBountyTask}
+          onBountiesOpenChange={setBountiesOpen}
           onCheckToggle={toggleCheck}
           onCheckAdd={addCheck}
           onCheckRemove={removeCheck}

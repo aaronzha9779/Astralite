@@ -183,6 +183,9 @@ function buildSampleCompletions(habits: Habit[]): CompletionRecord[] {
 
 export const defaultAppState: AppState = {
   habits: seedHabits,
+  bountyTasks: [
+    { id: 'b1', name: 'Ship the important thing', done: false },
+  ],
   checks: [
     { id: 'c1', name: 'Morning meds', done: false },
     { id: 'c2', name: 'Inbox zero', done: true },
@@ -198,6 +201,7 @@ export const defaultAppState: AppState = {
       'Discipline is choosing what you want most over what you want now.',
     ],
     dailyGoal: '',
+    bountiesOpen: false,
     checksOpen: false,
     weeklyOpen: false,
     collapsedCategories: {},
@@ -228,6 +232,7 @@ export const defaultAppState: AppState = {
 export function createEmptyAppState(): AppState {
   return {
     habits: [],
+    bountyTasks: [],
     checks: [],
     weeklyTasks: [],
     dashboard: {
@@ -237,6 +242,7 @@ export function createEmptyAppState(): AppState {
         'Discipline is choosing what you want most over what you want now.',
       ],
       dailyGoal: '',
+      bountiesOpen: false,
       checksOpen: false,
       weeklyOpen: false,
       collapsedCategories: {},

@@ -65,7 +65,10 @@ function getHobbyLevel(totalProgress: number) {
   return Math.floor(Math.max(0, totalProgress) / 100) + 1
 }
 
-function getRandomUxpBonus(min = 25, max = 100) {
+const LEVEL_UP_UXP_MIN = 25
+const LEVEL_UP_UXP_MAX = 100
+
+function getRandomUxpBonus(min = LEVEL_UP_UXP_MIN, max = LEVEL_UP_UXP_MAX) {
   return Math.floor(Math.random() * (max - min + 1)) + min
 }
 
@@ -126,6 +129,10 @@ function getLevelUpUxpReward(
 function prepareState(base: AppState): AppState {
   const today = getTodayISO()
   const habits = applyDailyReset(base.habits, base.lastActiveDate)
+  const bountyTasks =
+    base.lastActiveDate === today
+      ? base.bountyTasks
+      : base.bountyTasks.map((item) => ({ ...item, done: false }))
   const checks =
     base.lastActiveDate === today
       ? base.checks
@@ -138,6 +145,7 @@ function prepareState(base: AppState): AppState {
   return {
     ...base,
     habits,
+    bountyTasks,
     checks,
     weeklyTasks,
     lastActiveDate: today,
@@ -145,6 +153,7 @@ function prepareState(base: AppState): AppState {
 }
 
 const WEEKLY_TASK_XP = 10
+const BOUNTY_TASK_XP = 25
 const CHECK_TASK_XP = 2
 
 function sanitizeAccentColor(color: string | undefined): string {
@@ -275,6 +284,9 @@ export function useAppState() {
         return {
           ...prev,
           habits: applyDailyReset(prev.habits, prev.lastActiveDate),
+          bountyTasks: prev.bountyTasks.map((item) =>
+            item.done ? { ...item, done: false } : item,
+          ),
           checks: prev.checks.map((item) =>
             item.done ? { ...item, done: false } : item,
           ),
@@ -771,6 +783,19 @@ export function useAppState() {
     }))
   }, [updateCurrentState])
 
+  const addBountyTask = useCallback((name: string) => {
+    const trimmed = name.trim()
+    if (!trimmed) return
+
+    updateCurrentState((prev) => ({
+      ...prev,
+      bountyTasks: [
+        ...prev.bountyTasks,
+        { id: crypto.randomUUID(), name: trimmed, done: false },
+      ],
+    }))
+  }, [updateCurrentState])
+
   const addCheck = useCallback((name: string) => {
     const trimmed = name.trim()
     if (!trimmed) return
@@ -833,6 +858,51 @@ export function useAppState() {
     }
   }, [updateCurrentState])
 
+  const toggleBountyTask = useCallback((id: string) => {
+    let levelUpBonus = 0
+    updateCurrentState((prev) => {
+      let xpGain = 0
+
+      const bountyTasks = prev.bountyTasks.map((task) => {
+        if (task.id !== id) return task
+        const nextDone = !task.done
+        if (nextDone) xpGain = BOUNTY_TASK_XP
+        return {
+          ...task,
+          done: nextDone,
+        }
+      })
+
+      const profile =
+        xpGain > 0
+          ? {
+              ...prev.profile,
+              totalXp: (prev.profile.totalXp ?? 0) + xpGain,
+              shopXp: (prev.profile.shopXp ?? 0) + xpGain,
+            }
+          : prev.profile
+      levelUpBonus =
+        xpGain > 0 ? getLevelUpUxpReward(prev, prev.habits, profile, []) : 0
+      const nextProfile =
+        levelUpBonus > 0
+          ? { ...profile, shopXp: (profile.shopXp ?? 0) + levelUpBonus }
+          : profile
+
+      return {
+        ...prev,
+        bountyTasks,
+        profile: nextProfile,
+      }
+    })
+    if (levelUpBonus > 0) {
+      setUxpBurst({
+        id: crypto.randomUUID(),
+        amount: levelUpBonus,
+        reason: 'Level up',
+      })
+    }
+  }, [updateCurrentState])
+
   const toggleCheck = useCallback((id: string) => {
     let levelUpBonus = 0
     updateCurrentState((prev) => {
@@ -881,6 +951,13 @@ export function useAppState() {
     }))
   }, [updateCurrentState])
 
+  const removeBountyTask = useCallback((id: string) => {
+    updateCurrentState((prev) => ({
+      ...prev,
+      bountyTasks: prev.bountyTasks.filter((task) => task.id !== id),
+    }))
+  }, [updateCurrentState])
+
   const removeCheck = useCallback((id: string) => {
     updateCurrentState((prev) => ({
       ...prev,
@@ -892,6 +969,13 @@ export function useAppState() {
     updateCurrentState((prev) => ({
       ...prev,
       dashboard: { ...prev.dashboard, checksOpen: open },
+    }))
+  }, [updateCurrentState])
+
+  const setBountiesOpen = useCallback((open: boolean) => {
+    updateCurrentState((prev) => ({
+      ...prev,
+      dashboard: { ...prev.dashboard, bountiesOpen: open },
     }))
   }, [updateCurrentState])
 
@@ -972,6 +1056,9 @@ export function useAppState() {
       const checks = prev.checks.map((item) =>
         item.done ? { ...item, done: false } : item,
       )
+      const bountyTasks = prev.bountyTasks.map((item) =>
+        item.done ? { ...item, done: false } : item,
+      )
       const weeklyTasks = prev.weeklyTasks.map((item) =>
         item.done ? { ...item, done: false } : item,
       )
@@ -979,6 +1066,7 @@ export function useAppState() {
       return {
         ...prev,
         habits,
+        bountyTasks,
         checks,
         weeklyTasks,
         completions,
@@ -1355,6 +1443,7 @@ export function useAppState() {
     activeAccountId: accountsState.activeAccountId,
     accounts,
     habits: state.habits,
+    bountyTasks: state.bountyTasks,
     checks: state.checks,
     weeklyTasks: state.weeklyTasks,
     dashboard: state.dashboard,
@@ -1376,13 +1465,17 @@ export function useAppState() {
     setHabitTags,
     setHabitWeights,
     addHabit,
+    addBountyTask,
     incrementHobby,
     addCheck,
     addWeeklyTask,
+    toggleBountyTask,
     toggleCheck,
     toggleWeeklyTask,
+    removeBountyTask,
     removeCheck,
     removeWeeklyTask,
+    setBountiesOpen,
     setChecksOpen,
     setCategoryCollapsed,
     setWeeklyOpen,

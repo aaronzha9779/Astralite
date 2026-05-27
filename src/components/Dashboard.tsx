@@ -15,6 +15,7 @@ const COLUMNS: HabitCategory[] = ['daily', 'habit', 'hobby']
 
 type DashboardProps = {
   habits: Habit[]
+  bountyTasks: WeeklyTask[]
   checks: WeeklyTask[]
   weeklyTasks: WeeklyTask[]
   streakSymbol: string
@@ -25,6 +26,10 @@ type DashboardProps = {
   onToggle: (id: string) => void
   onIncrementHobby: (id: string) => void
   onAdd: (name: string, category: HabitCategory) => void
+  onBountyToggle: (id: string) => void
+  onBountyAdd: (name: string) => void
+  onBountyRemove: (id: string) => void
+  onBountiesOpenChange: (open: boolean) => void
   onCheckToggle: (id: string) => void
   onCheckAdd: (name: string) => void
   onCheckRemove: (id: string) => void
@@ -47,6 +52,7 @@ function getLinkedNames(habits: Habit[], habit: Habit): string[] {
 
 export function Dashboard({
   habits,
+  bountyTasks,
   checks,
   weeklyTasks,
   streakSymbol,
@@ -57,6 +63,10 @@ export function Dashboard({
   onToggle,
   onIncrementHobby,
   onAdd,
+  onBountyToggle,
+  onBountyAdd,
+  onBountyRemove,
+  onBountiesOpenChange,
   onCheckToggle,
   onCheckAdd,
   onCheckRemove,
@@ -125,6 +135,19 @@ export function Dashboard({
           />
         ))}
       </section>
+
+      <WeeklyTasksPanel
+        tasks={bountyTasks}
+        title="Main tasks"
+        xpReward={25}
+        placeholder="Add main task…"
+        emptyMessage="No main tasks yet — add a bounty when something matters most today."
+        open={dashboard.bountiesOpen}
+        onOpenChange={onBountiesOpenChange}
+        onToggle={onBountyToggle}
+        onAdd={onBountyAdd}
+        onRemove={onBountyRemove}
+      />
 
       <WeeklyTasksPanel
         tasks={checks}

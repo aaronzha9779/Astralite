@@ -64,6 +64,7 @@ export type WeeklyTask = {
 export type DashboardPrefs = {
   quotes: string[]
   dailyGoal: string
+  bountiesOpen: boolean
   checksOpen: boolean
   weeklyOpen: boolean
   collapsedCategories: Partial<Record<HabitCategory, boolean>>
@@ -118,6 +119,7 @@ export type ProfileData = {
 
 export type AppState = {
   habits: Habit[]
+  bountyTasks: WeeklyTask[]
   checks: WeeklyTask[]
   weeklyTasks: WeeklyTask[]
   dashboard: DashboardPrefs

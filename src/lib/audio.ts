@@ -17,5 +17,5 @@ export function playCompletionChime() {
 }
 
 export function playReward() {
-  playAudio(upgradeSound, 0.55)
+  playAudio(upgradeSound, 0.20)
 }
