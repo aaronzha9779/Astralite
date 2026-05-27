@@ -8,8 +8,10 @@ type WeeklyTasksPanelProps = {
   open: boolean
   title?: string
   xpReward?: number
+  getXpReward?: (task: WeeklyTask) => number
   placeholder?: string
   emptyMessage?: string
+  removeOnComplete?: boolean
   onOpenChange: (open: boolean) => void
   onToggle: (id: string) => void
   onAdd: (name: string) => void
@@ -21,15 +23,17 @@ export function WeeklyTasksPanel({
   open,
   title = 'Weekly tasks',
   xpReward = 10,
+  getXpReward,
   placeholder = 'Add weekly task…',
   emptyMessage = 'No weekly tasks — add one when you need it.',
+  removeOnComplete = false,
   onOpenChange,
   onToggle,
   onAdd,
   onRemove,
 }: WeeklyTasksPanelProps) {
   const [name, setName] = useState('')
-  const [xpPopId, setXpPopId] = useState<string | null>(null)
+  const [xpPop, setXpPop] = useState<{ id: string; amount: number } | null>(null)
   const doneCount = tasks.filter((t) => t.done).length
 
   function handleSubmit(e: FormEvent) {
@@ -41,11 +45,12 @@ export function WeeklyTasksPanel({
   }
 
   function handleToggle(task: WeeklyTask) {
+    const reward = getXpReward?.(task) ?? xpReward
     onToggle(task.id)
     if (!task.done) {
       playCompletionChime()
-      setXpPopId(task.id)
-      setTimeout(() => setXpPopId(null), 900)
+      setXpPop({ id: task.id, amount: reward })
+      setTimeout(() => setXpPop(null), removeOnComplete ? 650 : 900)
     }
   }
 
@@ -105,8 +110,9 @@ export function WeeklyTasksPanel({
                   >
                     {task.name}
                   </span>
-                  {xpPopId === task.id ? (
-                    <span className="weekly-task__xp-pop">+{xpReward} XP</span>
+                  <span className="weekly-task__reward">{getXpReward?.(task) ?? xpReward} XP</span>
+                  {xpPop?.id === task.id ? (
+                    <span className="weekly-task__xp-pop">+{xpPop.amount} XP</span>
                   ) : null}
                   <button
                     type="button"

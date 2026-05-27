@@ -863,17 +863,10 @@ export function useAppState() {
     updateCurrentState((prev) => {
       let xpGain = 0
 
-      const bountyTasks = prev.bountyTasks.map((task) => {
-        if (task.id !== id) return task
-        const nextDone = !task.done
-        if (nextDone) {
-          xpGain = prev.preferences.itemCompletionXp[task.id] ?? BOUNTY_TASK_XP
-        }
-        return {
-          ...task,
-          done: nextDone,
-        }
-      })
+      const task = prev.bountyTasks.find((entry) => entry.id === id)
+      if (!task) return prev
+      xpGain = prev.preferences.itemCompletionXp[task.id] ?? BOUNTY_TASK_XP
+      const bountyTasks = prev.bountyTasks.filter((entry) => entry.id !== id)
 
       const profile =
         xpGain > 0

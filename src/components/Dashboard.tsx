@@ -140,8 +140,10 @@ export function Dashboard({
         tasks={bountyTasks}
         title="Main tasks"
         xpReward={25}
+        getXpReward={(task) => preferences.itemCompletionXp[task.id] ?? 25}
         placeholder="Add main task…"
         emptyMessage="No main tasks yet — add a bounty when something matters most today."
+        removeOnComplete
         open={dashboard.bountiesOpen}
         onOpenChange={onBountiesOpenChange}
         onToggle={onBountyToggle}

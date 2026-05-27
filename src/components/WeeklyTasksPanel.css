@@ -143,6 +143,14 @@
   color: var(--text);
 }
 
+.weekly-task__reward {
+  flex-shrink: 0;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--accent);
+  white-space: nowrap;
+}
+
 .weekly-task__name--done {
   color: var(--text-muted);
   text-decoration: line-through;
