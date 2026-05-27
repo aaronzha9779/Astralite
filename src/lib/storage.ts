@@ -49,6 +49,10 @@ type LegacyProfile = {
   spentMinutes?: number
 }
 
+type LegacyPreferences = Partial<AppPreferences> & {
+  levelUpXp?: number
+}
+
 type StoredAccounts = {
   activeAccountId: string
   accounts: Record<string, AppState>
@@ -122,7 +126,8 @@ const defaultDashboard: DashboardPrefs = {
 const defaultPreferences: AppPreferences = {
   itemCompletionXp: {},
   itemBaseMinutes: {},
-  levelUpXp: 250,
+  levelUpBaseXp: 250,
+  levelUpIncrementXp: 25,
   ranks: DEFAULT_RANKS,
   dailySpinUxps: [25, 40, 60, 80, 100],
   dailySpinRewardIds: [],
@@ -222,7 +227,7 @@ function normalizeState(state: AppState): AppState {
     },
     preferences: {
       ...defaultPreferences,
-      ...state.preferences,
+      ...(state.preferences as LegacyPreferences),
       itemCompletionXp: {
         ...defaultPreferences.itemCompletionXp,
         ...state.preferences?.itemCompletionXp,
@@ -231,9 +236,20 @@ function normalizeState(state: AppState): AppState {
         ...defaultPreferences.itemBaseMinutes,
         ...state.preferences?.itemBaseMinutes,
       },
-      levelUpXp: Math.max(
+      levelUpBaseXp: Math.max(
         25,
-        Math.round(state.preferences?.levelUpXp ?? defaultPreferences.levelUpXp),
+        Math.round(
+          (state.preferences as LegacyPreferences | undefined)?.levelUpBaseXp ??
+            (state.preferences as LegacyPreferences | undefined)?.levelUpXp ??
+            defaultPreferences.levelUpBaseXp,
+        ),
+      ),
+      levelUpIncrementXp: Math.max(
+        0,
+        Math.round(
+          (state.preferences as LegacyPreferences | undefined)?.levelUpIncrementXp ??
+            0,
+        ),
       ),
       ranks: normalizeRanks(state.preferences?.ranks),
       dailySpinUxps:

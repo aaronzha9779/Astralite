@@ -3,7 +3,7 @@ import type { AppPreferences } from '../types'
 import { getLevelFromXp } from './xp'
 
 export function getHabitMaturity(totalXp: number, preferences?: AppPreferences) {
-  const m = getLevelFromXp(totalXp, preferences?.levelUpXp)
+  const m = getLevelFromXp(totalXp, preferences)
   return {
     level: m.level,
     rank: getRankForLevel(m.level, preferences?.ranks),

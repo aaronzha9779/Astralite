@@ -39,10 +39,44 @@ export function getFlatCompletionXp(baseXp = 15): number {
   return Math.max(1, Math.round(baseXp))
 }
 
-export function getLevelFromXp(totalXp: number, xpPerLevel = 250) {
-  const threshold = Math.max(25, Math.round(xpPerLevel))
-  const level = Math.floor(Math.max(0, totalXp) / threshold) + 1
-  const current = Math.max(0, totalXp) % threshold
+function getLevelThreshold(
+  level: number,
+  baseXp = 250,
+  incrementXp = 25,
+) {
+  const base = Math.max(25, Math.round(baseXp))
+  const increment = Math.max(0, Math.round(incrementXp))
+  return base + Math.max(0, level - 1) * increment
+}
+
+export function getLevelFromXp(
+  totalXp: number,
+  preferencesOrBaseXp?: AppPreferences | number,
+  incrementXp = 25,
+) {
+  const total = Math.max(0, totalXp)
+  const baseXp =
+    typeof preferencesOrBaseXp === 'object' && preferencesOrBaseXp
+      ? preferencesOrBaseXp.levelUpBaseXp
+      : typeof preferencesOrBaseXp === 'number'
+        ? preferencesOrBaseXp
+        : 250
+  const growthXp =
+    typeof preferencesOrBaseXp === 'object' && preferencesOrBaseXp
+      ? preferencesOrBaseXp.levelUpIncrementXp
+      : incrementXp
+
+  let level = 1
+  let spent = 0
+  let threshold = getLevelThreshold(level, baseXp, growthXp)
+
+  while (spent + threshold <= total) {
+    spent += threshold
+    level += 1
+    threshold = getLevelThreshold(level, baseXp, growthXp)
+  }
+
+  const current = total - spent
   return {
     level,
     current,
@@ -61,7 +95,7 @@ export function toUserProfile(
 ): UserProfile {
   const { level, current, toNext } = getLevelFromXp(
     profile.totalXp ?? 0,
-    preferences.levelUpXp,
+    preferences,
   )
   const activeRank = getRankTierForLevel(level, preferences.ranks)
   return {

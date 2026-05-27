@@ -75,7 +75,8 @@ export type DashboardPrefs = {
 export type AppPreferences = {
   itemCompletionXp: Record<string, number>
   itemBaseMinutes: Record<string, number>
-  levelUpXp: number
+  levelUpBaseXp: number
+  levelUpIncrementXp: number
   ranks: RankTier[]
   dailySpinUxps: number[]
   dailySpinRewardIds: string[]

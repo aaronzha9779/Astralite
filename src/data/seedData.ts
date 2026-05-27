@@ -7,7 +7,8 @@ const today = getTodayISO()
 const defaultPreferences: AppPreferences = {
   itemCompletionXp: {},
   itemBaseMinutes: {},
-  levelUpXp: 250,
+  levelUpBaseXp: 250,
+  levelUpIncrementXp: 25,
   ranks: DEFAULT_RANKS,
   dailySpinUxps: [25, 40, 60, 80, 100],
   dailySpinRewardIds: [],

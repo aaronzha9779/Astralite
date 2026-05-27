@@ -53,7 +53,10 @@ export function SettingsPage({
   const [accountDeletePhrase, setAccountDeletePhrase] = useState('')
   const [softResetPhrase, setSoftResetPhrase] = useState('')
   const [resetPhrase, setResetPhrase] = useState('')
-  const [levelUpXp, setLevelUpXp] = useState(String(preferences.levelUpXp))
+  const [levelUpBaseXp, setLevelUpBaseXp] = useState(String(preferences.levelUpBaseXp))
+  const [levelUpIncrementXp, setLevelUpIncrementXp] = useState(
+    String(preferences.levelUpIncrementXp),
+  )
   const [ranks, setRanks] = useState<RankTier[]>(preferences.ranks)
   const [dailySpinUxpInput, setDailySpinUxpInput] = useState(
     preferences.dailySpinUxps.join(', '),
@@ -73,14 +76,16 @@ export function SettingsPage({
   }, [profile])
 
   useEffect(() => {
-    setLevelUpXp(String(preferences.levelUpXp))
+    setLevelUpBaseXp(String(preferences.levelUpBaseXp))
+    setLevelUpIncrementXp(String(preferences.levelUpIncrementXp))
     setRanks(preferences.ranks)
     setDailySpinUxpInput(preferences.dailySpinUxps.join(', '))
     setDailySpinRewardIds(preferences.dailySpinRewardIds)
   }, [
     preferences.dailySpinRewardIds,
     preferences.dailySpinUxps,
-    preferences.levelUpXp,
+    preferences.levelUpBaseXp,
+    preferences.levelUpIncrementXp,
     preferences.ranks,
   ])
 
@@ -163,7 +168,14 @@ export function SettingsPage({
 
   function saveProgression() {
     onUpdatePreferences({
-      levelUpXp: Math.max(25, Number(levelUpXp) || preferences.levelUpXp),
+      levelUpBaseXp: Math.max(
+        25,
+        Number(levelUpBaseXp) || preferences.levelUpBaseXp,
+      ),
+      levelUpIncrementXp: Math.max(
+        0,
+        Number(levelUpIncrementXp) || preferences.levelUpIncrementXp,
+      ),
       ranks,
       dailySpinUxps: dailySpinUxpInput
         .split(',')
@@ -442,14 +454,26 @@ export function SettingsPage({
 
           <div className="settings-page__details-body">
             <label className="settings-page__field settings-page__field--threshold">
-              <span>XP needed per level</span>
+              <span>Initial XP for level 1</span>
               <input
                 className="settings-page__input"
                 type="number"
                 min={25}
                 step={5}
-                value={levelUpXp}
-                onChange={(e) => setLevelUpXp(e.target.value)}
+                value={levelUpBaseXp}
+                onChange={(e) => setLevelUpBaseXp(e.target.value)}
+              />
+            </label>
+
+            <label className="settings-page__field settings-page__field--threshold">
+              <span>XP cap increase per level</span>
+              <input
+                className="settings-page__input"
+                type="number"
+                min={0}
+                step={5}
+                value={levelUpIncrementXp}
+                onChange={(e) => setLevelUpIncrementXp(e.target.value)}
               />
             </label>
 

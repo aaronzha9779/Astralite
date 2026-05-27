@@ -80,11 +80,11 @@ function getLevelUpUxpReward(
 ) {
   const prevMainLevel = getLevelFromXp(
     prev.profile.totalXp ?? 0,
-    prev.preferences.levelUpXp,
+    prev.preferences,
   ).level
   const nextMainLevel = getLevelFromXp(
     nextProfile.totalXp ?? 0,
-    prev.preferences.levelUpXp,
+    prev.preferences,
   ).level
 
   let amount = 0
@@ -105,14 +105,14 @@ function getLevelUpUxpReward(
         ? getHobbyLevel(before.totalProgress)
         : getLevelFromXp(
             before.totalXpEarned,
-            prev.preferences.levelUpXp,
+            prev.preferences,
           ).level
     const nextLevel =
       after.category === 'hobby'
         ? getHobbyLevel(after.totalProgress)
         : getLevelFromXp(
             after.totalXpEarned,
-            prev.preferences.levelUpXp,
+            prev.preferences,
           ).level
 
     if (nextLevel > prevLevel) {
@@ -1026,10 +1026,14 @@ export function useAppState() {
             ...prev.preferences.itemBaseMinutes,
             ...patch.itemBaseMinutes,
           },
-          levelUpXp:
-            patch.levelUpXp == null
-              ? prev.preferences.levelUpXp
-              : Math.max(25, Math.round(patch.levelUpXp)),
+          levelUpBaseXp:
+            patch.levelUpBaseXp == null
+              ? prev.preferences.levelUpBaseXp
+              : Math.max(25, Math.round(patch.levelUpBaseXp)),
+          levelUpIncrementXp:
+            patch.levelUpIncrementXp == null
+              ? prev.preferences.levelUpIncrementXp
+              : Math.max(0, Math.round(patch.levelUpIncrementXp)),
           ranks: patch.ranks ?? prev.preferences.ranks,
           dailySpinUxps:
             patch.dailySpinUxps ?? prev.preferences.dailySpinUxps,
