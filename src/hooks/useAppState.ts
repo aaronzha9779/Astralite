@@ -866,7 +866,9 @@ export function useAppState() {
       const bountyTasks = prev.bountyTasks.map((task) => {
         if (task.id !== id) return task
         const nextDone = !task.done
-        if (nextDone) xpGain = BOUNTY_TASK_XP
+        if (nextDone) {
+          xpGain = prev.preferences.itemCompletionXp[task.id] ?? BOUNTY_TASK_XP
+        }
         return {
           ...task,
           done: nextDone,

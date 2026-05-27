@@ -156,6 +156,7 @@ export function Layout() {
       return (
         <HabitsPage
           habits={habits}
+          bountyTasks={bountyTasks}
           timeRecords={timeRecords}
           preferences={preferences}
           streakSymbol={profile.streakSymbol}

@@ -4,6 +4,7 @@ import type {
   Habit,
   HabitCategory,
   TimeRecord,
+  WeeklyTask,
 } from '../types'
 import { HabitOverviewCard } from './HabitOverviewCard'
 import './HabitsPage.css'
@@ -20,6 +21,7 @@ const CATEGORIES: {
 
 type HabitsPageProps = {
   habits: Habit[]
+  bountyTasks: WeeklyTask[]
   timeRecords: TimeRecord[]
   preferences: AppPreferences
   streakSymbol: string
@@ -32,6 +34,7 @@ type HabitsPageProps = {
 
 export function HabitsPage({
   habits,
+  bountyTasks,
   timeRecords,
   preferences,
   streakSymbol,
@@ -42,7 +45,7 @@ export function HabitsPage({
   onResetToday,
 }: HabitsPageProps) {
   const [selectedByCategory, setSelectedByCategory] = useState<
-    Partial<Record<HabitCategory, string>>
+    Partial<Record<HabitCategory | 'bounty', string>>
   >({})
 
   const byCategory = useMemo(() => {
@@ -59,7 +62,7 @@ export function HabitsPage({
 
   useEffect(() => {
     setSelectedByCategory((prev) => {
-      const next: Partial<Record<HabitCategory, string>> = { ...prev }
+      const next: Partial<Record<HabitCategory | 'bounty', string>> = { ...prev }
       ;(['daily', 'habit', 'hobby'] as HabitCategory[]).forEach((category) => {
         const items = byCategory[category]
         const selected = next[category]
@@ -67,9 +70,12 @@ export function HabitsPage({
           next[category] = items[0]?.id
         }
       })
+      if (!bountyTasks.some((item) => item.id === next.bounty)) {
+        next.bounty = bountyTasks[0]?.id
+      }
       return next
     })
-  }, [byCategory])
+  }, [bountyTasks, byCategory])
 
   return (
     <main className="dashboard habits-page">
@@ -197,6 +203,54 @@ export function HabitsPage({
               )}
             </div>
           ))}
+
+          <div className="habits-page__master-row">
+            <strong className="habits-page__master-label">main tasks</strong>
+            {bountyTasks.length === 0 ? (
+              <p className="habits-page__master-empty">No main tasks on the dashboard yet.</p>
+            ) : (
+              <>
+                <label className="habits-page__master-field">
+                  <span>Item</span>
+                  <select
+                    className="habits-page__master-input"
+                    value={selectedByCategory.bounty ?? ''}
+                    onChange={(e) =>
+                      setSelectedByCategory((prev) => ({
+                        ...prev,
+                        bounty: e.target.value,
+                      }))
+                    }
+                  >
+                    {bountyTasks.map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {item.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="habits-page__master-field">
+                  <span>Completion XP</span>
+                  <input
+                    className="habits-page__master-input"
+                    type="number"
+                    min={0}
+                    step={1}
+                    value={preferences.itemCompletionXp[selectedByCategory.bounty ?? ''] ?? 25}
+                    onChange={(e) => {
+                      const selectedId = selectedByCategory.bounty
+                      if (!selectedId) return
+                      onUpdatePreferences({
+                        itemCompletionXp: {
+                          [selectedId]: Math.max(0, Number(e.target.value) || 0),
+                        },
+                      })
+                    }}
+                  />
+                </label>
+              </>
+            )}
+          </div>
         </div>
 
       </section>
