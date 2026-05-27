@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import type { AccountSummary, AppPreferences, RankTier, UserProfile } from '../types'
+import type { AccountSummary, AppPreferences, RankTier, Reward, UserProfile } from '../types'
 import './SettingsPage.css'
 
 type SettingsPageProps = {
@@ -7,6 +7,7 @@ type SettingsPageProps = {
   accounts: AccountSummary[]
   activeAccountId: string
   preferences: AppPreferences
+  rewards: Reward[]
   onUpdateProfile: (patch: {
     name?: string
     handle?: string
@@ -35,6 +36,7 @@ export function SettingsPage({
   accounts,
   activeAccountId,
   preferences,
+  rewards,
   onUpdateProfile,
   onCreateAccount,
   onDeleteAccount,
@@ -53,6 +55,12 @@ export function SettingsPage({
   const [resetPhrase, setResetPhrase] = useState('')
   const [levelUpXp, setLevelUpXp] = useState(String(preferences.levelUpXp))
   const [ranks, setRanks] = useState<RankTier[]>(preferences.ranks)
+  const [dailySpinUxpInput, setDailySpinUxpInput] = useState(
+    preferences.dailySpinUxps.join(', '),
+  )
+  const [dailySpinRewardIds, setDailySpinRewardIds] = useState(
+    preferences.dailySpinRewardIds,
+  )
   const [draggedRankId, setDraggedRankId] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
   const avatarInputRef = useRef<HTMLInputElement | null>(null)
@@ -67,7 +75,14 @@ export function SettingsPage({
   useEffect(() => {
     setLevelUpXp(String(preferences.levelUpXp))
     setRanks(preferences.ranks)
-  }, [preferences.levelUpXp, preferences.ranks])
+    setDailySpinUxpInput(preferences.dailySpinUxps.join(', '))
+    setDailySpinRewardIds(preferences.dailySpinRewardIds)
+  }, [
+    preferences.dailySpinRewardIds,
+    preferences.dailySpinUxps,
+    preferences.levelUpXp,
+    preferences.ranks,
+  ])
 
   const canReset = resetPhrase === 'DELETE'
   const accentPreview = useMemo(
@@ -150,8 +165,13 @@ export function SettingsPage({
     onUpdatePreferences({
       levelUpXp: Math.max(25, Number(levelUpXp) || preferences.levelUpXp),
       ranks,
+      dailySpinUxps: dailySpinUxpInput
+        .split(',')
+        .map((value) => Math.max(1, Number(value.trim()) || 0))
+        .filter((value, index, arr) => value > 0 && arr.indexOf(value) === index),
+      dailySpinRewardIds,
     })
-    showMessage('Level thresholds and ranks updated.')
+    showMessage('Progression and daily spin settings updated.')
   }
 
   return (
@@ -412,26 +432,35 @@ export function SettingsPage({
       </section>
 
       <section className="settings-page__card">
-        <div className="settings-page__section-head">
-          <h2 className="dashboard__section-title">Progression</h2>
-          <p className="settings-page__hint">
-            Tune how much XP each level needs, reorder ranks, and upload PNG rank badges.
-          </p>
-        </div>
+        <details className="settings-page__details">
+          <summary className="settings-page__details-summary">
+            <span className="dashboard__section-title">Progression</span>
+            <span className="settings-page__hint">
+              Level thresholds, rank badges, and daily spin setup
+            </span>
+          </summary>
 
-        <label className="settings-page__field settings-page__field--threshold">
-          <span>XP needed per level</span>
-          <input
-            className="settings-page__input"
-            type="number"
-            min={25}
-            step={5}
-            value={levelUpXp}
-            onChange={(e) => setLevelUpXp(e.target.value)}
-          />
-        </label>
+          <div className="settings-page__details-body">
+            <label className="settings-page__field settings-page__field--threshold">
+              <span>XP needed per level</span>
+              <input
+                className="settings-page__input"
+                type="number"
+                min={25}
+                step={5}
+                value={levelUpXp}
+                onChange={(e) => setLevelUpXp(e.target.value)}
+              />
+            </label>
 
-        <div className="settings-page__rank-list">
+            <div className="settings-page__section-head">
+              <h3 className="settings-page__subhead">Ranks</h3>
+              <p className="settings-page__hint">
+                Reorder tiers, adjust level starts, and upload PNG badges.
+              </p>
+            </div>
+
+            <div className="settings-page__rank-list">
           {ranks.map((rank) => (
             <article
               key={rank.id}
@@ -535,16 +564,59 @@ export function SettingsPage({
               </div>
             </article>
           ))}
-        </div>
+            </div>
 
-        <div className="settings-page__profile-actions">
-          <button type="button" className="settings-page__btn" onClick={addRank}>
-            Add rank
-          </button>
-          <button type="button" className="settings-page__save" onClick={saveProgression}>
-            Save progression
-          </button>
-        </div>
+            <div className="settings-page__section-head">
+              <h3 className="settings-page__subhead">Daily spin</h3>
+              <p className="settings-page__hint">
+                Enter comma-separated UXP prizes and choose which rewards can appear on the wheel.
+              </p>
+            </div>
+
+            <label className="settings-page__field">
+              <span>UXP prizes</span>
+              <input
+                className="settings-page__input"
+                type="text"
+                value={dailySpinUxpInput}
+                onChange={(e) => setDailySpinUxpInput(e.target.value)}
+                placeholder="25, 40, 60, 80, 100"
+              />
+            </label>
+
+            <div className="settings-page__reward-picks">
+              {rewards.length === 0 ? (
+                <p className="settings-page__hint">Add shop rewards first to include them on the wheel.</p>
+              ) : (
+                rewards.map((reward) => (
+                  <label key={reward.id} className="settings-page__pick">
+                    <input
+                      type="checkbox"
+                      checked={dailySpinRewardIds.includes(reward.id)}
+                      onChange={(e) =>
+                        setDailySpinRewardIds((prev) =>
+                          e.target.checked
+                            ? [...prev, reward.id]
+                            : prev.filter((id) => id !== reward.id),
+                        )
+                      }
+                    />
+                    <span>{reward.name}</span>
+                  </label>
+                ))
+              )}
+            </div>
+
+            <div className="settings-page__profile-actions">
+              <button type="button" className="settings-page__btn" onClick={addRank}>
+                Add rank
+              </button>
+              <button type="button" className="settings-page__save" onClick={saveProgression}>
+                Save progression
+              </button>
+            </div>
+          </div>
+        </details>
       </section>
 
       <section className="settings-page__card">

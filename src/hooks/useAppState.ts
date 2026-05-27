@@ -23,6 +23,7 @@ import { addTimeRecord } from '../lib/timeRecords'
 import {
   calculateCompletionXp,
   calculateTimeXp,
+  getLevelFromXp,
   toUserProfile,
   type XpBreakdown,
 } from '../lib/xp'
@@ -48,6 +49,80 @@ export type PurchaseRewardResult =
   | 'insufficient'
   | 'missing'
 
+export type UxpBurst = {
+  id: string
+  amount: number
+  reason: string
+}
+
+export type DailySpinResult =
+  | { kind: 'uxp'; amount: number }
+  | { kind: 'reward'; rewardId: string; rewardName: string }
+  | { kind: 'used' }
+  | { kind: 'empty' }
+
+function getHobbyLevel(totalProgress: number) {
+  return Math.floor(Math.max(0, totalProgress) / 100) + 1
+}
+
+function getRandomUxpBonus(min = 25, max = 100) {
+  return Math.floor(Math.random() * (max - min + 1)) + min
+}
+
+function getLevelUpUxpReward(
+  prev: AppState,
+  nextHabits: Habit[],
+  nextProfile: AppState['profile'],
+  touchedIds: string[],
+) {
+  const prevMainLevel = getLevelFromXp(
+    prev.profile.totalXp ?? 0,
+    prev.preferences.levelUpXp,
+  ).level
+  const nextMainLevel = getLevelFromXp(
+    nextProfile.totalXp ?? 0,
+    prev.preferences.levelUpXp,
+  ).level
+
+  let amount = 0
+  if (nextMainLevel > prevMainLevel) {
+    for (let level = prevMainLevel + 1; level <= nextMainLevel; level += 1) {
+      void level
+      amount += getRandomUxpBonus()
+    }
+  }
+
+  for (const habitId of touchedIds) {
+    const before = prev.habits.find((habit) => habit.id === habitId)
+    const after = nextHabits.find((habit) => habit.id === habitId)
+    if (!before || !after) continue
+
+    const prevLevel =
+      before.category === 'hobby'
+        ? getHobbyLevel(before.totalProgress)
+        : getLevelFromXp(
+            before.totalXpEarned,
+            prev.preferences.levelUpXp,
+          ).level
+    const nextLevel =
+      after.category === 'hobby'
+        ? getHobbyLevel(after.totalProgress)
+        : getLevelFromXp(
+            after.totalXpEarned,
+            prev.preferences.levelUpXp,
+          ).level
+
+    if (nextLevel > prevLevel) {
+      for (let level = prevLevel + 1; level <= nextLevel; level += 1) {
+        void level
+        amount += getRandomUxpBonus()
+      }
+    }
+  }
+
+  return amount
+}
+
 function prepareState(base: AppState): AppState {
   const today = getTodayISO()
   const habits = applyDailyReset(base.habits, base.lastActiveDate)
@@ -55,11 +130,16 @@ function prepareState(base: AppState): AppState {
     base.lastActiveDate === today
       ? base.checks
       : base.checks.map((item) => ({ ...item, done: false }))
+  const weeklyTasks =
+    base.lastActiveDate === today
+      ? base.weeklyTasks
+      : base.weeklyTasks.map((item) => ({ ...item, done: false }))
 
   return {
     ...base,
     habits,
     checks,
+    weeklyTasks,
     lastActiveDate: today,
   }
 }
@@ -150,9 +230,16 @@ export function useAppState() {
       accountsById,
     }
   })
+  const [uxpBurst, setUxpBurst] = useState<UxpBurst | null>(null)
 
   const state =
     accountsState.accountsById[accountsState.activeAccountId] ?? defaultAppState
+
+  useEffect(() => {
+    if (!uxpBurst) return
+    const timeoutId = window.setTimeout(() => setUxpBurst(null), 1400)
+    return () => window.clearTimeout(timeoutId)
+  }, [uxpBurst])
 
   useEffect(() => {
     saveAccounts(accountsState.activeAccountId, accountsState.accountsById)
@@ -189,6 +276,9 @@ export function useAppState() {
           ...prev,
           habits: applyDailyReset(prev.habits, prev.lastActiveDate),
           checks: prev.checks.map((item) =>
+            item.done ? { ...item, done: false } : item,
+          ),
+          weeklyTasks: prev.weeklyTasks.map((item) =>
             item.done ? { ...item, done: false } : item,
           ),
           lastActiveDate: today,
@@ -237,6 +327,7 @@ export function useAppState() {
         state.timeRecords,
         state.preferences,
         state.profile.totalXp ?? 0,
+        state.profile.totalMinutes ?? 0,
       ),
     [
       state.habits,
@@ -288,6 +379,7 @@ export function useAppState() {
 
   const toggleHabit = useCallback((id: string) => {
     const today = getTodayISO()
+    let levelUpBonus = 0
 
     updateCurrentState((prev) => {
       const habit = prev.habits.find((h) => h.id === id)
@@ -352,19 +444,39 @@ export function useAppState() {
             )
           : habits
 
+      levelUpBonus = completing
+        ? getLevelUpUxpReward(prev, nextHabits, profile, completedHabitIds)
+        : 0
+      const nextProfile =
+        levelUpBonus > 0
+          ? {
+              ...profile,
+              shopXp: (profile.shopXp ?? 0) + levelUpBonus,
+            }
+          : profile
+
       return {
         ...prev,
         habits: nextHabits,
         completions,
-        profile,
+        profile: nextProfile,
         timeRecords,
         lastActiveDate: today,
       }
     })
+
+    if (levelUpBonus > 0) {
+      setUxpBurst({
+        id: crypto.randomUUID(),
+        amount: levelUpBonus,
+        reason: 'Level up',
+      })
+    }
   }, [applyHabitToggle, updateCurrentState])
 
   const addManualCompletion = useCallback((habitId: string, date: string) => {
     if (!date) return
+    let levelUpBonus = 0
 
     updateCurrentState((prev) => {
       const exists = prev.completions.some(
@@ -402,9 +514,22 @@ export function useAppState() {
               shopXp: (prev.profile.shopXp ?? 0) + xpGain,
             }
           : prev.profile
+      levelUpBonus = xpGain > 0 ? getLevelUpUxpReward(prev, habits, profile, [habitId]) : 0
+      const nextProfile =
+        levelUpBonus > 0
+          ? { ...profile, shopXp: (profile.shopXp ?? 0) + levelUpBonus }
+          : profile
 
-      return { ...prev, habits, completions, profile }
+      return { ...prev, habits, completions, profile: nextProfile }
     })
+
+    if (levelUpBonus > 0) {
+      setUxpBurst({
+        id: crypto.randomUUID(),
+        amount: levelUpBonus,
+        reason: 'Level up',
+      })
+    }
   }, [updateCurrentState])
 
   const grantXpRef = useRef<XpBreakdown | null>(null)
@@ -419,6 +544,7 @@ export function useAppState() {
       const clamped = Math.min(600, Math.max(1, Math.round(minutes)))
       const logDate = date ?? getTodayISO()
       grantXpRef.current = null
+      let levelUpBonus = 0
 
       updateCurrentState((prev) => {
         const habit = prev.habits.find((h) => h.id === habitId)
@@ -452,9 +578,22 @@ export function useAppState() {
           shopXp: (prev.profile.shopXp ?? 0) + xp.total,
           totalXp: (prev.profile.totalXp ?? 0) + xp.total,
         }
+        levelUpBonus = getLevelUpUxpReward(prev, habits, profile, [habitId])
+        const nextProfile =
+          levelUpBonus > 0
+            ? { ...profile, shopXp: (profile.shopXp ?? 0) + levelUpBonus }
+            : profile
 
-        return { ...prev, habits, timeRecords, profile }
+        return { ...prev, habits, timeRecords, profile: nextProfile }
       })
+
+      if (levelUpBonus > 0) {
+        setUxpBurst({
+          id: crypto.randomUUID(),
+          amount: levelUpBonus,
+          reason: 'Level up',
+        })
+      }
 
       return grantXpRef.current
     },
@@ -493,6 +632,7 @@ export function useAppState() {
 
   const incrementHobby = useCallback((id: string) => {
     const today = getTodayISO()
+    let levelUpBonus = 0
 
     updateCurrentState((prev) => {
       const hobby = prev.habits.find((entry) => entry.id === id)
@@ -553,16 +693,32 @@ export function useAppState() {
             }
           : entry,
       )
+      levelUpBonus = getLevelUpUxpReward(prev, nextHabits, profile, targetIds)
+      const nextProfile =
+        levelUpBonus > 0
+          ? {
+              ...profile,
+              shopXp: (profile.shopXp ?? 0) + levelUpBonus,
+            }
+          : profile
 
       return {
         ...prev,
         habits: nextHabits,
         completions,
-        profile,
+        profile: nextProfile,
         timeRecords: rewards.timeRecords,
         lastActiveDate: today,
       }
     })
+
+    if (levelUpBonus > 0) {
+      setUxpBurst({
+        id: crypto.randomUUID(),
+        amount: levelUpBonus,
+        reason: 'Level up',
+      })
+    }
   }, [updateCurrentState])
 
   const setHabitWeights = useCallback(
@@ -629,6 +785,7 @@ export function useAppState() {
   }, [updateCurrentState])
 
   const toggleWeeklyTask = useCallback((id: string) => {
+    let levelUpBonus = 0
     updateCurrentState((prev) => {
       let xpGain = 0
   
@@ -655,16 +812,29 @@ export function useAppState() {
               shopXp: (prev.profile.shopXp ?? 0) + xpGain,
             }
           : prev.profile
+      levelUpBonus = xpGain > 0 ? getLevelUpUxpReward(prev, prev.habits, profile, []) : 0
+      const nextProfile =
+        levelUpBonus > 0
+          ? { ...profile, shopXp: (profile.shopXp ?? 0) + levelUpBonus }
+          : profile
   
       return {
         ...prev,
         weeklyTasks,
-        profile,
+        profile: nextProfile,
       }
     })
+    if (levelUpBonus > 0) {
+      setUxpBurst({
+        id: crypto.randomUUID(),
+        amount: levelUpBonus,
+        reason: 'Level up',
+      })
+    }
   }, [updateCurrentState])
 
   const toggleCheck = useCallback((id: string) => {
+    let levelUpBonus = 0
     updateCurrentState((prev) => {
       let xpGain = 0
 
@@ -675,19 +845,33 @@ export function useAppState() {
         return { ...item, done: nextDone }
       })
 
+      const profile =
+        xpGain > 0
+          ? {
+              ...prev.profile,
+              totalXp: (prev.profile.totalXp ?? 0) + xpGain,
+              shopXp: (prev.profile.shopXp ?? 0) + xpGain,
+            }
+          : prev.profile
+      levelUpBonus = xpGain > 0 ? getLevelUpUxpReward(prev, prev.habits, profile, []) : 0
+      const nextProfile =
+        levelUpBonus > 0
+          ? { ...profile, shopXp: (profile.shopXp ?? 0) + levelUpBonus }
+          : profile
+
       return {
         ...prev,
         checks,
-        profile:
-          xpGain > 0
-            ? {
-                ...prev.profile,
-                totalXp: (prev.profile.totalXp ?? 0) + xpGain,
-                shopXp: (prev.profile.shopXp ?? 0) + xpGain,
-              }
-            : prev.profile,
+        profile: nextProfile,
       }
     })
+    if (levelUpBonus > 0) {
+      setUxpBurst({
+        id: crypto.randomUUID(),
+        amount: levelUpBonus,
+        reason: 'Level up',
+      })
+    }
   }, [updateCurrentState])
 
   const removeWeeklyTask = useCallback((id: string) => {
@@ -768,6 +952,10 @@ export function useAppState() {
               ? prev.preferences.levelUpXp
               : Math.max(25, Math.round(patch.levelUpXp)),
           ranks: patch.ranks ?? prev.preferences.ranks,
+          dailySpinUxps:
+            patch.dailySpinUxps ?? prev.preferences.dailySpinUxps,
+          dailySpinRewardIds:
+            patch.dailySpinRewardIds ?? prev.preferences.dailySpinRewardIds,
         },
       }))
     },
@@ -784,11 +972,15 @@ export function useAppState() {
       const checks = prev.checks.map((item) =>
         item.done ? { ...item, done: false } : item,
       )
+      const weeklyTasks = prev.weeklyTasks.map((item) =>
+        item.done ? { ...item, done: false } : item,
+      )
 
       return {
         ...prev,
         habits,
         checks,
+        weeklyTasks,
         completions,
         lastActiveDate: today,
       }
@@ -917,6 +1109,75 @@ export function useAppState() {
         ],
       }
     })
+
+    return result
+  }, [updateCurrentState])
+
+  const spinDailyReward = useCallback((): DailySpinResult => {
+    const today = getTodayISO()
+    let result: DailySpinResult = { kind: 'empty' }
+
+    updateCurrentState((prev) => {
+      if (prev.lastDailySpinDate === today) {
+        result = { kind: 'used' }
+        return prev
+      }
+
+      const rewardPool = prev.rewards.filter((reward) => {
+        if (!prev.preferences.dailySpinRewardIds.includes(reward.id)) return false
+        if (!reward.oneTime) return true
+        return !prev.purchasedRewards.some((purchase) => purchase.rewardId === reward.id)
+      })
+      const uxpPool = prev.preferences.dailySpinUxps
+        .map((value) => Math.max(1, Math.round(value)))
+        .filter((value) => Number.isFinite(value))
+
+      const options = [
+        ...uxpPool.map((amount) => ({ kind: 'uxp' as const, amount })),
+        ...rewardPool.map((reward) => ({ kind: 'reward' as const, reward })),
+      ]
+
+      if (options.length === 0) {
+        result = { kind: 'empty' }
+        return prev
+      }
+
+      const picked = options[Math.floor(Math.random() * options.length)]
+
+      if (picked.kind === 'uxp') {
+        result = { kind: 'uxp', amount: picked.amount }
+        return {
+          ...prev,
+          lastDailySpinDate: today,
+          profile: {
+            ...prev.profile,
+            shopXp: (prev.profile.shopXp ?? 0) + picked.amount,
+          },
+        }
+      }
+
+      result = {
+        kind: 'reward',
+        rewardId: picked.reward.id,
+        rewardName: picked.reward.name,
+      }
+      return {
+        ...prev,
+        lastDailySpinDate: today,
+        purchasedRewards: [
+          ...prev.purchasedRewards,
+          { rewardId: picked.reward.id, purchasedAt: today },
+        ],
+      }
+    })
+
+    if ('amount' in result && typeof result.amount === 'number') {
+      setUxpBurst({
+        id: crypto.randomUUID(),
+        amount: result.amount,
+        reason: 'Daily spin',
+      })
+    }
 
     return result
   }, [updateCurrentState])
@@ -1102,7 +1363,9 @@ export function useAppState() {
     timeRecords: state.timeRecords,
     rewards: state.rewards,
     purchasedRewards: state.purchasedRewards,
+    dailySpinUsed: state.lastDailySpinDate === getTodayISO(),
     profile,
+    uxpBurst,
     stats,
     statsPageSummary,
     toggleHabit,
@@ -1132,6 +1395,7 @@ export function useAppState() {
     removeQuote,
     shuffleQuote,
     purchaseReward,
+    spinDailyReward,
     addReward,
     updateReward,
     removeReward,

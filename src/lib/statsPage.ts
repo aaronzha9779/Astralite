@@ -21,6 +21,7 @@ export function getStatsPageSummary(
   timeRecords: TimeRecord[],
   preferences: AppPreferences,
   totalXp: number,
+  totalMinutes: number,
 ): DashboardStat[] {
   const byDate = groupCompletionsByDate(completions)
   const habitById = new Map(habits.map((habit) => [habit.id, habit]))
@@ -68,7 +69,7 @@ export function getStatsPageSummary(
     {
       id: 'total-xp',
       label: 'All-time XP',
-      value: `${totalXp} XP`,
+      value: `${totalXp} XP · ${formatMinutes(totalMinutes)}`,
     },
     {
       id: 'best-streak',

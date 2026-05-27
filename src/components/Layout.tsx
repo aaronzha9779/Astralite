@@ -25,7 +25,9 @@ export function Layout() {
     rewards,
     preferences,
     purchasedRewards,
+    dailySpinUsed,
     profile,
+    uxpBurst,
     statsPageSummary,
     toggleHabit,
     incrementHobby,
@@ -49,6 +51,7 @@ export function Layout() {
     removeQuote,
     shuffleQuote,
     purchaseReward,
+    spinDailyReward,
     addReward,
     updateReward,
     removeReward,
@@ -172,7 +175,15 @@ export function Layout() {
           profile={profile}
           rewards={rewards}
           purchasedRewards={purchasedRewards}
+          dailySpinUsed={dailySpinUsed}
+          dailySpinOptions={{
+            uxp: preferences.dailySpinUxps,
+            rewards: rewards.filter((reward) =>
+              preferences.dailySpinRewardIds.includes(reward.id),
+            ),
+          }}
           onPurchase={purchaseReward}
+          onSpinDaily={spinDailyReward}
           onAddReward={addReward}
           onUpdateReward={updateReward}
           onRemoveReward={removeReward}
@@ -191,6 +202,7 @@ export function Layout() {
           onCreateAccount={createAccount}
           onDeleteAccount={deleteAccount}
           preferences={preferences}
+          rewards={rewards}
           onUpdatePreferences={updatePreferences}
           onSoftReset={softReset}
           onFullReset={fullReset}
@@ -227,6 +239,11 @@ export function Layout() {
           onExportSaveFile={exportSaveFile}
           onImportSaveFile={importSaveFile}
         />
+        {uxpBurst ? (
+          <div className="layout__uxp-burst" role="status" aria-live="polite">
+            +{uxpBurst.amount} UXP
+          </div>
+        ) : null}
         {renderMain()}
       </div>
     </div>

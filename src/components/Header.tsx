@@ -42,7 +42,7 @@ export function Header({
           onClick={() => onNavClick(shopNavItem.id)}
         >
           <span>{shopNavItem.label}</span>
-          <span className="header__shop-xp">{availableXp} shop XP</span>
+          <span className="header__shop-xp">{availableXp} UXP</span>
         </button>
       </div>
     </header>

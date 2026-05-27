@@ -97,6 +97,7 @@ function migrate(raw: unknown): AppState | null {
     completions: [],
     timeRecords: [],
     purchasedRewards: [],
+    lastDailySpinDate: null,
     checks: [],
     weeklyTasks: [],
     dashboard: defaultDashboard,
@@ -121,6 +122,8 @@ const defaultPreferences: AppPreferences = {
   itemBaseMinutes: {},
   levelUpXp: 250,
   ranks: DEFAULT_RANKS,
+  dailySpinUxps: [25, 40, 60, 80, 100],
+  dailySpinRewardIds: [],
 }
 
 function normalizeHabit(h: LegacyHabit, index: number): Habit {
@@ -230,6 +233,13 @@ function normalizeState(state: AppState): AppState {
         Math.round(state.preferences?.levelUpXp ?? defaultPreferences.levelUpXp),
       ),
       ranks: normalizeRanks(state.preferences?.ranks),
+      dailySpinUxps:
+        state.preferences?.dailySpinUxps?.length
+          ? state.preferences.dailySpinUxps
+              .map((value) => Math.max(1, Math.round(value)))
+              .filter((value, index, arr) => arr.indexOf(value) === index)
+          : defaultPreferences.dailySpinUxps,
+      dailySpinRewardIds: state.preferences?.dailySpinRewardIds ?? [],
     },
     profile,
     rewards: (state.rewards?.length ? state.rewards : defaultRewards).map((reward) => ({
@@ -243,6 +253,7 @@ function normalizeState(state: AppState): AppState {
     })),
     timeRecords: state.timeRecords ?? [],
     purchasedRewards: state.purchasedRewards ?? [],
+    lastDailySpinDate: state.lastDailySpinDate ?? null,
   }
 }
 

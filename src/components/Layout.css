@@ -6,9 +6,27 @@
 }
 
 .layout__body {
+  position: relative;
   display: flex;
   flex: 1;
   min-height: 0;
+}
+
+.layout__uxp-burst {
+  position: fixed;
+  top: 5.5rem;
+  right: 1.25rem;
+  z-index: 30;
+  padding: 0.7rem 1rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--border));
+  background: color-mix(in srgb, var(--accent) 18%, var(--surface-raised));
+  color: var(--accent);
+  font-size: 0.9rem;
+  font-weight: 700;
+  box-shadow: 0 10px 32px color-mix(in srgb, var(--accent) 20%, transparent);
+  animation: layout-uxp-burst 1.35s ease-out forwards;
+  pointer-events: none;
 }
 
 .dashboard--placeholder {
@@ -21,5 +39,32 @@
 @media (max-width: 768px) {
   .layout__body {
     flex-direction: column;
+  }
+
+  .layout__uxp-burst {
+    top: 4.75rem;
+    right: 0.85rem;
+  }
+}
+
+@keyframes layout-uxp-burst {
+  0% {
+    opacity: 0;
+    transform: translateY(0.5rem) scale(0.92);
+  }
+
+  20% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+
+  80% {
+    opacity: 1;
+    transform: translateY(-0.15rem) scale(1);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateY(-0.85rem) scale(1.02);
   }
 }

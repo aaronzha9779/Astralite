@@ -1,15 +1,17 @@
 import { getTodayISO } from '../lib/dates'
 import { DEFAULT_RANKS } from './ranks'
 import { rewards } from './rewards'
-import type { AppState, CompletionRecord, Habit } from '../types'
+import type { AppPreferences, AppState, CompletionRecord, Habit } from '../types'
 
 const today = getTodayISO()
-const defaultPreferences = {
+const defaultPreferences: AppPreferences = {
   itemCompletionXp: {},
   itemBaseMinutes: {},
   levelUpXp: 250,
   ranks: DEFAULT_RANKS,
-} as const
+  dailySpinUxps: [25, 40, 60, 80, 100],
+  dailySpinRewardIds: [],
+}
 
 const seedHabits: Habit[] = [
   {
@@ -220,6 +222,7 @@ export const defaultAppState: AppState = {
   completions: buildSampleCompletions(seedHabits),
   timeRecords: [],
   purchasedRewards: [],
+  lastDailySpinDate: null,
 }
 
 export function createEmptyAppState(): AppState {
@@ -258,5 +261,6 @@ export function createEmptyAppState(): AppState {
     completions: [],
     timeRecords: [],
     purchasedRewards: [],
+    lastDailySpinDate: null,
   }
 }

@@ -7,7 +7,37 @@
   animation: shop-balance-pulse 0.7s ease-out;
 }
 
+.shop__hero-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.shop__spin-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
+  min-width: 11rem;
+  justify-content: center;
+  padding: 0.8rem 1rem;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--border));
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface-raised));
+  color: var(--accent);
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.shop__spin-wheel {
+  font-size: 1.1rem;
+}
+
 .shop__spotlight {
+  position: relative;
+  overflow: hidden;
   display: grid;
   grid-template-columns: auto 1fr auto;
   gap: 1rem;
@@ -21,6 +51,28 @@
       color-mix(in srgb, var(--accent) 10%, var(--surface-raised)),
       var(--surface-raised)
     );
+}
+
+.shop__particles {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.shop__particle {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 0.45rem;
+  height: 0.45rem;
+  margin: -0.225rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 72%, white);
+  box-shadow: 0 0 14px color-mix(in srgb, var(--accent) 45%, transparent);
+  transform:
+    rotate(calc(var(--particle-index) * 30deg))
+    translateY(-0.25rem);
+  animation: shop-particle-burst 0.95s ease-out forwards;
 }
 
 .shop__spotlight--success {
@@ -285,6 +337,101 @@
   background: var(--surface-raised);
 }
 
+.shop__spin-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: color-mix(in srgb, var(--bg) 64%, transparent);
+  backdrop-filter: blur(8px);
+}
+
+.shop__spin-card {
+  width: min(100%, 34rem);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1.1rem;
+  border-radius: 16px;
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--border));
+  background:
+    radial-gradient(circle at top, color-mix(in srgb, var(--accent) 12%, var(--surface-raised)), var(--surface-raised));
+  box-shadow: 0 24px 60px color-mix(in srgb, var(--bg) 50%, transparent);
+}
+
+.shop__wheel-wrap {
+  position: relative;
+  display: grid;
+  place-items: center;
+  padding: 1rem 0 0.25rem;
+}
+
+.shop__wheel {
+  position: relative;
+  width: min(75vw, 18rem);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  border: 10px solid color-mix(in srgb, var(--accent) 28%, var(--border));
+  background:
+    conic-gradient(
+      color-mix(in srgb, var(--accent) 18%, var(--surface)) 0deg 45deg,
+      var(--surface) 45deg 90deg,
+      color-mix(in srgb, var(--accent) 12%, var(--surface)) 90deg 135deg,
+      var(--surface) 135deg 180deg,
+      color-mix(in srgb, var(--accent) 18%, var(--surface)) 180deg 225deg,
+      var(--surface) 225deg 270deg,
+      color-mix(in srgb, var(--accent) 12%, var(--surface)) 270deg 315deg,
+      var(--surface) 315deg 360deg
+    );
+  transition: transform 1.35s cubic-bezier(.16,.84,.18,1);
+}
+
+.shop__wheel-slice,
+.shop__wheel-empty {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform-origin: 0 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text);
+  text-align: center;
+}
+
+.shop__wheel-slice {
+  width: 5rem;
+  transform:
+    rotate(calc((360deg / var(--slice-count)) * var(--slice-index)))
+    translate(2.1rem, -0.5rem);
+}
+
+.shop__wheel-empty {
+  transform: translate(-50%, -50%);
+}
+
+.shop__wheel-pointer {
+  position: absolute;
+  top: 0;
+  color: var(--accent);
+  font-size: 1.35rem;
+  text-shadow: 0 0 10px color-mix(in srgb, var(--accent) 30%, transparent);
+}
+
+.shop__spin-result {
+  margin: 0;
+  text-align: center;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.shop__buy--spin {
+  align-self: center;
+  min-width: 12rem;
+}
+
 .shop__editor-head {
   display: flex;
   align-items: flex-start;
@@ -379,6 +526,10 @@
 }
 
 @media (max-width: 720px) {
+  .shop__hero-head {
+    flex-direction: column;
+  }
+
   .shop__spotlight {
     grid-template-columns: 1fr;
   }
@@ -394,6 +545,28 @@
 
   .shop__editor-head {
     flex-direction: column;
+  }
+}
+
+@keyframes shop-particle-burst {
+  0% {
+    opacity: 0;
+    transform:
+      rotate(calc(var(--particle-index) * 30deg))
+      translateY(0)
+      scale(0.6);
+  }
+
+  18% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+    transform:
+      rotate(calc(var(--particle-index) * 30deg))
+      translateY(-7rem)
+      scale(1.05);
   }
 }
 

@@ -76,6 +76,8 @@ export type AppPreferences = {
   itemBaseMinutes: Record<string, number>
   levelUpXp: number
   ranks: RankTier[]
+  dailySpinUxps: number[]
+  dailySpinRewardIds: string[]
 }
 
 export type CompletionRecord = {
@@ -126,6 +128,7 @@ export type AppState = {
   completions: CompletionRecord[]
   timeRecords: TimeRecord[]
   purchasedRewards: PurchasedReward[]
+  lastDailySpinDate: string | null
 }
 
 export type AccountSummary = {

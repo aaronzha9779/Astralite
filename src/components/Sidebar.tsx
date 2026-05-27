@@ -1,5 +1,4 @@
 import { useRef } from 'react'
-import { formatMinutes } from '../lib/time'
 import type { AccountSummary, UserProfile } from '../types'
 import './Sidebar.css'
 
@@ -94,8 +93,8 @@ export function Sidebar({
           </span>
         </div>
         <p className="profile-card__wallet">
-          <span className="profile-card__xp">{profile.availableXp} shop XP</span> ·{' '}
-          {formatMinutes(profile.totalMinutes)} tracked · {profile.totalXp} lifetime XP
+          <span className="profile-card__xp">{profile.availableXp} UXP</span> ·{' '}
+          {profile.totalXp} lifetime XP
         </p>
         <div
           className="profile-card__xp-bar"

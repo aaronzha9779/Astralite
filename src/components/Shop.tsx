@@ -1,15 +1,26 @@
 import { useMemo, useRef, useState } from 'react'
-import { playRewardChime } from '../lib/audio'
+import { playReward } from '../lib/audio'
 import type { PurchasedReward, Reward, UserProfile } from '../types'
 import './Shop.css'
 
 type PurchaseResult = 'success' | 'owned' | 'insufficient' | 'missing'
+type DailySpinResult =
+  | { kind: 'uxp'; amount: number }
+  | { kind: 'reward'; rewardId: string; rewardName: string }
+  | { kind: 'used' }
+  | { kind: 'empty' }
 
 type ShopProps = {
   profile: UserProfile
   rewards: Reward[]
   purchasedRewards: PurchasedReward[]
+  dailySpinUsed: boolean
+  dailySpinOptions: {
+    uxp: number[]
+    rewards: Reward[]
+  }
   onPurchase: (rewardId: string) => PurchaseResult
+  onSpinDaily: () => DailySpinResult
   onAddReward: (reward: Omit<Reward, 'id'>) => void
   onUpdateReward: (rewardId: string, patch: Partial<Omit<Reward, 'id'>>) => void
   onRemoveReward: (rewardId: string) => void
@@ -38,7 +49,10 @@ export function Shop({
   profile,
   rewards,
   purchasedRewards,
+  dailySpinUsed,
+  dailySpinOptions,
   onPurchase,
+  onSpinDaily,
   onAddReward,
   onUpdateReward,
   onRemoveReward,
@@ -51,6 +65,10 @@ export function Shop({
   const [sparkleId, setSparkleId] = useState<string | null>(null)
   const [purchaseFlashId, setPurchaseFlashId] = useState<string | null>(null)
   const [balancePulse, setBalancePulse] = useState(false)
+  const [spinOpen, setSpinOpen] = useState(false)
+  const [spinRotation, setSpinRotation] = useState(0)
+  const [spinResult, setSpinResult] = useState<DailySpinResult | null>(null)
+  const [spinSpinning, setSpinSpinning] = useState(false)
   const [selectedRewardId, setSelectedRewardId] = useState<string | null>(
     rewards[0]?.id ?? null,
   )
@@ -71,6 +89,19 @@ export function Shop({
         Math.round((profile.availableXp / Math.max(1, selectedReward.cost)) * 100),
       )
     : 0
+  const wheelOptions = useMemo(
+    () => [
+      ...dailySpinOptions.uxp.map((amount) => ({
+        id: `uxp-${amount}`,
+        label: `${amount} UXP`,
+      })),
+      ...dailySpinOptions.rewards.map((reward) => ({
+        id: reward.id,
+        label: reward.name,
+      })),
+    ],
+    [dailySpinOptions.rewards, dailySpinOptions.uxp],
+  )
 
   function showMessage(next: string) {
     setMessage(next)
@@ -101,7 +132,7 @@ export function Shop({
     if (!reward) return
 
     if (result === 'success') {
-      playRewardChime()
+      playReward()
       setSparkleId(rewardId)
       setPurchaseFlashId(rewardId)
       setBalancePulse(true)
@@ -112,8 +143,37 @@ export function Shop({
     } else if (result === 'owned') {
       showMessage('You already own this reward.')
     } else if (result === 'insufficient') {
-      showMessage('Not enough XP to purchase.')
+      showMessage('Not enough UXP to purchase.')
     }
+  }
+
+  function handleSpin() {
+    if (spinSpinning || dailySpinUsed || wheelOptions.length === 0) return
+    setSpinResult(null)
+    setSpinSpinning(true)
+    setSpinRotation((value) => value + 1080 + Math.floor(Math.random() * 360))
+
+    window.setTimeout(() => {
+      const result = onSpinDaily()
+      setSpinResult(result)
+      setSpinSpinning(false)
+
+      if (result.kind === 'uxp') {
+        playReward()
+        setBalancePulse(true)
+        window.setTimeout(() => setBalancePulse(false), 700)
+        showMessage(`Daily spin won ${result.amount} UXP.`)
+      } else if (result.kind === 'reward') {
+        playReward()
+        setSparkleId(result.rewardId)
+        window.setTimeout(() => setSparkleId(null), 1100)
+        showMessage(`Daily spin unlocked ${result.rewardName}.`)
+      } else if (result.kind === 'used') {
+        showMessage('Daily spin already used today.')
+      } else {
+        showMessage('Add daily spin items in settings first.')
+      }
+    }, 1400)
   }
 
   function handleSaveReward() {
@@ -140,12 +200,24 @@ export function Shop({
   return (
     <main className="dashboard shop">
       <header className="dashboard__header">
-        <h1 className="dashboard__title">Rewards Shop</h1>
-        <p className="dashboard__subtitle">
-          Spend XP on perks and cosmetics and drag cards to change their order.{' '}
-          <strong className={`shop__balance${balancePulse ? ' shop__balance--pulse' : ''}`}>{profile.availableXp} shop XP</strong>{' '}
-          available
-        </p>
+        <div className="shop__hero-head">
+          <div>
+            <h1 className="dashboard__title">Rewards Shop</h1>
+            <p className="dashboard__subtitle">
+              Spend UXP on perks and cosmetics and drag cards to change their order.{' '}
+              <strong className={`shop__balance${balancePulse ? ' shop__balance--pulse' : ''}`}>{profile.availableXp} UXP</strong>{' '}
+              available
+            </p>
+          </div>
+          <button
+            type="button"
+            className="shop__spin-trigger"
+            onClick={() => setSpinOpen(true)}
+          >
+            <span className="shop__spin-wheel" aria-hidden="true">◔</span>
+            <span>{dailySpinUsed ? 'Spin used' : 'Daily spin'}</span>
+          </button>
+        </div>
       </header>
 
       {message ? (
@@ -159,6 +231,17 @@ export function Shop({
           className={`shop__spotlight${purchaseFlashId === selectedReward.id ? ' shop__spotlight--success' : ''}`}
           aria-label="Selected reward"
         >
+          {purchaseFlashId === selectedReward.id ? (
+            <div className="shop__particles" aria-hidden="true">
+              {Array.from({ length: 12 }).map((_, index) => (
+                <span
+                  key={index}
+                  className="shop__particle"
+                  style={{ ['--particle-index' as string]: String(index) }}
+                />
+              ))}
+            </div>
+          ) : null}
           <div className="shop__spotlight-symbol">
             {selectedReward.imageUrl ? (
               <img className="shop__symbol-img" src={selectedReward.imageUrl} alt="" />
@@ -173,7 +256,7 @@ export function Shop({
             <h2 className="shop__spotlight-title">{selectedReward.name}</h2>
             <p className="shop__spotlight-desc">{selectedReward.description}</p>
             <div className="shop__spotlight-meta">
-              <span>{selectedReward.cost} XP</span>
+              <span>{selectedReward.cost} UXP</span>
               <span>{selectedReward.oneTime ? 'One-time unlock' : 'Repeatable reward'}</span>
             </div>
             <div className="shop__spotlight-progress" aria-hidden="true">
@@ -189,7 +272,7 @@ export function Shop({
                 ? 'Already unlocked on this account.'
                 : selectedCanAfford
                   ? 'You can afford this right now.'
-                  : `${Math.max(0, selectedReward.cost - profile.availableXp)} XP more to go.`}
+                  : `${Math.max(0, selectedReward.cost - profile.availableXp)} UXP more to go.`}
             </p>
           </div>
           <div className="shop__spotlight-actions">
@@ -205,7 +288,7 @@ export function Shop({
                   ? 'Owned'
                   : selectedCanAfford
                     ? 'Buy reward'
-                    : 'Need more XP'}
+                    : 'Need more UXP'}
             </button>
             <button
               type="button"
@@ -257,7 +340,7 @@ export function Shop({
                 <p className="shop__desc">{reward.description}</p>
               </div>
               <div className="shop__meta">
-                <span className="shop__cost">{reward.cost} XP</span>
+                <span className="shop__cost">{reward.cost} UXP</span>
                 <span className="shop__type">
                   {reward.oneTime ? 'One-time' : 'Repeatable'}
                 </span>
@@ -295,13 +378,77 @@ export function Shop({
                     handlePurchase(reward.id)
                   }}
                 >
-                  {owned ? 'Owned' : canAfford ? 'Buy' : 'Need more XP'}
+                  {owned ? 'Owned' : canAfford ? 'Buy' : 'Need more UXP'}
                 </button>
               </div>
             </li>
           )
         })}
       </ul>
+
+      {spinOpen ? (
+        <div className="shop__spin-modal" role="dialog" aria-modal="true" aria-label="Daily spin">
+          <div className="shop__spin-card">
+            <div className="shop__editor-head">
+              <div>
+                <h2 className="dashboard__section-title">Daily spin</h2>
+                <p className="shop__editor-hint">
+                  One spin per day. Set the wheel prizes in settings.
+                </p>
+              </div>
+              <button type="button" className="shop__edit" onClick={() => setSpinOpen(false)}>
+                Close
+              </button>
+            </div>
+
+            <div className="shop__wheel-wrap">
+              <div
+                className={`shop__wheel${spinSpinning ? ' shop__wheel--spinning' : ''}`}
+                style={{ transform: `rotate(${spinRotation}deg)` }}
+              >
+                {wheelOptions.length > 0 ? (
+                  wheelOptions.map((option, index) => (
+                    <span
+                      key={option.id}
+                      className="shop__wheel-slice"
+                      style={{
+                        ['--slice-index' as string]: String(index),
+                        ['--slice-count' as string]: String(wheelOptions.length),
+                      }}
+                    >
+                      {option.label}
+                    </span>
+                  ))
+                ) : (
+                  <span className="shop__wheel-empty">No spin items configured</span>
+                )}
+              </div>
+              <span className="shop__wheel-pointer" aria-hidden="true">▲</span>
+            </div>
+
+            {spinResult ? (
+              <p className="shop__spin-result">
+                {spinResult.kind === 'uxp'
+                  ? `Won ${spinResult.amount} UXP`
+                  : spinResult.kind === 'reward'
+                    ? `Unlocked ${spinResult.rewardName}`
+                    : spinResult.kind === 'used'
+                      ? 'You already used today’s spin.'
+                      : 'No spin items are set yet.'}
+              </p>
+            ) : null}
+
+            <button
+              type="button"
+              className="shop__buy shop__buy--success shop__buy--spin"
+              disabled={dailySpinUsed || spinSpinning || wheelOptions.length === 0}
+              onClick={handleSpin}
+            >
+              {dailySpinUsed ? 'Come back tomorrow' : spinSpinning ? 'Spinning…' : 'Spin once'}
+            </button>
+          </div>
+        </div>
+      ) : null}
 
       <section className="shop__editor" aria-label="Reward editor">
         <div className="shop__editor-head">
@@ -390,7 +537,7 @@ export function Shop({
                 </p>
               </div>
               <div className="shop__meta">
-                <span className="shop__cost">{draft.cost} XP</span>
+                <span className="shop__cost">{draft.cost} UXP</span>
                 <span className="shop__type">
                   {draft.oneTime ? 'One-time' : 'Repeatable'}
                 </span>
@@ -419,7 +566,7 @@ export function Shop({
             />
           </label>
           <label className="shop__field">
-            <span>XP cost</span>
+            <span>UXP cost</span>
             <input
               className="shop__input"
               type="number"
