@@ -51,6 +51,12 @@
   color: var(--text);
 }
 
+.stat-card__detail {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  line-height: 1.45;
+}
+
 .dashboard__board {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

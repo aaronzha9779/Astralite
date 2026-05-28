@@ -379,14 +379,20 @@ export function loadAccounts() {
 export function saveAccounts(
   activeAccountId: string,
   accounts: Record<string, AppState>,
-): void {
+): boolean {
   const normalized = Object.fromEntries(
     Object.entries(accounts).map(([id, state]) => [id, normalizeState(state)]),
   )
-  localStorage.setItem(
-    STORAGE_KEY,
-    JSON.stringify({ activeAccountId, accounts: normalized }),
-  )
+  try {
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ activeAccountId, accounts: normalized }),
+    )
+    return true
+  } catch (error) {
+    console.error('Failed to save HabitUp account data.', error)
+    return false
+  }
 }
 
 export function createAccountState(name: string, handle?: string): AppState {

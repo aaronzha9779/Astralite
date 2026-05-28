@@ -63,6 +63,7 @@ export function StatsPage({
           <article key={stat.id} className="stat-card">
             <span className="stat-card__label">{stat.label}</span>
             <span className="stat-card__value">{stat.value}</span>
+            {stat.detail ? <span className="stat-card__detail">{stat.detail}</span> : null}
           </article>
         ))}
       </section>

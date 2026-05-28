@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { playReward } from '../lib/audio'
 import type { PurchasedReward, Reward, UserProfile } from '../types'
 import './Shop.css'
@@ -35,6 +35,8 @@ const EMPTY_REWARD: Omit<Reward, 'id'> = {
   imageUrl: null,
   oneTime: false,
 }
+
+const MAX_REWARD_IMAGE_FILE_SIZE = 350 * 1024
 
 function readFileAsDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -74,6 +76,16 @@ export function Shop({
   )
   const imageInputRef = useRef<HTMLInputElement | null>(null)
 
+  useEffect(() => {
+    if (!rewards.length) {
+      if (selectedRewardId !== null) setSelectedRewardId(null)
+      return
+    }
+    if (!selectedRewardId || !rewards.some((reward) => reward.id === selectedRewardId)) {
+      setSelectedRewardId(rewards[0]?.id ?? null)
+    }
+  }, [rewards, selectedRewardId])
+
   const selectedReward = useMemo(
     () => rewards.find((reward) => reward.id === selectedRewardId) ?? rewards[0] ?? null,
     [rewards, selectedRewardId],
@@ -104,10 +116,10 @@ export function Shop({
   )
   const wheelVisual = useMemo(() => {
     const palette = [
-      'color-mix(in srgb, var(--accent) 18%, var(--surface))',
-      'var(--surface)',
-      'color-mix(in srgb, var(--accent) 12%, var(--surface))',
-      'color-mix(in srgb, var(--accent) 24%, var(--surface))',
+      'rgba(163, 230, 53, 0.22)',
+      'rgba(255, 255, 255, 0.06)',
+      'rgba(163, 230, 53, 0.14)',
+      'rgba(163, 230, 53, 0.3)',
     ]
     if (wheelOptions.length === 0) {
       return {
@@ -216,22 +228,43 @@ export function Shop({
   function handleSaveReward() {
     if (!draft.name.trim() || !draft.description.trim()) return
 
-    if (editingId) {
-      onUpdateReward(editingId, draft)
-      showMessage(`Updated ${draft.name.trim()}.`)
-    } else {
-      onAddReward(draft)
-      showMessage(`Added ${draft.name.trim()} to the shop.`)
-    }
+    try {
+      if (editingId) {
+        onUpdateReward(editingId, draft)
+        showMessage(`Updated ${draft.name.trim()}.`)
+      } else {
+        onAddReward(draft)
+        showMessage(`Added ${draft.name.trim()} to the shop.`)
+      }
 
-    resetEditor()
+      resetEditor()
+    } catch (error) {
+      console.error('Failed to save reward.', error)
+      showMessage('Reward could not be saved. Try a smaller image.')
+    }
   }
 
   async function handleImageUpload(file: File | null) {
     if (!file) return
-    const imageUrl = await readFileAsDataUrl(file)
-    setDraft((prev) => ({ ...prev, imageUrl }))
-    if (imageInputRef.current) imageInputRef.current.value = ''
+    if (!file.type.startsWith('image/')) {
+      showMessage('Please choose an image file for the reward symbol.')
+      return
+    }
+    if (file.size > MAX_REWARD_IMAGE_FILE_SIZE) {
+      showMessage('Reward image is too large to save reliably. Try a PNG under 350 KB.')
+      if (imageInputRef.current) imageInputRef.current.value = ''
+      return
+    }
+
+    try {
+      const imageUrl = await readFileAsDataUrl(file)
+      setDraft((prev) => ({ ...prev, imageUrl }))
+    } catch (error) {
+      console.error('Failed to load reward image.', error)
+      showMessage('Reward image could not be loaded.')
+    } finally {
+      if (imageInputRef.current) imageInputRef.current.value = ''
+    }
   }
 
   return (

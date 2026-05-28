@@ -30,6 +30,7 @@ export function getStatsPageSummary(
   let bestDayCount = 0
   let bestDayMinutes = 0
   let bestDayXp = 0
+  let bestDayDate: string | null = null
 
   for (const [date, dayCompletions] of byDate.entries()) {
     const dayMinutes = timeRecords
@@ -57,6 +58,7 @@ export function getStatsPageSummary(
       bestDayCount = dayCompletions.length
       bestDayMinutes = dayMinutes
       bestDayXp = dayXp
+      bestDayDate = date
     }
   }
 
@@ -83,6 +85,7 @@ export function getStatsPageSummary(
         bestDayCount === 0
           ? '—'
           : `${bestDayCount} habits · ${formatMinutes(bestDayMinutes)} · ${bestDayXp} XP`,
+      detail: bestDayDate ? `Achieved ${formatHistoryDay(bestDayDate)}` : undefined,
     },
   ]
 }
