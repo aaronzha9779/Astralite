@@ -154,7 +154,7 @@ export function Shop({
     () => [
       ...dailySpinOptions.uxp.map((amount) => ({
         id: `uxp-${amount}`,
-        label: `${amount} UXP`,
+        label: String(amount),
       })),
       ...dailySpinOptions.rewards.map((reward) => ({
         id: reward.id,

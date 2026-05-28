@@ -15,7 +15,9 @@ export function applyDailyReset(habits: Habit[], lastActiveDate: string): Habit[
     return {
       ...habit,
       doneToday: false,
-      progressToday: 0,
+      // Hobbies act as persistent aspect trackers, so their progress should
+      // carry across days even though daily completion state resets.
+      progressToday: habit.category === 'hobby' ? habit.progressToday : 0,
       streak: keptStreak ? habit.streak : 0,
     }
   })
