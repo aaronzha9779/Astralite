@@ -52,7 +52,15 @@ export type Habit = {
   priority: number
   /** Other habits/hobbies that complete together with this one. */
   linkedHabitIds: string[]
+  linkedCoreAspectIds: string[]
   tags: string[]
+}
+
+export type CoreAspect = {
+  id: string
+  name: string
+  progressToday: number
+  totalProgress: number
 }
 
 export type WeeklyTask = {
@@ -120,6 +128,7 @@ export type ProfileData = {
 
 export type AppState = {
   habits: Habit[]
+  coreAspects: CoreAspect[]
   bountyTasks: WeeklyTask[]
   checks: WeeklyTask[]
   weeklyTasks: WeeklyTask[]

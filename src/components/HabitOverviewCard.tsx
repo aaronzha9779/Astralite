@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { playCompletionChime } from '../lib/audio'
-import type { AppPreferences, Habit, TimeRecord } from '../types'
+import type { AppPreferences, CoreAspect, Habit, TimeRecord } from '../types'
 import { getHabitMaturity, getHobbyMaturity } from '../lib/maturity'
 import { formatMinutes, getHabitTimeBreakdown } from '../lib/time'
 import './HabitOverviewCard.css'
@@ -12,9 +12,11 @@ type HabitOverviewCardProps = {
   rawXpEarned: number
   preferences: AppPreferences
   allHabits: Habit[]
+  allCoreAspects: CoreAspect[]
   timeRecords: TimeRecord[]
   onToggle: (id: string) => void
   onSetLinked: (habitId: string, linkedIds: string[]) => void
+  onSetLinkedCoreAspects: (habitId: string, aspectIds: string[]) => void
 }
 
 export function HabitOverviewCard({
@@ -24,9 +26,11 @@ export function HabitOverviewCard({
   rawXpEarned,
   preferences,
   allHabits,
+  allCoreAspects,
   timeRecords,
   onToggle,
   onSetLinked,
+  onSetLinkedCoreAspects,
 }: HabitOverviewCardProps) {
   const [showLink, setShowLink] = useState(false)
   const displayStreakSymbol = habit.streak > 30 ? '❤️‍🔥' : streakSymbol
@@ -44,6 +48,9 @@ export function HabitOverviewCard({
   const linkedNames = (habit.linkedHabitIds ?? [])
     .map((id) => allHabits.find((h) => h.id === id)?.name)
     .filter(Boolean) as string[]
+  const linkedCoreAspectNames = (habit.linkedCoreAspectIds ?? [])
+    .map((id) => allCoreAspects.find((aspect) => aspect.id === id)?.name)
+    .filter(Boolean) as string[]
 
   function toggleLink(targetId: string) {
     const current = habit.linkedHabitIds ?? []
@@ -51,6 +58,14 @@ export function HabitOverviewCard({
       ? current.filter((id) => id !== targetId)
       : [...current, targetId]
     onSetLinked(habit.id, next)
+  }
+
+  function toggleCoreAspectLink(targetId: string) {
+    const current = habit.linkedCoreAspectIds ?? []
+    const next = current.includes(targetId)
+      ? current.filter((id) => id !== targetId)
+      : [...current, targetId]
+    onSetLinkedCoreAspects(habit.id, next)
   }
 
   function handleToggle() {
@@ -142,32 +157,68 @@ export function HabitOverviewCard({
         </p>
       ) : null}
 
+      {linkedCoreAspectNames.length > 0 ? (
+        <p className="habit-overview__linked">
+          Core aspects: {linkedCoreAspectNames.join(', ')}
+        </p>
+      ) : null}
+
       <div className="habit-overview__tools">
         <button
           type="button"
           className="habit-overview__tool-btn"
           onClick={() => setShowLink((s) => !s)}
         >
-          {showLink ? 'Hide links' : 'Link habits'}
+          {showLink ? 'Hide links' : 'Manage links'}
         </button>
       </div>
 
       {showLink ? (
-        <ul className="habit-overview__link-list">
-          {linkOptions.map((h) => (
-            <li key={h.id}>
-              <label>
-                <input
-                  type="checkbox"
-                  checked={(habit.linkedHabitIds ?? []).includes(h.id)}
-                  onChange={() => toggleLink(h.id)}
-                />
-                {h.name}
-                <span className="habit-overview__link-cat">{h.category}</span>
-              </label>
-            </li>
-          ))}
-        </ul>
+        <div className="habit-overview__link-groups">
+          <div>
+            <p className="habit-overview__link-title">Linked habits</p>
+            <ul className="habit-overview__link-list">
+              {linkOptions.map((h) => (
+                <li key={h.id}>
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={(habit.linkedHabitIds ?? []).includes(h.id)}
+                      onChange={() => toggleLink(h.id)}
+                    />
+                    {h.name}
+                    <span className="habit-overview__link-cat">{h.category}</span>
+                  </label>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div>
+            <p className="habit-overview__link-title">Core aspects</p>
+            <ul className="habit-overview__link-list">
+              {allCoreAspects.length === 0 ? (
+                <li className="habit-overview__link-empty">No core aspects yet.</li>
+              ) : (
+                allCoreAspects.map((aspect) => (
+                  <li key={aspect.id}>
+                    <label>
+                      <input
+                        type="checkbox"
+                        checked={(habit.linkedCoreAspectIds ?? []).includes(aspect.id)}
+                        onChange={() => toggleCoreAspectLink(aspect.id)}
+                      />
+                      {aspect.name}
+                      <span className="habit-overview__link-cat">
+                        {aspect.progressToday}/100
+                      </span>
+                    </label>
+                  </li>
+                ))
+              )}
+            </ul>
+          </div>
+        </div>
       ) : null}
 
       <p className="habit-overview__xp-earned">{rawXpEarned} XP earned</p>

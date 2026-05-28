@@ -128,6 +128,7 @@ export function createHabit(name: string, category: HabitCategory = 'habit'): Ha
     difficulty: 3,
     priority: 3,
     linkedHabitIds: [],
+    linkedCoreAspectIds: [],
     tags: [],
   }
 }

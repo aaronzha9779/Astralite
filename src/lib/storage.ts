@@ -6,6 +6,7 @@ import type {
   AccountSummary,
   AppPreferences,
   AppState,
+  CoreAspect,
   DashboardPrefs,
   Habit,
   HabitCategory,
@@ -102,6 +103,7 @@ function migrate(raw: unknown): AppState | null {
     timeRecords: [],
     purchasedRewards: [],
     lastDailySpinDate: null,
+    coreAspects: [],
     bountyTasks: [],
     checks: [],
     weeklyTasks: [],
@@ -166,7 +168,20 @@ function normalizeHabit(h: LegacyHabit, index: number): Habit {
     difficulty: (h as Habit).difficulty ?? 3,
     priority: (h as Habit).priority ?? 3,
     linkedHabitIds: h.linkedHabitIds ?? [],
+    linkedCoreAspectIds: (h as Habit).linkedCoreAspectIds ?? [],
     tags: h.tags ?? [],
+  }
+}
+
+function normalizeCoreAspect(
+  aspect: Partial<CoreAspect> | undefined,
+  index: number,
+): CoreAspect {
+  return {
+    id: aspect?.id ?? `core-aspect-${index + 1}`,
+    name: aspect?.name?.trim() || `Core aspect ${index + 1}`,
+    progressToday: Math.max(0, Math.round(aspect?.progressToday ?? 0)),
+    totalProgress: Math.max(0, Math.round(aspect?.totalProgress ?? 0)),
   }
 }
 
@@ -210,6 +225,9 @@ function normalizeState(state: AppState): AppState {
   return {
     ...state,
     habits: state.habits.map((h, i) => normalizeHabit(h as LegacyHabit, i)),
+    coreAspects: (state.coreAspects ?? []).map((aspect, index) =>
+      normalizeCoreAspect(aspect, index),
+    ),
     bountyTasks: state.bountyTasks ?? [],
     checks: state.checks ?? [],
     weeklyTasks: state.weeklyTasks ?? [],

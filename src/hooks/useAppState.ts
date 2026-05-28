@@ -32,6 +32,7 @@ import type {
   AppPreferences,
   AppState,
   CompletionRecord,
+  CoreAspect,
   DashboardPrefs,
   Habit,
   HabitCategory,
@@ -129,6 +130,10 @@ function getLevelUpUxpReward(
 function prepareState(base: AppState): AppState {
   const today = getTodayISO()
   const habits = applyDailyReset(base.habits, base.lastActiveDate)
+  const coreAspects =
+    base.lastActiveDate === today
+      ? base.coreAspects
+      : base.coreAspects.map((aspect) => ({ ...aspect, progressToday: 0 }))
   const bountyTasks =
     base.lastActiveDate === today
       ? base.bountyTasks
@@ -145,6 +150,7 @@ function prepareState(base: AppState): AppState {
   return {
     ...base,
     habits,
+    coreAspects,
     bountyTasks,
     checks,
     weeklyTasks,
@@ -159,6 +165,36 @@ const CHECK_TASK_XP = 2
 function sanitizeAccentColor(color: string | undefined): string {
   const trimmed = color?.trim() ?? ''
   return /^#(?:[0-9a-fA-F]{6})$/.test(trimmed) ? trimmed : '#a3e635'
+}
+
+function applyCoreAspectIncrements(
+  coreAspects: CoreAspect[],
+  aspectCounts: Record<string, number>,
+): CoreAspect[] {
+  return coreAspects.map((aspect) => {
+    const increment = aspectCounts[aspect.id] ?? 0
+    if (increment <= 0) return aspect
+    return {
+      ...aspect,
+      progressToday: aspect.progressToday + increment,
+      totalProgress: aspect.totalProgress + increment,
+    }
+  })
+}
+
+function getCoreAspectCountsForHabits(
+  habits: Habit[],
+  habitIds: string[],
+): Record<string, number> {
+  const counts: Record<string, number> = {}
+  for (const habitId of habitIds) {
+    const habit = habits.find((entry) => entry.id === habitId)
+    if (!habit) continue
+    for (const aspectId of habit.linkedCoreAspectIds ?? []) {
+      counts[aspectId] = (counts[aspectId] ?? 0) + 1
+    }
+  }
+  return counts
 }
 
 function applyCompletionRewards(
@@ -284,6 +320,9 @@ export function useAppState() {
         return {
           ...prev,
           habits: applyDailyReset(prev.habits, prev.lastActiveDate),
+          coreAspects: prev.coreAspects.map((aspect) =>
+            aspect.progressToday > 0 ? { ...aspect, progressToday: 0 } : aspect,
+          ),
           bountyTasks: prev.bountyTasks.map((item) =>
             item.done ? { ...item, done: false } : item,
           ),
@@ -455,6 +494,12 @@ export function useAppState() {
                 : entry,
             )
           : habits
+      const nextCoreAspects = completing
+        ? applyCoreAspectIncrements(
+            prev.coreAspects,
+            getCoreAspectCountsForHabits(prev.habits, completedHabitIds),
+          )
+        : prev.coreAspects
 
       levelUpBonus = completing
         ? getLevelUpUxpReward(prev, nextHabits, profile, completedHabitIds)
@@ -470,6 +515,7 @@ export function useAppState() {
       return {
         ...prev,
         habits: nextHabits,
+        coreAspects: nextCoreAspects,
         completions,
         profile: nextProfile,
         timeRecords,
@@ -532,7 +578,16 @@ export function useAppState() {
           ? { ...profile, shopXp: (profile.shopXp ?? 0) + levelUpBonus }
           : profile
 
-      return { ...prev, habits, completions, profile: nextProfile }
+      return {
+        ...prev,
+        habits,
+        coreAspects: applyCoreAspectIncrements(
+          prev.coreAspects,
+          getCoreAspectCountsForHabits(prev.habits, [...targetIds]),
+        ),
+        completions,
+        profile: nextProfile,
+      }
     })
 
     if (levelUpBonus > 0) {
@@ -642,6 +697,18 @@ export function useAppState() {
     }))
   }, [updateCurrentState])
 
+  const setLinkedCoreAspects = useCallback((habitId: string, aspectIds: string[]) => {
+    const cleaned = aspectIds.filter((id, index, arr) => arr.indexOf(id) === index)
+    updateCurrentState((prev) => ({
+      ...prev,
+      habits: prev.habits.map((habit) =>
+        habit.id === habitId
+          ? { ...habit, linkedCoreAspectIds: cleaned }
+          : habit,
+      ),
+    }))
+  }, [updateCurrentState])
+
   const incrementHobby = useCallback((id: string) => {
     const today = getTodayISO()
     let levelUpBonus = 0
@@ -705,6 +772,10 @@ export function useAppState() {
             }
           : entry,
       )
+      const nextCoreAspects = applyCoreAspectIncrements(
+        prev.coreAspects,
+        getCoreAspectCountsForHabits(prev.habits, targetIds),
+      )
       levelUpBonus = getLevelUpUxpReward(prev, nextHabits, profile, targetIds)
       const nextProfile =
         levelUpBonus > 0
@@ -717,6 +788,7 @@ export function useAppState() {
       return {
         ...prev,
         habits: nextHabits,
+        coreAspects: nextCoreAspects,
         completions,
         profile: nextProfile,
         timeRecords: rewards.timeRecords,
@@ -792,6 +864,24 @@ export function useAppState() {
       bountyTasks: [
         ...prev.bountyTasks,
         { id: crypto.randomUUID(), name: trimmed, done: false },
+      ],
+    }))
+  }, [updateCurrentState])
+
+  const addCoreAspect = useCallback((name: string) => {
+    const trimmed = name.trim()
+    if (!trimmed) return
+
+    updateCurrentState((prev) => ({
+      ...prev,
+      coreAspects: [
+        ...prev.coreAspects,
+        {
+          id: crypto.randomUUID(),
+          name: trimmed,
+          progressToday: 0,
+          totalProgress: 0,
+        },
       ],
     }))
   }, [updateCurrentState])
@@ -939,6 +1029,21 @@ export function useAppState() {
     }
   }, [updateCurrentState])
 
+  const incrementCoreAspect = useCallback((id: string) => {
+    updateCurrentState((prev) => ({
+      ...prev,
+      coreAspects: prev.coreAspects.map((aspect) =>
+        aspect.id === id
+          ? {
+              ...aspect,
+              progressToday: aspect.progressToday + 1,
+              totalProgress: aspect.totalProgress + 1,
+            }
+          : aspect,
+      ),
+    }))
+  }, [updateCurrentState])
+
   const removeWeeklyTask = useCallback((id: string) => {
     updateCurrentState((prev) => ({
       ...prev,
@@ -1051,6 +1156,9 @@ export function useAppState() {
       const habits = prev.habits.map((habit) =>
         habit.doneToday ? uncompleteHabit(habit, today) : habit,
       )
+      const coreAspects = prev.coreAspects.map((aspect) =>
+        aspect.progressToday > 0 ? { ...aspect, progressToday: 0 } : aspect,
+      )
       const completions = prev.completions.filter((entry) => entry.date !== today)
       const checks = prev.checks.map((item) =>
         item.done ? { ...item, done: false } : item,
@@ -1065,6 +1173,7 @@ export function useAppState() {
       return {
         ...prev,
         habits,
+        coreAspects,
         bountyTasks,
         checks,
         weeklyTasks,
@@ -1442,6 +1551,7 @@ export function useAppState() {
     activeAccountId: accountsState.activeAccountId,
     accounts,
     habits: state.habits,
+    coreAspects: state.coreAspects,
     bountyTasks: state.bountyTasks,
     checks: state.checks,
     weeklyTasks: state.weeklyTasks,
@@ -1461,11 +1571,14 @@ export function useAppState() {
     addManualTime,
     logTimerSession,
     setLinkedHabits,
+    setLinkedCoreAspects,
     setHabitTags,
     setHabitWeights,
     addHabit,
+    addCoreAspect,
     addBountyTask,
     incrementHobby,
+    incrementCoreAspect,
     addCheck,
     addWeeklyTask,
     toggleBountyTask,

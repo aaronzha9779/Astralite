@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import type {
   AppPreferences,
+  CoreAspect,
   Habit,
   HabitCategory,
   TimeRecord,
@@ -21,6 +22,7 @@ const CATEGORIES: {
 
 type HabitsPageProps = {
   habits: Habit[]
+  coreAspects: CoreAspect[]
   bountyTasks: WeeklyTask[]
   timeRecords: TimeRecord[]
   preferences: AppPreferences
@@ -28,12 +30,14 @@ type HabitsPageProps = {
   streakSymbolImageUrl: string | null
   onToggle: (id: string) => void
   onSetLinked: (habitId: string, linkedIds: string[]) => void
+  onSetLinkedCoreAspects: (habitId: string, aspectIds: string[]) => void
   onUpdatePreferences: (patch: Partial<AppPreferences>) => void
   onResetToday: () => void
 }
 
 export function HabitsPage({
   habits,
+  coreAspects,
   bountyTasks,
   timeRecords,
   preferences,
@@ -41,6 +45,7 @@ export function HabitsPage({
   streakSymbolImageUrl,
   onToggle,
   onSetLinked,
+  onSetLinkedCoreAspects,
   onUpdatePreferences,
   onResetToday,
 }: HabitsPageProps) {
@@ -111,9 +116,11 @@ export function HabitsPage({
                     rawXpEarned={habit.totalXpEarned ?? 0}
                     preferences={preferences}
                     allHabits={habits}
+                    allCoreAspects={coreAspects}
                     timeRecords={timeRecords}
                     onToggle={onToggle}
                     onSetLinked={onSetLinked}
+                    onSetLinkedCoreAspects={onSetLinkedCoreAspects}
                   />
                 ))}
               </div>

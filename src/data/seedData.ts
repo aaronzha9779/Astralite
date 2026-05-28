@@ -1,7 +1,7 @@
 import { getTodayISO } from '../lib/dates'
 import { DEFAULT_RANKS } from './ranks'
 import { rewards } from './rewards'
-import type { AppPreferences, AppState, CompletionRecord, Habit } from '../types'
+import type { AppPreferences, AppState, CompletionRecord, CoreAspect, Habit } from '../types'
 
 const today = getTodayISO()
 const defaultPreferences: AppPreferences = {
@@ -30,6 +30,7 @@ const seedHabits: Habit[] = [
     difficulty: 4,
     priority: 4,
     linkedHabitIds: ['7'],
+    linkedCoreAspectIds: ['ca1'],
     tags: ['fitness'],
   },
   {
@@ -47,6 +48,7 @@ const seedHabits: Habit[] = [
     difficulty: 3,
     priority: 3,
     linkedHabitIds: [],
+    linkedCoreAspectIds: ['ca2'],
     tags: ['learning'],
   },
   {
@@ -64,6 +66,7 @@ const seedHabits: Habit[] = [
     difficulty: 5,
     priority: 5,
     linkedHabitIds: [],
+    linkedCoreAspectIds: [],
     tags: [],
   },
   {
@@ -81,6 +84,7 @@ const seedHabits: Habit[] = [
     difficulty: 2,
     priority: 3,
     linkedHabitIds: [],
+    linkedCoreAspectIds: ['ca3'],
     tags: ['mindfulness'],
   },
   {
@@ -98,6 +102,7 @@ const seedHabits: Habit[] = [
     difficulty: 2,
     priority: 4,
     linkedHabitIds: [],
+    linkedCoreAspectIds: ['ca4'],
     tags: ['health'],
   },
   {
@@ -115,6 +120,7 @@ const seedHabits: Habit[] = [
     difficulty: 3,
     priority: 4,
     linkedHabitIds: [],
+    linkedCoreAspectIds: ['ca5'],
     tags: ['music'],
   },
   {
@@ -132,8 +138,17 @@ const seedHabits: Habit[] = [
     difficulty: 4,
     priority: 3,
     linkedHabitIds: ['1'],
+    linkedCoreAspectIds: ['ca1'],
     tags: ['fitness'],
   },
+]
+
+const seedCoreAspects: CoreAspect[] = [
+  { id: 'ca1', name: 'Vitality', progressToday: 12, totalProgress: 212 },
+  { id: 'ca2', name: 'Learning', progressToday: 8, totalProgress: 134 },
+  { id: 'ca3', name: 'Mindset', progressToday: 4, totalProgress: 84 },
+  { id: 'ca4', name: 'Health', progressToday: 10, totalProgress: 190 },
+  { id: 'ca5', name: 'Creativity', progressToday: 6, totalProgress: 106 },
 ]
 
 function toLocalISODate(d: Date): string {
@@ -184,6 +199,7 @@ function buildSampleCompletions(habits: Habit[]): CompletionRecord[] {
 
 export const defaultAppState: AppState = {
   habits: seedHabits,
+  coreAspects: seedCoreAspects,
   bountyTasks: [
     { id: 'b1', name: 'Ship the important thing', done: false },
   ],
@@ -233,6 +249,7 @@ export const defaultAppState: AppState = {
 export function createEmptyAppState(): AppState {
   return {
     habits: [],
+    coreAspects: [],
     bountyTasks: [],
     checks: [],
     weeklyTasks: [],

@@ -1,30 +1,53 @@
-import { useMemo } from 'react'
+import { useMemo, useState, type FormEvent } from 'react'
 import {
   formatHistoryDay,
   formatHistoryTime,
   getRecentHistory,
 } from '../lib/statsPage'
-import type { CompletionRecord, DashboardStat, Habit, TimeRecord } from '../types'
+import type { CompletionRecord, CoreAspect, DashboardStat, Habit, TimeRecord } from '../types'
 import { ActivityHeatmap } from './ActivityHeatmap'
 import './StatsPage.css'
 
 type StatsPageProps = {
   habits: Habit[]
+  coreAspects: CoreAspect[]
   completions: CompletionRecord[]
   timeRecords: TimeRecord[]
   stats: DashboardStat[]
+  onAddCoreAspect: (name: string) => void
+  onIncrementCoreAspect: (id: string) => void
 }
 
 export function StatsPage({
   habits,
+  coreAspects,
   completions,
   timeRecords,
   stats,
+  onAddCoreAspect,
+  onIncrementCoreAspect,
 }: StatsPageProps) {
+  const [coreAspectName, setCoreAspectName] = useState('')
   const history = useMemo(
     () => getRecentHistory(completions, 25),
     [completions],
   )
+  const linkedHabitNamesByAspect = useMemo(() => {
+    const map: Record<string, string[]> = {}
+    for (const habit of habits) {
+      for (const aspectId of habit.linkedCoreAspectIds ?? []) {
+        map[aspectId] = [...(map[aspectId] ?? []), habit.name]
+      }
+    }
+    return map
+  }, [habits])
+
+  function handleCoreAspectSubmit(event: FormEvent) {
+    event.preventDefault()
+    if (!coreAspectName.trim()) return
+    onAddCoreAspect(coreAspectName)
+    setCoreAspectName('')
+  }
 
   return (
     <main className="dashboard stats-page">
@@ -42,6 +65,79 @@ export function StatsPage({
             <span className="stat-card__value">{stat.value}</span>
           </article>
         ))}
+      </section>
+
+      <section className="stats-page__section">
+        <div className="stats-page__section-head">
+          <h2 className="dashboard__section-title">Core aspects</h2>
+          <p className="stats-page__hint">
+            Add them manually here or let linked dashboard items feed them automatically.
+          </p>
+        </div>
+
+        <form className="stats-page__core-form" onSubmit={handleCoreAspectSubmit}>
+          <input
+            className="stats-page__core-input"
+            type="text"
+            value={coreAspectName}
+            onChange={(e) => setCoreAspectName(e.target.value)}
+            placeholder="Add core aspect…"
+            maxLength={80}
+          />
+          <button
+            type="submit"
+            className="stats-page__core-add"
+            disabled={!coreAspectName.trim()}
+          >
+            Add
+          </button>
+        </form>
+
+        {coreAspects.length === 0 ? (
+          <p className="dashboard__empty">No core aspects yet.</p>
+        ) : (
+          <div className="stats-page__core-grid">
+            {coreAspects.map((aspect) => {
+              const current = aspect.totalProgress % 100
+              const level = Math.floor(aspect.totalProgress / 100) + 1
+              const linkedNames = linkedHabitNamesByAspect[aspect.id] ?? []
+              return (
+                <article key={aspect.id} className="stats-page__core-card">
+                  <button
+                    type="button"
+                    className="stats-page__core-plus"
+                    onClick={() => onIncrementCoreAspect(aspect.id)}
+                    aria-label={`Add progress to ${aspect.name}`}
+                  >
+                    +
+                  </button>
+                  <div className="stats-page__core-copy">
+                    <div className="stats-page__core-head">
+                      <h3 className="stats-page__core-name">{aspect.name}</h3>
+                      <span className="stats-page__core-level">Lv {level}</span>
+                    </div>
+                    <div className="stats-page__core-progress" aria-hidden="true">
+                      <span
+                        className="stats-page__core-progress-fill"
+                        style={{ width: `${current}%` }}
+                      />
+                    </div>
+                    <p className="stats-page__core-meta">
+                      {current}/100 today {aspect.progressToday > 0 ? `· ${aspect.progressToday} gained today` : ''}
+                    </p>
+                    {linkedNames.length > 0 ? (
+                      <p className="stats-page__core-links">
+                        Linked to: {linkedNames.join(', ')}
+                      </p>
+                    ) : (
+                      <p className="stats-page__core-links">No linked dashboard items yet.</p>
+                    )}
+                  </div>
+                </article>
+              )
+            })}
+          </div>
+        )}
       </section>
 
       <section className="stats-page__section">

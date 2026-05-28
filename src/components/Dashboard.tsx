@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import type {
   AppPreferences,
+  CoreAspect,
   DashboardPrefs,
   Habit,
   HabitCategory,
@@ -15,6 +16,7 @@ const COLUMNS: HabitCategory[] = ['daily', 'habit', 'hobby']
 
 type DashboardProps = {
   habits: Habit[]
+  coreAspects: CoreAspect[]
   bountyTasks: WeeklyTask[]
   checks: WeeklyTask[]
   weeklyTasks: WeeklyTask[]
@@ -44,14 +46,20 @@ type DashboardProps = {
   onShuffleQuote: () => void
 }
 
-function getLinkedNames(habits: Habit[], habit: Habit): string[] {
-  return (habit.linkedHabitIds ?? [])
+function getLinkedNames(habits: Habit[], coreAspects: CoreAspect[], habit: Habit): string[] {
+  const habitLinks = (habit.linkedHabitIds ?? [])
     .map((id) => habits.find((h) => h.id === id)?.name)
     .filter(Boolean) as string[]
+  const aspectLinks = (habit.linkedCoreAspectIds ?? [])
+    .map((id) => coreAspects.find((aspect) => aspect.id === id)?.name)
+    .filter(Boolean)
+    .map((name) => `Core: ${name}`) as string[]
+  return [...habitLinks, ...aspectLinks]
 }
 
 export function Dashboard({
   habits,
+  coreAspects,
   bountyTasks,
   checks,
   weeklyTasks,
@@ -131,7 +139,7 @@ export function Dashboard({
             onToggle={onToggle}
             onIncrementHobby={onIncrementHobby}
             onAdd={onAdd}
-            getLinkedNames={getLinkedNames}
+            getLinkedNames={(allHabits, habit) => getLinkedNames(allHabits, coreAspects, habit)}
           />
         ))}
       </section>

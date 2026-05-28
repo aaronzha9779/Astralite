@@ -374,26 +374,14 @@
   aspect-ratio: 1;
   border-radius: 50%;
   border: 10px solid color-mix(in srgb, var(--accent) 28%, var(--border));
-  background:
-    conic-gradient(
-      color-mix(in srgb, var(--accent) 18%, var(--surface)) 0deg 45deg,
-      var(--surface) 45deg 90deg,
-      color-mix(in srgb, var(--accent) 12%, var(--surface)) 90deg 135deg,
-      var(--surface) 135deg 180deg,
-      color-mix(in srgb, var(--accent) 18%, var(--surface)) 180deg 225deg,
-      var(--surface) 225deg 270deg,
-      color-mix(in srgb, var(--accent) 12%, var(--surface)) 270deg 315deg,
-      var(--surface) 315deg 360deg
-    );
   transition: transform 1.35s cubic-bezier(.16,.84,.18,1);
 }
 
 .shop__wheel-slice,
 .shop__wheel-empty {
   position: absolute;
-  left: 50%;
-  top: 50%;
-  transform-origin: 0 0;
+  width: 4.75rem;
+  text-wrap: balance;
   font-size: 0.72rem;
   font-weight: 700;
   color: var(--text);
@@ -401,10 +389,7 @@
 }
 
 .shop__wheel-slice {
-  width: 5rem;
-  transform:
-    rotate(calc((360deg / var(--slice-count)) * var(--slice-index)))
-    translate(2.1rem, -0.5rem);
+  transform: translate(-50%, -50%);
 }
 
 .shop__wheel-empty {

@@ -17,6 +17,7 @@ export function Layout() {
     activeAccountId,
     accounts,
     habits,
+    coreAspects,
     bountyTasks,
     checks,
     weeklyTasks,
@@ -35,10 +36,13 @@ export function Layout() {
     addManualTime,
     logTimerSession,
     setLinkedHabits,
+    setLinkedCoreAspects,
     addHabit,
+    addCoreAspect,
     addBountyTask,
     addCheck,
     addWeeklyTask,
+    incrementCoreAspect,
     toggleBountyTask,
     toggleCheck,
     toggleWeeklyTask,
@@ -105,6 +109,7 @@ export function Layout() {
       return (
         <Dashboard
           habits={habits}
+          coreAspects={coreAspects}
           bountyTasks={bountyTasks}
           checks={checks}
           weeklyTasks={weeklyTasks}
@@ -156,6 +161,7 @@ export function Layout() {
       return (
         <HabitsPage
           habits={habits}
+          coreAspects={coreAspects}
           bountyTasks={bountyTasks}
           timeRecords={timeRecords}
           preferences={preferences}
@@ -163,6 +169,7 @@ export function Layout() {
           streakSymbolImageUrl={profile.streakSymbolImageUrl}
           onToggle={toggleHabit}
           onSetLinked={setLinkedHabits}
+          onSetLinkedCoreAspects={setLinkedCoreAspects}
           onUpdatePreferences={updatePreferences}
           onResetToday={resetToday}
         />
@@ -173,9 +180,12 @@ export function Layout() {
       return (
         <StatsPage
           habits={habits}
+          coreAspects={coreAspects}
           completions={completions}
           timeRecords={timeRecords}
           stats={statsPageSummary}
+          onAddCoreAspect={addCoreAspect}
+          onIncrementCoreAspect={incrementCoreAspect}
         />
       )
     }

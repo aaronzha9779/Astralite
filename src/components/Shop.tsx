@@ -102,6 +102,43 @@ export function Shop({
     ],
     [dailySpinOptions.rewards, dailySpinOptions.uxp],
   )
+  const wheelVisual = useMemo(() => {
+    const palette = [
+      'color-mix(in srgb, var(--accent) 18%, var(--surface))',
+      'var(--surface)',
+      'color-mix(in srgb, var(--accent) 12%, var(--surface))',
+      'color-mix(in srgb, var(--accent) 24%, var(--surface))',
+    ]
+    if (wheelOptions.length === 0) {
+      return {
+        background: 'var(--surface)',
+        slices: [],
+      }
+    }
+
+    const angleStep = 360 / wheelOptions.length
+    const background = `conic-gradient(${wheelOptions
+      .map((_, index) => {
+        const start = index * angleStep
+        const end = start + angleStep
+        return `${palette[index % palette.length]} ${start}deg ${end}deg`
+      })
+      .join(', ')})`
+
+    const slices = wheelOptions.map((option, index) => {
+      const midAngle = -90 + index * angleStep + angleStep / 2
+      const radians = (midAngle * Math.PI) / 180
+      const x = 50 + Math.cos(radians) * 29
+      const y = 50 + Math.sin(radians) * 29
+      return {
+        ...option,
+        x,
+        y,
+      }
+    })
+
+    return { background, slices }
+  }, [wheelOptions])
 
   function showMessage(next: string) {
     setMessage(next)
@@ -404,16 +441,19 @@ export function Shop({
             <div className="shop__wheel-wrap">
               <div
                 className={`shop__wheel${spinSpinning ? ' shop__wheel--spinning' : ''}`}
-                style={{ transform: `rotate(${spinRotation}deg)` }}
+                style={{
+                  transform: `rotate(${spinRotation}deg)`,
+                  background: wheelVisual.background,
+                }}
               >
-                {wheelOptions.length > 0 ? (
-                  wheelOptions.map((option, index) => (
+                {wheelVisual.slices.length > 0 ? (
+                  wheelVisual.slices.map((option) => (
                     <span
                       key={option.id}
                       className="shop__wheel-slice"
                       style={{
-                        ['--slice-index' as string]: String(index),
-                        ['--slice-count' as string]: String(wheelOptions.length),
+                        left: `${option.x}%`,
+                        top: `${option.y}%`,
                       }}
                     >
                       {option.label}
