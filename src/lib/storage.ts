@@ -17,6 +17,10 @@ const V3_KEY = 'grind-app-v3'
 const V2_KEY = 'grind-app-v2'
 const LEGACY_KEY = 'grind-app-v1'
 const SINGLE_STATE_KEY = 'grind-app-v4'
+const INDEXED_DB_NAME = 'habitup-storage'
+const INDEXED_DB_VERSION = 1
+const INDEXED_DB_STORE = 'app'
+const INDEXED_DB_KEY = 'accounts'
 
 type LegacyState = {
   habits: AppState['habits']
@@ -57,6 +61,12 @@ type LegacyPreferences = Partial<AppPreferences> & {
 type StoredAccounts = {
   activeAccountId: string
   accounts: Record<string, AppState>
+}
+
+type LoadedAccounts = {
+  activeAccountId: string
+  accountsById: Record<string, AppState>
+  accounts: AccountSummary[]
 }
 
 export type SaveFilePayload = {
@@ -347,10 +357,14 @@ function normalizeStoredAccounts(raw: StoredAccounts): StoredAccounts {
   return { activeAccountId, accounts }
 }
 
-function migrateToAccounts(): StoredAccounts {
-  const existing = localStorage.getItem(STORAGE_KEY)
-  if (existing) {
-    return normalizeStoredAccounts(JSON.parse(existing) as StoredAccounts)
+function readLegacyStoredAccounts(): StoredAccounts | null {
+  try {
+    const existing = localStorage.getItem(STORAGE_KEY)
+    if (existing) {
+      return normalizeStoredAccounts(JSON.parse(existing) as StoredAccounts)
+    }
+  } catch {
+    void 0
   }
 
   const legacyState = loadLegacySingleState() ?? createEmptyAppState()
@@ -361,12 +375,10 @@ function migrateToAccounts(): StoredAccounts {
       [accountId]: normalizeState(legacyState),
     },
   }
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(stored))
   return stored
 }
 
-export function loadAccounts() {
-  const stored = migrateToAccounts()
+function buildLoadedAccounts(stored: StoredAccounts): LoadedAccounts {
   return {
     activeAccountId: stored.activeAccountId,
     accountsById: stored.accounts,
@@ -376,22 +388,137 @@ export function loadAccounts() {
   }
 }
 
-export function saveAccounts(
+function clearLegacyLocalStorage(): void {
+  try {
+    for (const key of [STORAGE_KEY, SINGLE_STATE_KEY, V3_KEY, V2_KEY, LEGACY_KEY]) {
+      localStorage.removeItem(key)
+    }
+  } catch {
+    void 0
+  }
+}
+
+function saveAccountsToLocalStorage(stored: StoredAccounts): boolean {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(stored))
+    return true
+  } catch {
+    return false
+  }
+}
+
+function openIndexedDb(): Promise<IDBDatabase> {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(INDEXED_DB_NAME, INDEXED_DB_VERSION)
+    request.onupgradeneeded = () => {
+      const db = request.result
+      if (!db.objectStoreNames.contains(INDEXED_DB_STORE)) {
+        db.createObjectStore(INDEXED_DB_STORE)
+      }
+    }
+    request.onsuccess = () => resolve(request.result)
+    request.onerror = () => reject(request.error ?? new Error('Failed to open IndexedDB.'))
+  })
+}
+
+function readIndexedDbStoredAccounts(): Promise<StoredAccounts | null> {
+  return new Promise((resolve, reject) => {
+    void openIndexedDb()
+      .then((db) => {
+        const transaction = db.transaction(INDEXED_DB_STORE, 'readonly')
+        const store = transaction.objectStore(INDEXED_DB_STORE)
+        const request = store.get(INDEXED_DB_KEY)
+
+        request.onsuccess = () => {
+          db.close()
+          const result = request.result
+          resolve(result ? normalizeStoredAccounts(result as StoredAccounts) : null)
+        }
+        request.onerror = () => {
+          db.close()
+          reject(request.error ?? new Error('Failed to read IndexedDB data.'))
+        }
+      })
+      .catch(reject)
+  })
+}
+
+function writeIndexedDbStoredAccounts(stored: StoredAccounts): Promise<void> {
+  return new Promise((resolve, reject) => {
+    void openIndexedDb()
+      .then((db) => {
+        const transaction = db.transaction(INDEXED_DB_STORE, 'readwrite')
+        const store = transaction.objectStore(INDEXED_DB_STORE)
+        transaction.oncomplete = () => {
+          db.close()
+          resolve()
+        }
+        transaction.onerror = () => {
+          db.close()
+          reject(transaction.error ?? new Error('Failed to write IndexedDB data.'))
+        }
+        store.put(stored, INDEXED_DB_KEY)
+      })
+      .catch(reject)
+  })
+}
+
+export function loadAccountsSnapshot(): LoadedAccounts {
+  const fallbackId = 'default'
+  return buildLoadedAccounts(
+    readLegacyStoredAccounts() ?? {
+      activeAccountId: fallbackId,
+      accounts: {
+        [fallbackId]: createEmptyAppState(),
+      },
+    },
+  )
+}
+
+export async function loadAccounts(): Promise<LoadedAccounts> {
+  try {
+    const indexedDbStored = await readIndexedDbStoredAccounts()
+    if (indexedDbStored) {
+      return buildLoadedAccounts(indexedDbStored)
+    }
+
+    const legacyStored = readLegacyStoredAccounts()
+    if (legacyStored) {
+      await writeIndexedDbStoredAccounts(legacyStored)
+      clearLegacyLocalStorage()
+      return buildLoadedAccounts(legacyStored)
+    }
+  } catch (error) {
+    console.error('Failed to load HabitUp account data from IndexedDB.', error)
+  }
+
+  const fallback = readLegacyStoredAccounts()
+  return buildLoadedAccounts(
+    fallback ?? {
+      activeAccountId: 'default',
+      accounts: {
+        default: createEmptyAppState(),
+      },
+    },
+  )
+}
+
+export async function saveAccounts(
   activeAccountId: string,
   accounts: Record<string, AppState>,
-): boolean {
+): Promise<boolean> {
   const normalized = Object.fromEntries(
     Object.entries(accounts).map(([id, state]) => [id, normalizeState(state)]),
   )
+  const stored = { activeAccountId, accounts: normalized }
+
   try {
-    localStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify({ activeAccountId, accounts: normalized }),
-    )
+    await writeIndexedDbStoredAccounts(stored)
+    clearLegacyLocalStorage()
     return true
   } catch (error) {
-    console.error('Failed to save HabitUp account data.', error)
-    return false
+    console.error('Failed to save HabitUp account data to IndexedDB.', error)
+    return saveAccountsToLocalStorage(stored)
   }
 }
 

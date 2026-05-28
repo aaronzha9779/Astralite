@@ -14,6 +14,7 @@ import {
   createAccountState,
   createSaveFilePayload,
   loadAccounts,
+  loadAccountsSnapshot,
   parseSaveFilePayload,
   saveAccounts,
 } from '../lib/storage'
@@ -258,7 +259,7 @@ function applyCompletionRewards(
 
 export function useAppState() {
   const [accountsState, setAccountsState] = useState<AccountsState>(() => {
-    const loaded = loadAccounts()
+    const loaded = loadAccountsSnapshot()
     const accountsById = Object.fromEntries(
       Object.entries(loaded.accountsById).map(([id, accountState]) => [
         id,
@@ -277,6 +278,7 @@ export function useAppState() {
   })
   const [uxpBurst, setUxpBurst] = useState<UxpBurst | null>(null)
   const [saveError, setSaveError] = useState<string | null>(null)
+  const [storageHydrated, setStorageHydrated] = useState(false)
 
   const state =
     accountsState.accountsById[accountsState.activeAccountId] ?? defaultAppState
@@ -288,9 +290,52 @@ export function useAppState() {
   }, [uxpBurst])
 
   useEffect(() => {
-    const saved = saveAccounts(accountsState.activeAccountId, accountsState.accountsById)
-    setSaveError(saved ? null : 'Changes could not be saved locally. Storage may be full.')
-  }, [accountsState])
+    let cancelled = false
+
+    void loadAccounts()
+      .then((loaded) => {
+        if (cancelled) return
+        const accountsById = Object.fromEntries(
+          Object.entries(loaded.accountsById).map(([id, accountState]) => [
+            id,
+            prepareState(accountState),
+          ]),
+        )
+
+        if (!accountsById[loaded.activeAccountId]) {
+          accountsById[loaded.activeAccountId] = prepareState(defaultAppState)
+        }
+
+        setAccountsState({
+          activeAccountId: loaded.activeAccountId,
+          accountsById,
+        })
+        setSaveError(null)
+        setStorageHydrated(true)
+      })
+      .catch((error) => {
+        console.error('Failed to hydrate HabitUp account data.', error)
+        if (cancelled) return
+        setStorageHydrated(true)
+        setSaveError('Changes may not persist because browser storage is unavailable.')
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!storageHydrated) return
+
+    void saveAccounts(accountsState.activeAccountId, accountsState.accountsById).then(
+      (saved) => {
+        setSaveError(
+          saved ? null : 'Changes may not persist because browser storage is unavailable.',
+        )
+      },
+    )
+  }, [accountsState, storageHydrated])
 
   useEffect(() => {
     document.documentElement.style.setProperty(
