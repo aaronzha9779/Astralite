@@ -522,7 +522,7 @@ export function useAppState() {
                     ...entry,
                     progressToday:
                       entry.category === 'hobby'
-                        ? Math.max(1, entry.progressToday)
+                        ? entry.progressToday + 1
                         : entry.progressToday,
                     totalProgress:
                       entry.category === 'hobby'
