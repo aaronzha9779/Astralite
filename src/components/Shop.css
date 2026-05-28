@@ -89,6 +89,12 @@
   color: var(--accent);
 }
 
+.shop__toast--error {
+  border-color: color-mix(in srgb, #ef4444 40%, var(--border));
+  background: color-mix(in srgb, #ef4444 10%, var(--surface-raised));
+  color: #fca5a5;
+}
+
 .shop__grid {
   margin: 0;
   padding: 0;

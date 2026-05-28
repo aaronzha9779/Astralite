@@ -72,6 +72,7 @@ export function Layout() {
     deleteAccount,
     exportSaveFile,
     importSaveFile,
+    saveError,
   } = useAppState()
   const [timerHabitId, setTimerHabitId] = useState(habits[0]?.id ?? '')
   const [timerElapsed, setTimerElapsed] = useState(0)
@@ -209,6 +210,7 @@ export function Layout() {
           onUpdateReward={updateReward}
           onRemoveReward={removeReward}
           onReorderReward={reorderReward}
+          saveError={saveError}
         />
       )
     }

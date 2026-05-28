@@ -14,6 +14,7 @@ type ShopProps = {
   profile: UserProfile
   rewards: Reward[]
   purchasedRewards: PurchasedReward[]
+  saveError: string | null
   dailySpinUsed: boolean
   dailySpinOptions: {
     uxp: number[]
@@ -21,10 +22,10 @@ type ShopProps = {
   }
   onPurchase: (rewardId: string) => PurchaseResult
   onSpinDaily: () => DailySpinResult
-  onAddReward: (reward: Omit<Reward, 'id'>) => void
-  onUpdateReward: (rewardId: string, patch: Partial<Omit<Reward, 'id'>>) => void
-  onRemoveReward: (rewardId: string) => void
-  onReorderReward: (draggedId: string, targetId: string) => void
+  onAddReward: (reward: Omit<Reward, 'id'>) => boolean
+  onUpdateReward: (rewardId: string, patch: Partial<Omit<Reward, 'id'>>) => boolean
+  onRemoveReward: (rewardId: string) => boolean
+  onReorderReward: (draggedId: string, targetId: string) => boolean
 }
 
 const EMPTY_REWARD: Omit<Reward, 'id'> = {
@@ -36,7 +37,8 @@ const EMPTY_REWARD: Omit<Reward, 'id'> = {
   oneTime: false,
 }
 
-const MAX_REWARD_IMAGE_FILE_SIZE = 350 * 1024
+const MAX_REWARD_IMAGE_DIMENSION = 256
+const REWARD_IMAGE_QUALITY = 0.84
 
 function readFileAsDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -47,10 +49,47 @@ function readFileAsDataUrl(file: File): Promise<string> {
   })
 }
 
+function loadImage(src: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const image = new Image()
+    image.onload = () => resolve(image)
+    image.onerror = () => reject(new Error('Image failed to load'))
+    image.src = src
+  })
+}
+
+async function buildRewardImageDataUrl(file: File): Promise<string> {
+  const originalDataUrl = await readFileAsDataUrl(file)
+  const image = await loadImage(originalDataUrl)
+  const longestEdge = Math.max(image.naturalWidth, image.naturalHeight)
+
+  if (longestEdge <= MAX_REWARD_IMAGE_DIMENSION && file.size <= 900 * 1024) {
+    return originalDataUrl
+  }
+
+  const scale = Math.min(1, MAX_REWARD_IMAGE_DIMENSION / Math.max(1, longestEdge))
+  const width = Math.max(1, Math.round(image.naturalWidth * scale))
+  const height = Math.max(1, Math.round(image.naturalHeight * scale))
+  const canvas = document.createElement('canvas')
+  canvas.width = width
+  canvas.height = height
+
+  const context = canvas.getContext('2d')
+  if (!context) {
+    return originalDataUrl
+  }
+
+  context.clearRect(0, 0, width, height)
+  context.drawImage(image, 0, 0, width, height)
+
+  return canvas.toDataURL('image/webp', REWARD_IMAGE_QUALITY)
+}
+
 export function Shop({
   profile,
   rewards,
   purchasedRewards,
+  saveError,
   dailySpinUsed,
   dailySpinOptions,
   onPurchase,
@@ -64,6 +103,7 @@ export function Shop({
   const [draft, setDraft] = useState<Omit<Reward, 'id'>>(EMPTY_REWARD)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [draggedId, setDraggedId] = useState<string | null>(null)
+  const [uploadingImage, setUploadingImage] = useState(false)
   const [sparkleId, setSparkleId] = useState<string | null>(null)
   const [purchaseFlashId, setPurchaseFlashId] = useState<string | null>(null)
   const [balancePulse, setBalancePulse] = useState(false)
@@ -75,6 +115,7 @@ export function Shop({
     rewards[0]?.id ?? null,
   )
   const imageInputRef = useRef<HTMLInputElement | null>(null)
+  const messageTimeoutRef = useRef<number | null>(null)
 
   useEffect(() => {
     if (!rewards.length) {
@@ -85,6 +126,14 @@ export function Shop({
       setSelectedRewardId(rewards[0]?.id ?? null)
     }
   }, [rewards, selectedRewardId])
+
+  useEffect(() => {
+    return () => {
+      if (messageTimeoutRef.current != null) {
+        window.clearTimeout(messageTimeoutRef.current)
+      }
+    }
+  }, [])
 
   const selectedReward = useMemo(
     () => rewards.find((reward) => reward.id === selectedRewardId) ?? rewards[0] ?? null,
@@ -153,8 +202,14 @@ export function Shop({
   }, [wheelOptions])
 
   function showMessage(next: string) {
+    if (messageTimeoutRef.current != null) {
+      window.clearTimeout(messageTimeoutRef.current)
+    }
     setMessage(next)
-    setTimeout(() => setMessage(null), 3000)
+    messageTimeoutRef.current = window.setTimeout(() => {
+      setMessage(null)
+      messageTimeoutRef.current = null
+    }, 3000)
   }
 
   function loadRewardIntoEditor(reward: Reward) {
@@ -173,6 +228,7 @@ export function Shop({
   function resetEditor() {
     setEditingId(null)
     setDraft(EMPTY_REWARD)
+    setUploadingImage(false)
   }
 
   function handlePurchase(rewardId: string) {
@@ -230,10 +286,18 @@ export function Shop({
 
     try {
       if (editingId) {
-        onUpdateReward(editingId, draft)
+        const updated = onUpdateReward(editingId, draft)
+        if (!updated) {
+          showMessage('Reward could not be updated.')
+          return
+        }
         showMessage(`Updated ${draft.name.trim()}.`)
       } else {
-        onAddReward(draft)
+        const added = onAddReward(draft)
+        if (!added) {
+          showMessage('Reward could not be added.')
+          return
+        }
         showMessage(`Added ${draft.name.trim()} to the shop.`)
       }
 
@@ -250,19 +314,17 @@ export function Shop({
       showMessage('Please choose an image file for the reward symbol.')
       return
     }
-    if (file.size > MAX_REWARD_IMAGE_FILE_SIZE) {
-      showMessage('Reward image is too large to save reliably. Try a PNG under 350 KB.')
-      if (imageInputRef.current) imageInputRef.current.value = ''
-      return
-    }
 
     try {
-      const imageUrl = await readFileAsDataUrl(file)
+      setUploadingImage(true)
+      const imageUrl = await buildRewardImageDataUrl(file)
       setDraft((prev) => ({ ...prev, imageUrl }))
+      showMessage('Reward image uploaded.')
     } catch (error) {
       console.error('Failed to load reward image.', error)
       showMessage('Reward image could not be loaded.')
     } finally {
+      setUploadingImage(false)
       if (imageInputRef.current) imageInputRef.current.value = ''
     }
   }
@@ -293,6 +355,12 @@ export function Shop({
       {message ? (
         <p className="shop__toast" role="status">
           {message}
+        </p>
+      ) : null}
+
+      {saveError ? (
+        <p className="shop__toast shop__toast--error" role="alert">
+          {saveError}
         </p>
       ) : null}
 
@@ -389,7 +457,10 @@ export function Shop({
               onDragOver={(e) => e.preventDefault()}
               onDrop={() => {
                 if (!draggedId) return
-                onReorderReward(draggedId, reward.id)
+                const reordered = onReorderReward(draggedId, reward.id)
+                if (!reordered) {
+                  showMessage('Reward order could not be updated.')
+                }
                 setDraggedId(null)
               }}
             >
@@ -433,7 +504,12 @@ export function Shop({
                     onClick={(e) => {
                       e.stopPropagation()
                       if (editingId === reward.id) resetEditor()
-                      onRemoveReward(reward.id)
+                      const removed = onRemoveReward(reward.id)
+                      if (!removed) {
+                        showMessage('Reward could not be deleted.')
+                        return
+                      }
+                      showMessage(`Removed ${reward.name}.`)
                     }}
                   >
                     Delete
@@ -569,13 +645,15 @@ export function Shop({
                   type="button"
                   className="shop__save"
                   onClick={() => imageInputRef.current?.click()}
+                  disabled={uploadingImage}
                 >
-                  Upload image
+                  {uploadingImage ? 'Uploading…' : 'Upload image'}
                 </button>
                 <button
                   type="button"
                   className="shop__delete"
                   onClick={() => setDraft((prev) => ({ ...prev, imageUrl: null }))}
+                  disabled={uploadingImage || !draft.imageUrl}
                 >
                   Clear image
                 </button>
@@ -667,9 +745,9 @@ export function Shop({
             type="button"
             className="shop__save"
             onClick={handleSaveReward}
-            disabled={!draft.name.trim() || !draft.description.trim()}
+            disabled={!draft.name.trim() || !draft.description.trim() || uploadingImage}
           >
-            {editingId ? 'Save reward' : 'Add reward'}
+            {uploadingImage ? 'Preparing image…' : editingId ? 'Save reward' : 'Add reward'}
           </button>
           <button type="button" className="shop__edit" onClick={resetEditor}>
             Clear editor

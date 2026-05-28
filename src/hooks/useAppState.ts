@@ -276,6 +276,7 @@ export function useAppState() {
     }
   })
   const [uxpBurst, setUxpBurst] = useState<UxpBurst | null>(null)
+  const [saveError, setSaveError] = useState<string | null>(null)
 
   const state =
     accountsState.accountsById[accountsState.activeAccountId] ?? defaultAppState
@@ -287,7 +288,8 @@ export function useAppState() {
   }, [uxpBurst])
 
   useEffect(() => {
-    saveAccounts(accountsState.activeAccountId, accountsState.accountsById)
+    const saved = saveAccounts(accountsState.activeAccountId, accountsState.accountsById)
+    setSaveError(saved ? null : 'Changes could not be saved locally. Storage may be full.')
   }, [accountsState])
 
   useEffect(() => {
@@ -1383,7 +1385,7 @@ export function useAppState() {
     const description = input.description.trim()
     const emoji = input.emoji.trim() || '🎁'
     const cost = Math.max(0, Math.round(input.cost))
-    if (!name || !description) return
+    if (!name || !description) return false
 
     updateCurrentState((prev) => ({
       ...prev,
@@ -1400,13 +1402,16 @@ export function useAppState() {
         },
       ],
     }))
+    return true
   }, [updateCurrentState])
 
   const updateReward = useCallback((rewardId: string, patch: Partial<Omit<Reward, 'id'>>) => {
+    let updated = false
     updateCurrentState((prev) => ({
       ...prev,
       rewards: prev.rewards.map((reward) => {
         if (reward.id !== rewardId) return reward
+        updated = true
         return {
           ...reward,
           ...patch,
@@ -1422,19 +1427,27 @@ export function useAppState() {
         }
       }),
     }))
+    return updated
   }, [updateCurrentState])
 
   const removeReward = useCallback((rewardId: string) => {
-    updateCurrentState((prev) => ({
-      ...prev,
-      rewards: prev.rewards.filter((reward) => reward.id !== rewardId),
-      purchasedRewards: prev.purchasedRewards.filter((purchase) => purchase.rewardId !== rewardId),
-    }))
+    let removed = false
+    updateCurrentState((prev) => {
+      if (!prev.rewards.some((reward) => reward.id === rewardId)) return prev
+      removed = true
+      return {
+        ...prev,
+        rewards: prev.rewards.filter((reward) => reward.id !== rewardId),
+        purchasedRewards: prev.purchasedRewards.filter((purchase) => purchase.rewardId !== rewardId),
+      }
+    })
+    return removed
   }, [updateCurrentState])
 
   const reorderReward = useCallback((draggedId: string, targetId: string) => {
-    if (draggedId === targetId) return
+    if (draggedId === targetId) return false
 
+    let reordered = false
     updateCurrentState((prev) => {
       const from = prev.rewards.findIndex((reward) => reward.id === draggedId)
       const to = prev.rewards.findIndex((reward) => reward.id === targetId)
@@ -1443,12 +1456,14 @@ export function useAppState() {
       const next = [...prev.rewards]
       const [moved] = next.splice(from, 1)
       next.splice(to, 0, moved)
+      reordered = true
 
       return {
         ...prev,
         rewards: next,
       }
     })
+    return reordered
   }, [updateCurrentState])
 
   const updateProfile = useCallback(
@@ -1611,5 +1626,6 @@ export function useAppState() {
     deleteAccount,
     exportSaveFile,
     importSaveFile,
+    saveError,
   }
 }
