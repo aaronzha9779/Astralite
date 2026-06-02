@@ -19,7 +19,7 @@ import {
   saveAccounts,
 } from '../lib/storage'
 import { getDashboardStats } from '../lib/stats'
-import { getStatsPageSummary } from '../lib/statsPage'
+import { getBestDayDate, getStatsPageSummary } from '../lib/statsPage'
 import { addTimeRecord } from '../lib/timeRecords'
 import {
   calculateCompletionXp,
@@ -433,7 +433,18 @@ export function useAppState() {
       state.timeRecords,
       state.preferences,
       state.profile.totalXp,
+      state.profile.totalMinutes,
     ],
+  )
+  const bestDayDate = useMemo(
+    () =>
+      getBestDayDate(
+        state.habits,
+        state.completions,
+        state.timeRecords,
+        state.preferences,
+      ),
+    [state.completions, state.habits, state.preferences, state.timeRecords],
   )
 
   const applyHabitToggle = useCallback(
@@ -449,7 +460,7 @@ export function useAppState() {
 
       let nextCompletions = completions
       const completedHabitIds: string[] = []
-      let nextHabits = habits.map((habit) => {
+      const nextHabits = habits.map((habit) => {
         if (!targetIds.has(habit.id)) return habit
 
         if (completing) {
@@ -599,15 +610,18 @@ export function useAppState() {
       let xpGain = 0
       const habits = prev.habits.map((h) => {
         if (!targetIds.has(h.id)) return h
+        const completionXp =
+          h.id === habitId
+            ? calculateCompletionXp(h, prev.preferences.itemCompletionXp[h.id] ?? 15).total
+            : 0
         if (h.id === habitId) {
-          const baseXp = prev.preferences.itemCompletionXp[h.id] ?? 15
-          xpGain = calculateCompletionXp(h, baseXp).total
+          xpGain = completionXp
         }
         completions = addCompletion(completions, h.id, h.name, date)
         return {
           ...applyCompletionOnDate(h, date),
           totalXpEarned:
-            h.totalXpEarned + (h.id === habitId ? xpGain : 0),
+            h.totalXpEarned + completionXp,
         }
       })
 
@@ -998,11 +1012,9 @@ export function useAppState() {
   const toggleBountyTask = useCallback((id: string) => {
     let levelUpBonus = 0
     updateCurrentState((prev) => {
-      let xpGain = 0
-
       const task = prev.bountyTasks.find((entry) => entry.id === id)
       if (!task) return prev
-      xpGain = prev.preferences.itemCompletionXp[task.id] ?? BOUNTY_TASK_XP
+      const xpGain = prev.preferences.itemCompletionXp[task.id] ?? BOUNTY_TASK_XP
       const bountyTasks = prev.bountyTasks.filter((entry) => entry.id !== id)
 
       const profile =
@@ -1229,6 +1241,18 @@ export function useAppState() {
       }
     })
   }, [updateCurrentState])
+
+  const resetBestDay = useCallback(() => {
+    if (!bestDayDate) return false
+
+    updateCurrentState((prev) => ({
+      ...prev,
+      completions: prev.completions.filter((entry) => entry.date !== bestDayDate),
+      timeRecords: prev.timeRecords.filter((record) => record.date !== bestDayDate),
+    }))
+
+    return true
+  }, [bestDayDate, updateCurrentState])
 
   const softReset = useCallback(() => {
     updateCurrentState((prev) => {
@@ -1654,6 +1678,7 @@ export function useAppState() {
     setDailyGoal,
     updatePreferences,
     resetToday,
+    resetBestDay,
     softReset,
     fullReset,
     addQuote,

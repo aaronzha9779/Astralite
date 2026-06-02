@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import type { AccountSummary, AppPreferences, RankTier, Reward, UserProfile } from '../types'
 import './SettingsPage.css'
 
@@ -18,6 +18,8 @@ type SettingsPageProps = {
   onCreateAccount: (name: string, handle?: string) => void
   onDeleteAccount: (accountId: string) => void
   onUpdatePreferences: (patch: Partial<AppPreferences>) => void
+  onResetBestDay: () => boolean
+  canResetBestDay: boolean
   onSoftReset: () => void
   onFullReset: () => void
 }
@@ -31,28 +33,136 @@ function readFileAsDataUrl(file: File): Promise<string> {
   })
 }
 
-export function SettingsPage({
+type ProfileIdentityEditorProps = {
+  profile: UserProfile
+  onUpdateProfile: SettingsPageProps['onUpdateProfile']
+  showMessage: (next: string) => void
+}
+
+function ProfileIdentityEditor({
   profile,
-  accounts,
-  activeAccountId,
-  preferences,
-  rewards,
   onUpdateProfile,
-  onCreateAccount,
-  onDeleteAccount,
-  onUpdatePreferences,
-  onSoftReset,
-  onFullReset,
-}: SettingsPageProps) {
+  showMessage,
+}: ProfileIdentityEditorProps) {
   const [name, setName] = useState(profile.name)
   const [handle, setHandle] = useState(profile.handle)
+
+  return (
+    <>
+      <div className="settings-page__grid">
+        <label className="settings-page__field">
+          <span>Username</span>
+          <input
+            className="settings-page__input"
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+        </label>
+        <label className="settings-page__field">
+          <span>Handle</span>
+          <input
+            className="settings-page__input"
+            type="text"
+            value={handle}
+            onChange={(e) => setHandle(e.target.value)}
+          />
+        </label>
+      </div>
+
+      <button
+        type="button"
+        className="settings-page__save"
+        onClick={() => {
+          onUpdateProfile({ name, handle })
+          showMessage('Profile details saved.')
+        }}
+      >
+        Save profile
+      </button>
+    </>
+  )
+}
+
+type AccentColorEditorProps = {
+  profile: UserProfile
+  onUpdateProfile: SettingsPageProps['onUpdateProfile']
+  showMessage: (next: string) => void
+}
+
+function AccentColorEditor({
+  profile,
+  onUpdateProfile,
+  showMessage,
+}: AccentColorEditorProps) {
   const [accentColor, setAccentColor] = useState(profile.accentColor)
-  const [accountName, setAccountName] = useState('')
-  const [accountHandle, setAccountHandle] = useState('')
-  const [accountDeleteId, setAccountDeleteId] = useState<string | null>(null)
-  const [accountDeletePhrase, setAccountDeletePhrase] = useState('')
-  const [softResetPhrase, setSoftResetPhrase] = useState('')
-  const [resetPhrase, setResetPhrase] = useState('')
+  const accentPreview = useMemo(
+    () => (/^#(?:[0-9a-fA-F]{6})$/.test(accentColor) ? accentColor : '#a3e635'),
+    [accentColor],
+  )
+
+  return (
+    <>
+      <div className="settings-page__color-row">
+        <label className="settings-page__field settings-page__field--color">
+          <span>Color</span>
+          <input
+            className="settings-page__picker"
+            type="color"
+            value={accentPreview}
+            onChange={(e) => setAccentColor(e.target.value)}
+          />
+        </label>
+        <label className="settings-page__field">
+          <span>Hex code</span>
+          <input
+            className="settings-page__input"
+            type="text"
+            value={accentColor}
+            onChange={(e) => setAccentColor(e.target.value)}
+            placeholder="#a3e635"
+          />
+        </label>
+        <div className="settings-page__swatch-wrap">
+          <span className="settings-page__swatch-label">Preview</span>
+          <span
+            className="settings-page__swatch"
+            style={{ background: accentPreview }}
+          />
+        </div>
+      </div>
+
+      <button
+        type="button"
+        className="settings-page__save"
+        onClick={() => {
+          onUpdateProfile({ accentColor })
+          showMessage('Accent color updated.')
+        }}
+      >
+        Apply color
+      </button>
+    </>
+  )
+}
+
+type ProgressionEditorProps = {
+  preferences: AppPreferences
+  rewards: Reward[]
+  onUpdatePreferences: SettingsPageProps['onUpdatePreferences']
+  onResetBestDay: SettingsPageProps['onResetBestDay']
+  canResetBestDay: boolean
+  showMessage: (next: string) => void
+}
+
+function ProgressionEditor({
+  preferences,
+  rewards,
+  onUpdatePreferences,
+  onResetBestDay,
+  canResetBestDay,
+  showMessage,
+}: ProgressionEditorProps) {
   const [levelUpBaseXp, setLevelUpBaseXp] = useState(String(preferences.levelUpBaseXp))
   const [levelUpIncrementXp, setLevelUpIncrementXp] = useState(
     String(preferences.levelUpIncrementXp),
@@ -65,74 +175,6 @@ export function SettingsPage({
     preferences.dailySpinRewardIds,
   )
   const [draggedRankId, setDraggedRankId] = useState<string | null>(null)
-  const [message, setMessage] = useState<string | null>(null)
-  const avatarInputRef = useRef<HTMLInputElement | null>(null)
-  const streakInputRef = useRef<HTMLInputElement | null>(null)
-
-  useEffect(() => {
-    setName(profile.name)
-    setHandle(profile.handle)
-    setAccentColor(profile.accentColor)
-  }, [profile])
-
-  useEffect(() => {
-    setLevelUpBaseXp(String(preferences.levelUpBaseXp))
-    setLevelUpIncrementXp(String(preferences.levelUpIncrementXp))
-    setRanks(preferences.ranks)
-    setDailySpinUxpInput(preferences.dailySpinUxps.join(', '))
-    setDailySpinRewardIds(preferences.dailySpinRewardIds)
-  }, [
-    preferences.dailySpinRewardIds,
-    preferences.dailySpinUxps,
-    preferences.levelUpBaseXp,
-    preferences.levelUpIncrementXp,
-    preferences.ranks,
-  ])
-
-  const canReset = resetPhrase === 'DELETE'
-  const accentPreview = useMemo(
-    () => (/^#(?:[0-9a-fA-F]{6})$/.test(accentColor) ? accentColor : '#a3e635'),
-    [accentColor],
-  )
-
-  function showMessage(next: string) {
-    setMessage(next)
-    setTimeout(() => setMessage(null), 3000)
-  }
-
-  async function handleAvatarUpload(file: File | null) {
-    if (!file) return
-    const dataUrl = await readFileAsDataUrl(file)
-    onUpdateProfile({ avatarUrl: dataUrl })
-    showMessage('Profile picture updated.')
-    if (avatarInputRef.current) avatarInputRef.current.value = ''
-  }
-
-  async function handleStreakUpload(file: File | null) {
-    if (!file) return
-    const dataUrl = await readFileAsDataUrl(file)
-    onUpdateProfile({ streakSymbolImageUrl: dataUrl })
-    showMessage('Streak symbol image updated.')
-    if (streakInputRef.current) streakInputRef.current.value = ''
-  }
-
-  function handleCreateAccount() {
-    if (!accountName.trim()) return
-    onCreateAccount(accountName, accountHandle)
-    setAccountName('')
-    setAccountHandle('')
-    showMessage('New account created.')
-  }
-
-  function formatUpdatedAt(iso: string) {
-    return new Date(iso).toLocaleString(undefined, {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
-    })
-  }
 
   async function handleRankImageUpload(rankId: string, file: File | null) {
     if (!file) return
@@ -184,6 +226,278 @@ export function SettingsPage({
       dailySpinRewardIds,
     })
     showMessage('Progression and daily spin settings updated.')
+  }
+
+  return (
+    <div className="settings-page__details-body">
+      <label className="settings-page__field settings-page__field--threshold">
+        <span>Initial XP for level 1</span>
+        <input
+          className="settings-page__input"
+          type="number"
+          min={25}
+          step={5}
+          value={levelUpBaseXp}
+          onChange={(e) => setLevelUpBaseXp(e.target.value)}
+        />
+      </label>
+
+      <label className="settings-page__field settings-page__field--threshold">
+        <span>XP cap increase per level</span>
+        <input
+          className="settings-page__input"
+          type="number"
+          min={0}
+          step={5}
+          value={levelUpIncrementXp}
+          onChange={(e) => setLevelUpIncrementXp(e.target.value)}
+        />
+      </label>
+
+      <div className="settings-page__section-head">
+        <h3 className="settings-page__subhead">Ranks</h3>
+        <p className="settings-page__hint">
+          Reorder tiers, adjust level starts, and upload PNG badges.
+        </p>
+      </div>
+
+      <div className="settings-page__rank-list">
+        {ranks.map((rank) => (
+          <article
+            key={rank.id}
+            className={`settings-page__rank-card${draggedRankId === rank.id ? ' settings-page__rank-card--dragging' : ''}`}
+            draggable
+            onDragStart={() => setDraggedRankId(rank.id)}
+            onDragEnd={() => setDraggedRankId(null)}
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={() => {
+              if (!draggedRankId || draggedRankId === rank.id) return
+              setRanks((prev) => {
+                const from = prev.findIndex((item) => item.id === draggedRankId)
+                const to = prev.findIndex((item) => item.id === rank.id)
+                if (from === -1 || to === -1) return prev
+                const next = [...prev]
+                const [moved] = next.splice(from, 1)
+                next.splice(to, 0, moved)
+                return next
+              })
+              setDraggedRankId(null)
+            }}
+          >
+            <div className="settings-page__rank-head">
+              <span className="settings-page__rank-drag" aria-hidden="true">
+                ⋮⋮
+              </span>
+              <div className="settings-page__rank-preview">
+                {rank.imageUrl ? (
+                  <img
+                    className="settings-page__rank-preview-img"
+                    src={rank.imageUrl}
+                    alt=""
+                  />
+                ) : (
+                  <span className="settings-page__rank-preview-fallback">
+                    {rank.name.slice(0, 1).toUpperCase()}
+                  </span>
+                )}
+              </div>
+              <div>
+                <strong>{rank.name}</strong>
+                <p className="settings-page__hint">Unlocks at level {rank.minLevel}</p>
+              </div>
+            </div>
+
+            <div className="settings-page__grid">
+              <label className="settings-page__field">
+                <span>Rank name</span>
+                <input
+                  className="settings-page__input"
+                  type="text"
+                  value={rank.name}
+                  onChange={(e) => updateRank(rank.id, { name: e.target.value })}
+                />
+              </label>
+              <label className="settings-page__field">
+                <span>Starts at level</span>
+                <input
+                  className="settings-page__input"
+                  type="number"
+                  min={1}
+                  step={1}
+                  value={rank.minLevel}
+                  onChange={(e) =>
+                    updateRank(rank.id, {
+                      minLevel: Math.max(1, Number(e.target.value) || 1),
+                    })
+                  }
+                />
+              </label>
+            </div>
+
+            <div className="settings-page__profile-actions">
+              <label className="settings-page__btn settings-page__btn--file">
+                Upload PNG
+                <input
+                  className="settings-page__file"
+                  type="file"
+                  accept="image/png"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0] ?? null
+                    void handleRankImageUpload(rank.id, file)
+                  }}
+                />
+              </label>
+              <button
+                type="button"
+                className="settings-page__btn"
+                onClick={() => updateRank(rank.id, { imageUrl: null })}
+              >
+                Clear badge
+              </button>
+              <button
+                type="button"
+                className="settings-page__btn settings-page__btn--danger"
+                disabled={ranks.length <= 1}
+                onClick={() => removeRank(rank.id)}
+              >
+                Delete rank
+              </button>
+            </div>
+          </article>
+        ))}
+      </div>
+
+      <div className="settings-page__section-head">
+        <h3 className="settings-page__subhead">Daily spin</h3>
+        <p className="settings-page__hint">
+          Enter comma-separated UXP prizes and choose which rewards can appear on the wheel.
+        </p>
+      </div>
+
+      <label className="settings-page__field">
+        <span>UXP prizes</span>
+        <input
+          className="settings-page__input"
+          type="text"
+          value={dailySpinUxpInput}
+          onChange={(e) => setDailySpinUxpInput(e.target.value)}
+          placeholder="25, 40, 60, 80, 100"
+        />
+      </label>
+
+      <div className="settings-page__reward-picks">
+        {rewards.length === 0 ? (
+          <p className="settings-page__hint">Add shop rewards first to include them on the wheel.</p>
+        ) : (
+          rewards.map((reward) => (
+            <label key={reward.id} className="settings-page__pick">
+              <input
+                type="checkbox"
+                checked={dailySpinRewardIds.includes(reward.id)}
+                onChange={(e) =>
+                  setDailySpinRewardIds((prev) =>
+                    e.target.checked
+                      ? [...prev, reward.id]
+                      : prev.filter((id) => id !== reward.id),
+                  )
+                }
+              />
+              <span>{reward.name}</span>
+            </label>
+          ))
+        )}
+      </div>
+
+      <div className="settings-page__profile-actions">
+        <button type="button" className="settings-page__btn" onClick={addRank}>
+          Add rank
+        </button>
+        <button
+          type="button"
+          className="settings-page__btn settings-page__btn--danger"
+          disabled={!canResetBestDay}
+          onClick={() => {
+            if (onResetBestDay()) {
+              showMessage('Best day history was reset.')
+            } else {
+              showMessage('No best day history was available to reset.')
+            }
+          }}
+        >
+          Reset best day
+        </button>
+        <button type="button" className="settings-page__save" onClick={saveProgression}>
+          Save progression
+        </button>
+      </div>
+    </div>
+  )
+}
+
+export function SettingsPage({
+  profile,
+  accounts,
+  activeAccountId,
+  preferences,
+  rewards,
+  onUpdateProfile,
+  onCreateAccount,
+  onDeleteAccount,
+  onUpdatePreferences,
+  onResetBestDay,
+  canResetBestDay,
+  onSoftReset,
+  onFullReset,
+}: SettingsPageProps) {
+  const [accountName, setAccountName] = useState('')
+  const [accountHandle, setAccountHandle] = useState('')
+  const [accountDeleteId, setAccountDeleteId] = useState<string | null>(null)
+  const [accountDeletePhrase, setAccountDeletePhrase] = useState('')
+  const [softResetPhrase, setSoftResetPhrase] = useState('')
+  const [resetPhrase, setResetPhrase] = useState('')
+  const [message, setMessage] = useState<string | null>(null)
+  const avatarInputRef = useRef<HTMLInputElement | null>(null)
+  const streakInputRef = useRef<HTMLInputElement | null>(null)
+
+  const canReset = resetPhrase === 'DELETE'
+
+  function showMessage(next: string) {
+    setMessage(next)
+    setTimeout(() => setMessage(null), 3000)
+  }
+
+  async function handleAvatarUpload(file: File | null) {
+    if (!file) return
+    const dataUrl = await readFileAsDataUrl(file)
+    onUpdateProfile({ avatarUrl: dataUrl })
+    showMessage('Profile picture updated.')
+    if (avatarInputRef.current) avatarInputRef.current.value = ''
+  }
+
+  async function handleStreakUpload(file: File | null) {
+    if (!file) return
+    const dataUrl = await readFileAsDataUrl(file)
+    onUpdateProfile({ streakSymbolImageUrl: dataUrl })
+    showMessage('Streak symbol image updated.')
+    if (streakInputRef.current) streakInputRef.current.value = ''
+  }
+
+  function handleCreateAccount() {
+    if (!accountName.trim()) return
+    onCreateAccount(accountName, accountHandle)
+    setAccountName('')
+    setAccountHandle('')
+    showMessage('New account created.')
+  }
+
+  function formatUpdatedAt(iso: string) {
+    return new Date(iso).toLocaleString(undefined, {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+    })
   }
 
   return (
@@ -252,37 +566,12 @@ export function SettingsPage({
           </div>
         </div>
 
-        <div className="settings-page__grid">
-          <label className="settings-page__field">
-            <span>Username</span>
-            <input
-              className="settings-page__input"
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-            />
-          </label>
-          <label className="settings-page__field">
-            <span>Handle</span>
-            <input
-              className="settings-page__input"
-              type="text"
-              value={handle}
-              onChange={(e) => setHandle(e.target.value)}
-            />
-          </label>
-        </div>
-
-        <button
-          type="button"
-          className="settings-page__save"
-          onClick={() => {
-            onUpdateProfile({ name, handle })
-            showMessage('Profile details saved.')
-          }}
-        >
-          Save profile
-        </button>
+        <ProfileIdentityEditor
+          key={`${profile.name}:${profile.handle}`}
+          profile={profile}
+          onUpdateProfile={onUpdateProfile}
+          showMessage={showMessage}
+        />
       </section>
 
       <section className="settings-page__card">
@@ -452,194 +741,21 @@ export function SettingsPage({
             </span>
           </summary>
 
-          <div className="settings-page__details-body">
-            <label className="settings-page__field settings-page__field--threshold">
-              <span>Initial XP for level 1</span>
-              <input
-                className="settings-page__input"
-                type="number"
-                min={25}
-                step={5}
-                value={levelUpBaseXp}
-                onChange={(e) => setLevelUpBaseXp(e.target.value)}
-              />
-            </label>
-
-            <label className="settings-page__field settings-page__field--threshold">
-              <span>XP cap increase per level</span>
-              <input
-                className="settings-page__input"
-                type="number"
-                min={0}
-                step={5}
-                value={levelUpIncrementXp}
-                onChange={(e) => setLevelUpIncrementXp(e.target.value)}
-              />
-            </label>
-
-            <div className="settings-page__section-head">
-              <h3 className="settings-page__subhead">Ranks</h3>
-              <p className="settings-page__hint">
-                Reorder tiers, adjust level starts, and upload PNG badges.
-              </p>
-            </div>
-
-            <div className="settings-page__rank-list">
-          {ranks.map((rank) => (
-            <article
-              key={rank.id}
-              className={`settings-page__rank-card${draggedRankId === rank.id ? ' settings-page__rank-card--dragging' : ''}`}
-              draggable
-              onDragStart={() => setDraggedRankId(rank.id)}
-              onDragEnd={() => setDraggedRankId(null)}
-              onDragOver={(e) => e.preventDefault()}
-              onDrop={() => {
-                if (!draggedRankId || draggedRankId === rank.id) return
-                setRanks((prev) => {
-                  const from = prev.findIndex((item) => item.id === draggedRankId)
-                  const to = prev.findIndex((item) => item.id === rank.id)
-                  if (from === -1 || to === -1) return prev
-                  const next = [...prev]
-                  const [moved] = next.splice(from, 1)
-                  next.splice(to, 0, moved)
-                  return next
-                })
-                setDraggedRankId(null)
-              }}
-            >
-              <div className="settings-page__rank-head">
-                <span className="settings-page__rank-drag" aria-hidden="true">
-                  ⋮⋮
-                </span>
-                <div className="settings-page__rank-preview">
-                  {rank.imageUrl ? (
-                    <img
-                      className="settings-page__rank-preview-img"
-                      src={rank.imageUrl}
-                      alt=""
-                    />
-                  ) : (
-                    <span className="settings-page__rank-preview-fallback">
-                      {rank.name.slice(0, 1).toUpperCase()}
-                    </span>
-                  )}
-                </div>
-                <div>
-                  <strong>{rank.name}</strong>
-                  <p className="settings-page__hint">Unlocks at level {rank.minLevel}</p>
-                </div>
-              </div>
-
-              <div className="settings-page__grid">
-                <label className="settings-page__field">
-                  <span>Rank name</span>
-                  <input
-                    className="settings-page__input"
-                    type="text"
-                    value={rank.name}
-                    onChange={(e) => updateRank(rank.id, { name: e.target.value })}
-                  />
-                </label>
-                <label className="settings-page__field">
-                  <span>Starts at level</span>
-                  <input
-                    className="settings-page__input"
-                    type="number"
-                    min={1}
-                    step={1}
-                    value={rank.minLevel}
-                    onChange={(e) =>
-                      updateRank(rank.id, {
-                        minLevel: Math.max(1, Number(e.target.value) || 1),
-                      })
-                    }
-                  />
-                </label>
-              </div>
-
-              <div className="settings-page__profile-actions">
-                <label className="settings-page__btn settings-page__btn--file">
-                  Upload PNG
-                  <input
-                    className="settings-page__file"
-                    type="file"
-                    accept="image/png"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0] ?? null
-                      void handleRankImageUpload(rank.id, file)
-                    }}
-                  />
-                </label>
-                <button
-                  type="button"
-                  className="settings-page__btn"
-                  onClick={() => updateRank(rank.id, { imageUrl: null })}
-                >
-                  Clear badge
-                </button>
-                <button
-                  type="button"
-                  className="settings-page__btn settings-page__btn--danger"
-                  disabled={ranks.length <= 1}
-                  onClick={() => removeRank(rank.id)}
-                >
-                  Delete rank
-                </button>
-              </div>
-            </article>
-          ))}
-            </div>
-
-            <div className="settings-page__section-head">
-              <h3 className="settings-page__subhead">Daily spin</h3>
-              <p className="settings-page__hint">
-                Enter comma-separated UXP prizes and choose which rewards can appear on the wheel.
-              </p>
-            </div>
-
-            <label className="settings-page__field">
-              <span>UXP prizes</span>
-              <input
-                className="settings-page__input"
-                type="text"
-                value={dailySpinUxpInput}
-                onChange={(e) => setDailySpinUxpInput(e.target.value)}
-                placeholder="25, 40, 60, 80, 100"
-              />
-            </label>
-
-            <div className="settings-page__reward-picks">
-              {rewards.length === 0 ? (
-                <p className="settings-page__hint">Add shop rewards first to include them on the wheel.</p>
-              ) : (
-                rewards.map((reward) => (
-                  <label key={reward.id} className="settings-page__pick">
-                    <input
-                      type="checkbox"
-                      checked={dailySpinRewardIds.includes(reward.id)}
-                      onChange={(e) =>
-                        setDailySpinRewardIds((prev) =>
-                          e.target.checked
-                            ? [...prev, reward.id]
-                            : prev.filter((id) => id !== reward.id),
-                        )
-                      }
-                    />
-                    <span>{reward.name}</span>
-                  </label>
-                ))
-              )}
-            </div>
-
-            <div className="settings-page__profile-actions">
-              <button type="button" className="settings-page__btn" onClick={addRank}>
-                Add rank
-              </button>
-              <button type="button" className="settings-page__save" onClick={saveProgression}>
-                Save progression
-              </button>
-            </div>
-          </div>
+          <ProgressionEditor
+            key={JSON.stringify({
+              base: preferences.levelUpBaseXp,
+              increment: preferences.levelUpIncrementXp,
+              ranks: preferences.ranks,
+              uxp: preferences.dailySpinUxps,
+              rewards: preferences.dailySpinRewardIds,
+            })}
+            preferences={preferences}
+            rewards={rewards}
+            onUpdatePreferences={onUpdatePreferences}
+            onResetBestDay={onResetBestDay}
+            canResetBestDay={canResetBestDay}
+            showMessage={showMessage}
+          />
         </details>
       </section>
 
@@ -651,45 +767,12 @@ export function SettingsPage({
           </p>
         </div>
 
-        <div className="settings-page__color-row">
-          <label className="settings-page__field settings-page__field--color">
-            <span>Color</span>
-            <input
-              className="settings-page__picker"
-              type="color"
-              value={accentPreview}
-              onChange={(e) => setAccentColor(e.target.value)}
-            />
-          </label>
-          <label className="settings-page__field">
-            <span>Hex code</span>
-            <input
-              className="settings-page__input"
-              type="text"
-              value={accentColor}
-              onChange={(e) => setAccentColor(e.target.value)}
-              placeholder="#a3e635"
-            />
-          </label>
-          <div className="settings-page__swatch-wrap">
-            <span className="settings-page__swatch-label">Preview</span>
-            <span
-              className="settings-page__swatch"
-              style={{ background: accentPreview }}
-            />
-          </div>
-        </div>
-
-        <button
-          type="button"
-          className="settings-page__save"
-          onClick={() => {
-            onUpdateProfile({ accentColor })
-            showMessage('Accent color updated.')
-          }}
-        >
-          Apply color
-        </button>
+        <AccentColorEditor
+          key={profile.accentColor}
+          profile={profile}
+          onUpdateProfile={onUpdateProfile}
+          showMessage={showMessage}
+        />
       </section>
 
       <section className="settings-page__card settings-page__card--danger">

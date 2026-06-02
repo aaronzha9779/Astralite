@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type CSSProperties } from 'react'
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import type { Habit } from '../types'
 import { formatMinutes } from '../lib/time'
 import './TimeTracker.css'
@@ -28,13 +28,11 @@ export function TimeTracker({
   const [manualMin, setManualMin] = useState('30')
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
-  const selected = habits.find((h) => h.id === habitId)
-
-  useEffect(() => {
-    if (!running) {
-      setRemaining(durationMin * 60)
-    }
-  }, [durationMin, habitId, running])
+  const selectedHabitId = useMemo(
+    () => (habits.some((habit) => habit.id === habitId) ? habitId : (habits[0]?.id ?? '')),
+    [habitId, habits],
+  )
+  const selected = habits.find((h) => h.id === selectedHabitId)
 
   useEffect(() => {
     if (!running) {
@@ -60,12 +58,12 @@ export function TimeTracker({
 
   const completedRef = useRef(false)
   useEffect(() => {
-    if (done && habitId && !completedRef.current) {
+    if (done && selectedHabitId && !completedRef.current) {
       completedRef.current = true
-      onSessionComplete(habitId, durationMin)
+      onSessionComplete(selectedHabitId, durationMin)
     }
     if (!done) completedRef.current = false
-  }, [done, habitId, durationMin, onSessionComplete])
+  }, [done, selectedHabitId, durationMin, onSessionComplete])
 
   function handleStart() {
     setDone(false)
@@ -84,7 +82,7 @@ export function TimeTracker({
 
   function handleManualAdd() {
     const m = parseInt(manualMin, 10)
-    if (m > 0 && habitId) onManualTime(habitId, m)
+    if (m > 0 && selectedHabitId) onManualTime(selectedHabitId, m)
   }
 
   const progress =
@@ -109,11 +107,12 @@ export function TimeTracker({
             <span>Activity</span>
             <select
               className="time-tracker__select"
-              value={habitId}
+              value={selectedHabitId}
               onChange={(e) => {
                 setHabitId(e.target.value)
                 setRunning(false)
                 setDone(false)
+                setRemaining(durationMin * 60)
               }}
             >
               {habits.map((h) => (
@@ -133,7 +132,11 @@ export function TimeTracker({
               step={5}
               value={durationMin}
               disabled={running}
-              onChange={(e) => setDurationMin(Number(e.target.value))}
+              onChange={(e) => {
+                const nextDuration = Number(e.target.value)
+                setDurationMin(nextDuration)
+                setRemaining(nextDuration * 60)
+              }}
             />
           </label>
         </div>

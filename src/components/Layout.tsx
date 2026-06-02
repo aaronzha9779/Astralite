@@ -54,6 +54,7 @@ export function Layout() {
     setWeeklyOpen,
     setDailyGoal,
     resetToday,
+    resetBestDay,
     softReset,
     fullReset,
     addQuote,
@@ -77,17 +78,15 @@ export function Layout() {
   const [timerHabitId, setTimerHabitId] = useState(habits[0]?.id ?? '')
   const [timerElapsed, setTimerElapsed] = useState(0)
   const [timerRunning, setTimerRunning] = useState(false)
+  const selectedTimerHabitId = useMemo(
+    () => (habits.some((habit) => habit.id === timerHabitId) ? timerHabitId : (habits[0]?.id ?? '')),
+    [habits, timerHabitId],
+  )
   const rawXpByHabit = useMemo(() => {
     return Object.fromEntries(
       habits.map((habit) => [habit.id, habit.totalXpEarned ?? 0]),
     )
   }, [habits])
-
-  useEffect(() => {
-    if (!habits.some((habit) => habit.id === timerHabitId)) {
-      setTimerHabitId(habits[0]?.id ?? '')
-    }
-  }, [habits, timerHabitId])
 
   useEffect(() => {
     if (!timerRunning) return
@@ -99,8 +98,8 @@ export function Layout() {
 
   function handleTimerReset() {
     setTimerRunning(false)
-    if (timerElapsed >= 60 && timerHabitId) {
-      logTimerSession(timerHabitId, Math.round(timerElapsed / 60))
+    if (timerElapsed >= 60 && selectedTimerHabitId) {
+      logTimerSession(selectedTimerHabitId, Math.round(timerElapsed / 60))
     }
     setTimerElapsed(0)
   }
@@ -146,7 +145,7 @@ export function Layout() {
       return (
         <TimerPage
           habits={habits}
-          habitId={timerHabitId}
+          habitId={selectedTimerHabitId}
           elapsed={timerElapsed}
           running={timerRunning}
           onHabitIdChange={setTimerHabitId}
@@ -227,6 +226,8 @@ export function Layout() {
           preferences={preferences}
           rewards={rewards}
           onUpdatePreferences={updatePreferences}
+          onResetBestDay={resetBestDay}
+          canResetBestDay={statsPageSummary.some((stat) => stat.id === 'best-day' && stat.value !== '—')}
           onSoftReset={softReset}
           onFullReset={fullReset}
         />

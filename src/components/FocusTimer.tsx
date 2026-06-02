@@ -14,8 +14,22 @@ function formatTime(totalSeconds: number): string {
   return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
 }
 
-
 export function FocusTimer({
+  habitName,
+  minutes,
+  onMinutesChange,
+}: FocusTimerProps) {
+  return (
+    <FocusTimerPanel
+      key={`${habitName}:${minutes}`}
+      habitName={habitName}
+      minutes={minutes}
+      onMinutesChange={onMinutesChange}
+    />
+  )
+}
+
+function FocusTimerPanel({
   habitName,
   minutes,
   onMinutesChange,
@@ -33,14 +47,6 @@ export function FocusTimer({
       intervalRef.current = null
     }
   }, [])
-
-
-
-  useEffect(() => {
-    setRemaining(totalSeconds)
-    setRunning(false)
-    clearTimer()
-  }, [totalSeconds, clearTimer])
 
   useEffect(() => {
     if (!running) {
@@ -81,7 +87,6 @@ export function FocusTimer({
     setRunning(false)
     setRemaining(totalSeconds)
   }
-  
 
   function handleStop() {
     setRunning(false)
@@ -124,7 +129,11 @@ export function FocusTimer({
               step={5}
               value={minutes}
               disabled={running}
-              onChange={(e) => onMinutesChange(Number(e.target.value))}
+              onChange={(e) => {
+                const nextMinutes = Number(e.target.value)
+                setRemaining(nextMinutes * 60)
+                onMinutesChange(nextMinutes)
+              }}
             />
             <span className="focus-timer__duration-value">{minutes} min</span>
           </div>

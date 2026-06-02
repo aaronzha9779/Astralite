@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import type {
   AppPreferences,
   CoreAspect,
@@ -64,23 +64,18 @@ export function HabitsPage({
     }
     return map
   }, [habits])
-
-  useEffect(() => {
-    setSelectedByCategory((prev) => {
-      const next: Partial<Record<HabitCategory | 'bounty', string>> = { ...prev }
-      ;(['daily', 'habit', 'hobby'] as HabitCategory[]).forEach((category) => {
-        const items = byCategory[category]
-        const selected = next[category]
-        if (!items.some((item) => item.id === selected)) {
-          next[category] = items[0]?.id
-        }
-      })
-      if (!bountyTasks.some((item) => item.id === next.bounty)) {
-        next.bounty = bountyTasks[0]?.id
-      }
-      return next
+  const resolvedSelection = useMemo(() => {
+    const next: Partial<Record<HabitCategory | 'bounty', string>> = { ...selectedByCategory }
+    ;(['daily', 'habit', 'hobby'] as HabitCategory[]).forEach((category) => {
+      const items = byCategory[category]
+      const selected = next[category]
+      next[category] = items.some((item) => item.id === selected) ? selected : items[0]?.id
     })
-  }, [bountyTasks, byCategory])
+    next.bounty = bountyTasks.some((item) => item.id === next.bounty)
+      ? next.bounty
+      : bountyTasks[0]?.id
+    return next
+  }, [bountyTasks, byCategory, selectedByCategory])
 
   return (
     <main className="dashboard habits-page">
@@ -151,7 +146,7 @@ export function HabitsPage({
                     <span>Item</span>
                     <select
                       className="habits-page__master-input"
-                      value={selectedByCategory[category] ?? ''}
+                      value={resolvedSelection[category] ?? ''}
                       onChange={(e) =>
                         setSelectedByCategory((prev) => ({
                           ...prev,
@@ -174,10 +169,10 @@ export function HabitsPage({
                       min={0}
                       step={1}
                       value={
-                        preferences.itemCompletionXp[selectedByCategory[category] ?? ''] ?? 15
+                        preferences.itemCompletionXp[resolvedSelection[category] ?? ''] ?? 15
                       }
                       onChange={(e) => {
-                        const selectedId = selectedByCategory[category]
+                        const selectedId = resolvedSelection[category]
                         if (!selectedId) return
                         onUpdatePreferences({
                           itemCompletionXp: {
@@ -194,9 +189,9 @@ export function HabitsPage({
                       type="number"
                       min={0}
                       step={1}
-                      value={preferences.itemBaseMinutes[selectedByCategory[category] ?? ''] ?? 0}
+                      value={preferences.itemBaseMinutes[resolvedSelection[category] ?? ''] ?? 0}
                       onChange={(e) => {
-                        const selectedId = selectedByCategory[category]
+                        const selectedId = resolvedSelection[category]
                         if (!selectedId) return
                         onUpdatePreferences({
                           itemBaseMinutes: {
@@ -221,7 +216,7 @@ export function HabitsPage({
                   <span>Item</span>
                   <select
                     className="habits-page__master-input"
-                    value={selectedByCategory.bounty ?? ''}
+                    value={resolvedSelection.bounty ?? ''}
                     onChange={(e) =>
                       setSelectedByCategory((prev) => ({
                         ...prev,
@@ -243,9 +238,9 @@ export function HabitsPage({
                     type="number"
                     min={0}
                     step={1}
-                    value={preferences.itemCompletionXp[selectedByCategory.bounty ?? ''] ?? 25}
+                    value={preferences.itemCompletionXp[resolvedSelection.bounty ?? ''] ?? 25}
                     onChange={(e) => {
-                      const selectedId = selectedByCategory.bounty
+                      const selectedId = resolvedSelection.bounty
                       if (!selectedId) return
                       onUpdatePreferences({
                         itemCompletionXp: {

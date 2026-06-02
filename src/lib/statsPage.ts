@@ -23,10 +23,55 @@ export function getStatsPageSummary(
   totalXp: number,
   totalMinutes: number,
 ): DashboardStat[] {
-  const byDate = groupCompletionsByDate(completions)
-  const habitById = new Map(habits.map((habit) => [habit.id, habit]))
   const totalCompletions = completions.length
   const bestStreak = habits.reduce((max, h) => Math.max(max, h.streak), 0)
+  const bestDay = getBestDay(habits, completions, timeRecords, preferences)
+
+  return [
+    {
+      id: 'total',
+      label: 'Total completions',
+      value: String(totalCompletions),
+    },
+    {
+      id: 'total-xp',
+      label: 'All-time XP',
+      value: `${totalXp} XP · ${formatMinutes(totalMinutes)}`,
+    },
+    {
+      id: 'best-streak',
+      label: 'Best streak',
+      value: bestStreak === 0 ? '—' : `${bestStreak} days`,
+    },
+    {
+      id: 'best-day',
+      label: 'Best day',
+      value:
+        bestDay.count === 0
+          ? '—'
+          : `${bestDay.count} habits · ${formatMinutes(bestDay.minutes)} · ${bestDay.xp} XP`,
+      detail: bestDay.date ? `Achieved ${formatHistoryDay(bestDay.date)}` : undefined,
+    },
+  ]
+}
+
+export function getBestDayDate(
+  habits: Habit[],
+  completions: CompletionRecord[],
+  timeRecords: TimeRecord[],
+  preferences: AppPreferences,
+): string | null {
+  return getBestDay(habits, completions, timeRecords, preferences).date
+}
+
+function getBestDay(
+  habits: Habit[],
+  completions: CompletionRecord[],
+  timeRecords: TimeRecord[],
+  preferences: AppPreferences,
+) {
+  const byDate = groupCompletionsByDate(completions)
+  const habitById = new Map(habits.map((habit) => [habit.id, habit]))
   let bestDayCount = 0
   let bestDayMinutes = 0
   let bestDayXp = 0
@@ -62,32 +107,12 @@ export function getStatsPageSummary(
     }
   }
 
-  return [
-    {
-      id: 'total',
-      label: 'Total completions',
-      value: String(totalCompletions),
-    },
-    {
-      id: 'total-xp',
-      label: 'All-time XP',
-      value: `${totalXp} XP · ${formatMinutes(totalMinutes)}`,
-    },
-    {
-      id: 'best-streak',
-      label: 'Best streak',
-      value: bestStreak === 0 ? '—' : `${bestStreak} days`,
-    },
-    {
-      id: 'best-day',
-      label: 'Best day',
-      value:
-        bestDayCount === 0
-          ? '—'
-          : `${bestDayCount} habits · ${formatMinutes(bestDayMinutes)} · ${bestDayXp} XP`,
-      detail: bestDayDate ? `Achieved ${formatHistoryDay(bestDayDate)}` : undefined,
-    },
-  ]
+  return {
+    count: bestDayCount,
+    minutes: bestDayMinutes,
+    xp: bestDayXp,
+    date: bestDayDate,
+  }
 }
 
 export function getRecentHistory(

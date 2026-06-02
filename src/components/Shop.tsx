@@ -111,21 +111,11 @@ export function Shop({
   const [spinRotation, setSpinRotation] = useState(0)
   const [spinResult, setSpinResult] = useState<DailySpinResult | null>(null)
   const [spinSpinning, setSpinSpinning] = useState(false)
-  const [selectedRewardId, setSelectedRewardId] = useState<string | null>(
+  const [requestedSelectedRewardId, setSelectedRewardId] = useState<string | null>(
     rewards[0]?.id ?? null,
   )
   const imageInputRef = useRef<HTMLInputElement | null>(null)
   const messageTimeoutRef = useRef<number | null>(null)
-
-  useEffect(() => {
-    if (!rewards.length) {
-      if (selectedRewardId !== null) setSelectedRewardId(null)
-      return
-    }
-    if (!selectedRewardId || !rewards.some((reward) => reward.id === selectedRewardId)) {
-      setSelectedRewardId(rewards[0]?.id ?? null)
-    }
-  }, [rewards, selectedRewardId])
 
   useEffect(() => {
     return () => {
@@ -134,6 +124,14 @@ export function Shop({
       }
     }
   }, [])
+
+  const selectedRewardId = useMemo(
+    () =>
+      rewards.some((reward) => reward.id === requestedSelectedRewardId)
+        ? requestedSelectedRewardId
+        : (rewards[0]?.id ?? null),
+    [requestedSelectedRewardId, rewards],
+  )
 
   const selectedReward = useMemo(
     () => rewards.find((reward) => reward.id === selectedRewardId) ?? rewards[0] ?? null,
