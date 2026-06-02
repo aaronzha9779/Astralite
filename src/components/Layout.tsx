@@ -37,6 +37,7 @@ export function Layout() {
     logTimerSession,
     setLinkedHabits,
     setLinkedCoreAspects,
+    renameHabit,
     addHabit,
     addCoreAspect,
     addBountyTask,
@@ -168,6 +169,7 @@ export function Layout() {
           streakSymbol={profile.streakSymbol}
           streakSymbolImageUrl={profile.streakSymbolImageUrl}
           onToggle={toggleHabit}
+          onRenameHabit={renameHabit}
           onSetLinked={setLinkedHabits}
           onSetLinkedCoreAspects={setLinkedCoreAspects}
           onUpdatePreferences={updatePreferences}

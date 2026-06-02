@@ -889,6 +889,24 @@ export function useAppState() {
     }))
   }, [updateCurrentState])
 
+  const renameHabit = useCallback((habitId: string, name: string) => {
+    const trimmed = name.trim()
+    if (!trimmed) return
+
+    updateCurrentState((prev) => ({
+      ...prev,
+      habits: prev.habits.map((habit) =>
+        habit.id === habitId ? { ...habit, name: trimmed } : habit,
+      ),
+      completions: prev.completions.map((entry) =>
+        entry.habitId === habitId ? { ...entry, habitName: trimmed } : entry,
+      ),
+      timeRecords: prev.timeRecords.map((record) =>
+        record.habitId === habitId ? { ...record, habitName: trimmed } : record,
+      ),
+    }))
+  }, [updateCurrentState])
+
   const addHabit = useCallback((name: string, category: HabitCategory = 'habit') => {
     const trimmed = name.trim()
     if (!trimmed) return
@@ -1656,6 +1674,7 @@ export function useAppState() {
     logTimerSession,
     setLinkedHabits,
     setLinkedCoreAspects,
+    renameHabit,
     setHabitTags,
     setHabitWeights,
     addHabit,

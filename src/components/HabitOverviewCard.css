@@ -46,10 +46,54 @@
   min-width: 0;
 }
 
+.habit-overview__name-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
 .habit-overview__name {
   font-size: 1rem;
   font-weight: 600;
   color: var(--text);
+}
+
+.habit-overview__rename-btn,
+.habit-overview__name-btn {
+  font-size: 0.6875rem;
+  padding: 0.2rem 0.45rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.habit-overview__rename-btn:hover,
+.habit-overview__name-btn:hover {
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 35%, var(--border));
+}
+
+.habit-overview__name-editor {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.habit-overview__name-input {
+  width: 100%;
+  min-width: 0;
+  padding: 0.45rem 0.6rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+}
+
+.habit-overview__name-actions {
+  display: flex;
+  gap: 0.4rem;
 }
 
 .habit-overview--done .habit-overview__name {

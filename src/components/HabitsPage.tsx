@@ -29,6 +29,7 @@ type HabitsPageProps = {
   streakSymbol: string
   streakSymbolImageUrl: string | null
   onToggle: (id: string) => void
+  onRenameHabit: (habitId: string, name: string) => void
   onSetLinked: (habitId: string, linkedIds: string[]) => void
   onSetLinkedCoreAspects: (habitId: string, aspectIds: string[]) => void
   onUpdatePreferences: (patch: Partial<AppPreferences>) => void
@@ -44,6 +45,7 @@ export function HabitsPage({
   streakSymbol,
   streakSymbolImageUrl,
   onToggle,
+  onRenameHabit,
   onSetLinked,
   onSetLinkedCoreAspects,
   onUpdatePreferences,
@@ -114,6 +116,7 @@ export function HabitsPage({
                     allCoreAspects={coreAspects}
                     timeRecords={timeRecords}
                     onToggle={onToggle}
+                    onRename={onRenameHabit}
                     onSetLinked={onSetLinked}
                     onSetLinkedCoreAspects={onSetLinkedCoreAspects}
                   />

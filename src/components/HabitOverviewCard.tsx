@@ -15,6 +15,7 @@ type HabitOverviewCardProps = {
   allCoreAspects: CoreAspect[]
   timeRecords: TimeRecord[]
   onToggle: (id: string) => void
+  onRename: (habitId: string, name: string) => void
   onSetLinked: (habitId: string, linkedIds: string[]) => void
   onSetLinkedCoreAspects: (habitId: string, aspectIds: string[]) => void
 }
@@ -29,10 +30,13 @@ export function HabitOverviewCard({
   allCoreAspects,
   timeRecords,
   onToggle,
+  onRename,
   onSetLinked,
   onSetLinkedCoreAspects,
 }: HabitOverviewCardProps) {
   const [showLink, setShowLink] = useState(false)
+  const [isEditingName, setIsEditingName] = useState(false)
+  const [draftName, setDraftName] = useState(habit.name)
   const displayStreakSymbol = habit.streak > 30 ? '❤️‍🔥' : streakSymbol
 
   const isHobby = habit.category === 'hobby'
@@ -74,6 +78,18 @@ export function HabitOverviewCard({
     if (wasIncomplete) playCompletionChime()
   }
 
+  function handleNameSave() {
+    const trimmed = draftName.trim()
+    if (!trimmed) {
+      setDraftName(habit.name)
+      setIsEditingName(false)
+      return
+    }
+    onRename(habit.id, trimmed)
+    setDraftName(trimmed)
+    setIsEditingName(false)
+  }
+
   return (
     <article
       className={`habit-overview${habit.doneToday ? ' habit-overview--done' : ''}`}
@@ -91,7 +107,57 @@ export function HabitOverviewCard({
           />
         </button>
         <div className="habit-overview__title-block">
-          <h3 className="habit-overview__name">{habit.name}</h3>
+          {isEditingName ? (
+            <div className="habit-overview__name-editor">
+              <input
+                className="habit-overview__name-input"
+                type="text"
+                value={draftName}
+                onChange={(e) => setDraftName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleNameSave()
+                  if (e.key === 'Escape') {
+                    setDraftName(habit.name)
+                    setIsEditingName(false)
+                  }
+                }}
+                autoFocus
+              />
+              <div className="habit-overview__name-actions">
+                <button
+                  type="button"
+                  className="habit-overview__name-btn"
+                  onClick={handleNameSave}
+                >
+                  Save
+                </button>
+                <button
+                  type="button"
+                  className="habit-overview__name-btn"
+                  onClick={() => {
+                    setDraftName(habit.name)
+                    setIsEditingName(false)
+                  }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="habit-overview__name-row">
+              <h3 className="habit-overview__name">{habit.name}</h3>
+              <button
+                type="button"
+                className="habit-overview__rename-btn"
+                onClick={() => {
+                  setDraftName(habit.name)
+                  setIsEditingName(true)
+                }}
+              >
+                Edit name
+              </button>
+            </div>
+          )}
           {habit.tags.length > 0 ? (
             <div className="habit-overview__tags">
               {habit.tags.map((tag) => (
