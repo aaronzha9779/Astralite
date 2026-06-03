@@ -9,6 +9,7 @@ const defaultPreferences: AppPreferences = {
   itemBaseMinutes: {},
   levelUpBaseXp: 250,
   levelUpIncrementXp: 25,
+  bountyDailyIncreaseXp: 0,
   ranks: DEFAULT_RANKS,
   dailySpinUxps: [25, 40, 60, 80, 100],
   dailySpinRewardIds: [],
