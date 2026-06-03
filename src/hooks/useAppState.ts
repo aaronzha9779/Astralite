@@ -130,15 +130,16 @@ function getLevelUpUxpReward(
 
 function prepareState(base: AppState): AppState {
   const today = getTodayISO()
+  const daysElapsed = getDayDifference(base.lastActiveDate, today)
   const habits = applyDailyReset(base.habits, base.lastActiveDate)
   const coreAspects =
     base.lastActiveDate === today
       ? base.coreAspects
       : base.coreAspects.map((aspect) => ({ ...aspect, progressToday: 0 }))
-  const bountyTasks =
+  const bountyState =
     base.lastActiveDate === today
-      ? base.bountyTasks
-      : base.bountyTasks.map((item) => ({ ...item, done: false }))
+      ? { bountyTasks: base.bountyTasks, preferences: base.preferences }
+      : applyBountyIncrease(base.bountyTasks, base.preferences, daysElapsed)
   const checks =
     base.lastActiveDate === today
       ? base.checks
@@ -152,9 +153,13 @@ function prepareState(base: AppState): AppState {
     ...base,
     habits,
     coreAspects,
-    bountyTasks,
+    bountyTasks:
+      base.lastActiveDate === today
+        ? base.bountyTasks
+        : bountyState.bountyTasks.map((item) => ({ ...item, done: false })),
     checks,
     weeklyTasks,
+    preferences: bountyState.preferences,
     lastActiveDate: today,
   }
 }
@@ -181,6 +186,41 @@ function applyCoreAspectIncrements(
       totalProgress: aspect.totalProgress + increment,
     }
   })
+}
+
+function getDayDifference(fromDate: string, toDate: string): number {
+  const from = new Date(fromDate + 'T12:00:00')
+  const to = new Date(toDate + 'T12:00:00')
+  return Math.max(
+    0,
+    Math.round((to.getTime() - from.getTime()) / (1000 * 60 * 60 * 24)),
+  )
+}
+
+function applyBountyIncrease(
+  bountyTasks: AppState['bountyTasks'],
+  preferences: AppState['preferences'],
+  daysElapsed: number,
+): Pick<AppState, 'bountyTasks' | 'preferences'> {
+  const dailyIncrease = Math.max(0, Math.round(preferences.bountyDailyIncreaseXp))
+  if (dailyIncrease <= 0 || daysElapsed <= 0) {
+    return { bountyTasks, preferences }
+  }
+
+  let nextPreferences = preferences
+  for (const task of bountyTasks) {
+    if (task.done) continue
+    const currentXp = nextPreferences.itemCompletionXp[task.id] ?? BOUNTY_TASK_XP
+    nextPreferences = {
+      ...nextPreferences,
+      itemCompletionXp: {
+        ...nextPreferences.itemCompletionXp,
+        [task.id]: currentXp + dailyIncrease * daysElapsed,
+      },
+    }
+  }
+
+  return { bountyTasks, preferences: nextPreferences }
 }
 
 function getCoreAspectCountsForHabits(
@@ -364,13 +404,19 @@ export function useAppState() {
       const today = getTodayISO()
       updateCurrentState((prev) => {
         if (prev.lastActiveDate === today) return prev
+        const daysElapsed = getDayDifference(prev.lastActiveDate, today)
+        const bountyState = applyBountyIncrease(
+          prev.bountyTasks,
+          prev.preferences,
+          daysElapsed,
+        )
         return {
           ...prev,
           habits: applyDailyReset(prev.habits, prev.lastActiveDate),
           coreAspects: prev.coreAspects.map((aspect) =>
             aspect.progressToday > 0 ? { ...aspect, progressToday: 0 } : aspect,
           ),
-          bountyTasks: prev.bountyTasks.map((item) =>
+          bountyTasks: bountyState.bountyTasks.map((item) =>
             item.done ? { ...item, done: false } : item,
           ),
           checks: prev.checks.map((item) =>
@@ -379,6 +425,7 @@ export function useAppState() {
           weeklyTasks: prev.weeklyTasks.map((item) =>
             item.done ? { ...item, done: false } : item,
           ),
+          preferences: bountyState.preferences,
           lastActiveDate: today,
         }
       })
@@ -1216,6 +1263,10 @@ export function useAppState() {
             patch.levelUpIncrementXp == null
               ? prev.preferences.levelUpIncrementXp
               : Math.max(0, Math.round(patch.levelUpIncrementXp)),
+          bountyDailyIncreaseXp:
+            patch.bountyDailyIncreaseXp == null
+              ? prev.preferences.bountyDailyIncreaseXp
+              : Math.max(0, Math.round(patch.bountyDailyIncreaseXp)),
           ranks: patch.ranks ?? prev.preferences.ranks,
           dailySpinUxps:
             patch.dailySpinUxps ?? prev.preferences.dailySpinUxps,
@@ -1230,6 +1281,12 @@ export function useAppState() {
   const resetToday = useCallback(() => {
     const today = getTodayISO()
     updateCurrentState((prev) => {
+      const daysElapsed = getDayDifference(prev.lastActiveDate, today)
+      const bountyState = applyBountyIncrease(
+        prev.bountyTasks,
+        prev.preferences,
+        daysElapsed,
+      )
       const habits = prev.habits.map((habit) =>
         habit.doneToday ? uncompleteHabit(habit, today) : habit,
       )
@@ -1240,7 +1297,7 @@ export function useAppState() {
       const checks = prev.checks.map((item) =>
         item.done ? { ...item, done: false } : item,
       )
-      const bountyTasks = prev.bountyTasks.map((item) =>
+      const bountyTasks = bountyState.bountyTasks.map((item) =>
         item.done ? { ...item, done: false } : item,
       )
       const weeklyTasks = prev.weeklyTasks.map((item) =>
@@ -1255,6 +1312,7 @@ export function useAppState() {
         checks,
         weeklyTasks,
         completions,
+        preferences: bountyState.preferences,
         lastActiveDate: today,
       }
     })

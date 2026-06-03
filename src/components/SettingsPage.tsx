@@ -167,6 +167,9 @@ function ProgressionEditor({
   const [levelUpIncrementXp, setLevelUpIncrementXp] = useState(
     String(preferences.levelUpIncrementXp),
   )
+  const [bountyDailyIncreaseXp, setBountyDailyIncreaseXp] = useState(
+    String(preferences.bountyDailyIncreaseXp),
+  )
   const [ranks, setRanks] = useState<RankTier[]>(preferences.ranks)
   const [dailySpinUxpInput, setDailySpinUxpInput] = useState(
     preferences.dailySpinUxps.join(', '),
@@ -218,6 +221,10 @@ function ProgressionEditor({
         0,
         Number(levelUpIncrementXp) || preferences.levelUpIncrementXp,
       ),
+      bountyDailyIncreaseXp: Math.max(
+        0,
+        Number(bountyDailyIncreaseXp) || preferences.bountyDailyIncreaseXp,
+      ),
       ranks,
       dailySpinUxps: dailySpinUxpInput
         .split(',')
@@ -251,6 +258,18 @@ function ProgressionEditor({
           step={5}
           value={levelUpIncrementXp}
           onChange={(e) => setLevelUpIncrementXp(e.target.value)}
+        />
+      </label>
+
+      <label className="settings-page__field settings-page__field--threshold">
+        <span>Daily bounty increase for unfinished main tasks</span>
+        <input
+          className="settings-page__input"
+          type="number"
+          min={0}
+          step={1}
+          value={bountyDailyIncreaseXp}
+          onChange={(e) => setBountyDailyIncreaseXp(e.target.value)}
         />
       </label>
 
@@ -745,6 +764,7 @@ export function SettingsPage({
             key={JSON.stringify({
               base: preferences.levelUpBaseXp,
               increment: preferences.levelUpIncrementXp,
+              bountyIncrease: preferences.bountyDailyIncreaseXp,
               ranks: preferences.ranks,
               uxp: preferences.dailySpinUxps,
               rewards: preferences.dailySpinRewardIds,

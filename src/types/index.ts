@@ -85,6 +85,7 @@ export type AppPreferences = {
   itemBaseMinutes: Record<string, number>
   levelUpBaseXp: number
   levelUpIncrementXp: number
+  bountyDailyIncreaseXp: number
   ranks: RankTier[]
   dailySpinUxps: number[]
   dailySpinRewardIds: string[]
