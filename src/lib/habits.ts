@@ -8,6 +8,7 @@ export function applyDailyReset(habits: Habit[], lastActiveDate: string): Habit[
   const yesterday = getYesterdayISO()
 
   return habits.map((habit) => {
+    if (habit.archivedAt) return habit
     const keptStreak =
       habit.lastCompletedDate === yesterday ||
       habit.lastCompletedDate === today
@@ -24,6 +25,7 @@ export function applyDailyReset(habits: Habit[], lastActiveDate: string): Habit[
 }
 
 export function completeHabit(habit: Habit, today: string): Habit {
+  if (habit.archivedAt) return habit
   const yesterday = getYesterdayISO()
   let streak = habit.streak
 
@@ -47,6 +49,7 @@ export function completeHabit(habit: Habit, today: string): Habit {
 }
 
 export function uncompleteHabit(habit: Habit, today: string): Habit {
+  if (habit.archivedAt) return habit
   if (!habit.doneToday) return habit
   if (habit.category === 'hobby' && habit.progressToday > 0) {
     return habit
@@ -76,6 +79,7 @@ export function uncompleteHabit(habit: Habit, today: string): Habit {
 
 /** Backfill a completion on a specific date. */
 export function applyCompletionOnDate(habit: Habit, date: string): Habit {
+  if (habit.archivedAt) return habit
   let { streak, lastCompletedDate } = habit
 
   if (lastCompletedDate === date) {
@@ -119,6 +123,7 @@ export function createHabit(name: string, category: HabitCategory = 'habit'): Ha
     id: crypto.randomUUID(),
     name: name.trim(),
     category,
+    archivedAt: null,
     streak: 0,
     doneToday: false,
     progressToday: 0,
@@ -143,11 +148,13 @@ export function collectLinkedIds(
   if (visited.has(startId)) return []
   visited.add(startId)
   const habit = habits.find((h) => h.id === startId)
-  if (!habit) return []
+  if (!habit || habit.archivedAt) return []
 
   const ids: string[] = []
   for (const linkedId of habit.linkedHabitIds ?? []) {
     if (linkedId === startId || visited.has(linkedId)) continue
+    const linkedHabit = habits.find((entry) => entry.id === linkedId)
+    if (!linkedHabit || linkedHabit.archivedAt) continue
     ids.push(linkedId)
     ids.push(...collectLinkedIds(habits, linkedId, visited))
   }

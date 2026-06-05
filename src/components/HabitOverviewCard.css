@@ -9,6 +9,11 @@
   transition: border-color 0.15s;
 }
 
+.habit-overview--archived {
+  opacity: 0.82;
+  background: color-mix(in srgb, var(--surface-raised) 90%, var(--border) 10%);
+}
+
 .habit-overview--done {
   border-color: color-mix(in srgb, var(--accent) 35%, var(--border));
 }
@@ -24,6 +29,22 @@
   border: none;
   background: none;
   cursor: pointer;
+  flex-shrink: 0;
+}
+
+.habit-overview__archived-badge {
+  display: inline-flex;
+  align-items: center;
+  height: 1.25rem;
+  padding: 0 0.45rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-muted);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
   flex-shrink: 0;
 }
 
@@ -211,6 +232,7 @@
 .habit-overview__tools {
   display: flex;
   gap: 0.5rem;
+  flex-wrap: wrap;
 }
 
 .habit-overview__tool-btn {
@@ -224,6 +246,64 @@
 
 .habit-overview__tool-btn:hover {
   color: var(--accent);
+}
+
+.habit-overview__tool-btn--primary {
+  color: var(--accent);
+}
+
+.habit-overview__tool-btn--danger {
+  color: #f87171;
+}
+
+.habit-overview__tool-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.habit-overview__manage-panel {
+  display: grid;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.habit-overview__manage-actions,
+.habit-overview__confirm-actions,
+.habit-overview__archived-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.habit-overview__confirm-box {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.habit-overview__confirm-copy {
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+}
+
+.habit-overview__confirm-copy--danger {
+  color: #f87171;
+}
+
+.habit-overview__confirm-input {
+  width: 100%;
+  min-width: 0;
+  padding: 0.45rem 0.6rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface-raised);
+  color: var(--text);
+}
+
+.habit-overview__archived-actions {
+  margin-top: 0.25rem;
 }
 
 .habit-overview__link-list {

@@ -238,6 +238,22 @@ function getCoreAspectCountsForHabits(
   return counts
 }
 
+function removeHabitSettings(
+  preferences: AppState['preferences'],
+  habitId: string,
+): AppState['preferences'] {
+  const { [habitId]: _removedCompletionXp, ...itemCompletionXp } =
+    preferences.itemCompletionXp
+  const { [habitId]: _removedBaseMinutes, ...itemBaseMinutes } =
+    preferences.itemBaseMinutes
+
+  return {
+    ...preferences,
+    itemCompletionXp,
+    itemBaseMinutes,
+  }
+}
+
 function applyCompletionRewards(
   prev: AppState,
   targetIds: string[],
@@ -441,6 +457,14 @@ export function useAppState() {
     [state.preferences, state.profile],
   )
   const preferences = useMemo(() => state.preferences, [state.preferences])
+  const activeHabits = useMemo(
+    () => state.habits.filter((habit) => !habit.archivedAt),
+    [state.habits],
+  )
+  const archivedHabits = useMemo(
+    () => state.habits.filter((habit) => habit.archivedAt),
+    [state.habits],
+  )
   const accounts = useMemo<AccountSummary[]>(
     () =>
       Object.entries(accountsState.accountsById)
@@ -461,13 +485,13 @@ export function useAppState() {
     [accountsState.accountsById],
   )
   const stats = useMemo(
-    () => getDashboardStats(state.habits),
-    [state.habits],
+    () => getDashboardStats(activeHabits),
+    [activeHabits],
   )
   const statsPageSummary = useMemo(
     () =>
       getStatsPageSummary(
-        state.habits,
+        activeHabits,
         state.completions,
         state.timeRecords,
         state.preferences,
@@ -475,7 +499,7 @@ export function useAppState() {
         state.profile.totalMinutes ?? 0,
       ),
     [
-      state.habits,
+      activeHabits,
       state.completions,
       state.timeRecords,
       state.preferences,
@@ -486,12 +510,12 @@ export function useAppState() {
   const bestDayDate = useMemo(
     () =>
       getBestDayDate(
-        state.habits,
+        activeHabits,
         state.completions,
         state.timeRecords,
         state.preferences,
       ),
-    [state.completions, state.habits, state.preferences, state.timeRecords],
+    [activeHabits, state.completions, state.preferences, state.timeRecords],
   )
 
   const applyHabitToggle = useCallback(
@@ -539,7 +563,7 @@ export function useAppState() {
 
     updateCurrentState((prev) => {
       const habit = prev.habits.find((h) => h.id === id)
-      if (!habit) return prev
+      if (!habit || habit.archivedAt) return prev
 
       const completing = !habit.doneToday
       const { habits, completions, completedHabitIds } = applyHabitToggle(
@@ -648,7 +672,7 @@ export function useAppState() {
       if (exists) return prev
 
       const habit = prev.habits.find((h) => h.id === habitId)
-      if (!habit) return prev
+      if (!habit || habit.archivedAt) return prev
 
       const linked = collectLinkedIds(prev.habits, habitId)
       const targetIds = new Set([habitId, ...linked])
@@ -723,7 +747,7 @@ export function useAppState() {
 
       updateCurrentState((prev) => {
         const habit = prev.habits.find((h) => h.id === habitId)
-        if (!habit) return prev
+        if (!habit || habit.archivedAt) return prev
 
         const xp = calculateTimeXp(habit, clamped)
         grantXpRef.current = xp
@@ -823,7 +847,7 @@ export function useAppState() {
 
     updateCurrentState((prev) => {
       const hobby = prev.habits.find((entry) => entry.id === id)
-      if (!hobby || hobby.category !== 'hobby') return prev
+      if (!hobby || hobby.archivedAt || hobby.category !== 'hobby') return prev
 
       const linked = collectLinkedIds(prev.habits, id)
       const targetIds = [id, ...linked].filter((targetId, index, arr) => arr.indexOf(targetId) === index)
@@ -952,6 +976,85 @@ export function useAppState() {
         record.habitId === habitId ? { ...record, habitName: trimmed } : record,
       ),
     }))
+  }, [updateCurrentState])
+
+  const archiveHabit = useCallback((habitId: string) => {
+    const today = getTodayISO()
+    let archived = false
+
+    updateCurrentState((prev) => {
+      const habit = prev.habits.find((entry) => entry.id === habitId)
+      if (!habit || habit.archivedAt) return prev
+      archived = true
+
+      return {
+        ...prev,
+        habits: prev.habits.map((entry) =>
+          entry.id === habitId ? { ...entry, archivedAt: today } : entry,
+        ),
+      }
+    })
+
+    return archived
+  }, [updateCurrentState])
+
+  const restoreHabit = useCallback((habitId: string) => {
+    let restored = false
+
+    updateCurrentState((prev) => {
+      const habit = prev.habits.find((entry) => entry.id === habitId)
+      if (!habit || !habit.archivedAt) return prev
+      restored = true
+
+      return {
+        ...prev,
+        habits: prev.habits.map((entry) =>
+          entry.id === habitId ? { ...entry, archivedAt: null } : entry,
+        ),
+      }
+    })
+
+    return restored
+  }, [updateCurrentState])
+
+  const deleteHabit = useCallback((habitId: string) => {
+    let deleted = false
+
+    updateCurrentState((prev) => {
+      const habit = prev.habits.find((entry) => entry.id === habitId)
+      if (!habit) return prev
+      deleted = true
+
+      const nextHabits = prev.habits
+        .filter((entry) => entry.id !== habitId)
+        .map((entry) =>
+          entry.linkedHabitIds.includes(habitId)
+            ? {
+                ...entry,
+                linkedHabitIds: entry.linkedHabitIds.filter((id) => id !== habitId),
+              }
+            : entry,
+        )
+
+      return {
+        ...prev,
+        habits: nextHabits,
+        completions: prev.completions.filter((entry) => entry.habitId !== habitId),
+        timeRecords: prev.timeRecords.filter((record) => record.habitId !== habitId),
+        profile: {
+          ...prev.profile,
+          totalXp: Math.max(0, (prev.profile.totalXp ?? 0) - (habit.totalXpEarned ?? 0)),
+          shopXp: Math.max(0, (prev.profile.shopXp ?? 0) - (habit.totalXpEarned ?? 0)),
+          totalMinutes: Math.max(
+            0,
+            (prev.profile.totalMinutes ?? 0) - (habit.totalMinutes ?? 0),
+          ),
+        },
+        preferences: removeHabitSettings(prev.preferences, habitId),
+      }
+    })
+
+    return deleted
   }, [updateCurrentState])
 
   const addHabit = useCallback((name: string, category: HabitCategory = 'habit') => {
@@ -1710,7 +1813,8 @@ export function useAppState() {
   return {
     activeAccountId: accountsState.activeAccountId,
     accounts,
-    habits: state.habits,
+    habits: activeHabits,
+    archivedHabits,
     coreAspects: state.coreAspects,
     bountyTasks: state.bountyTasks,
     checks: state.checks,
@@ -1733,6 +1837,9 @@ export function useAppState() {
     setLinkedHabits,
     setLinkedCoreAspects,
     renameHabit,
+    archiveHabit,
+    restoreHabit,
+    deleteHabit,
     setHabitTags,
     setHabitWeights,
     addHabit,

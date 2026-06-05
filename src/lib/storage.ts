@@ -164,6 +164,7 @@ function normalizeHabit(h: LegacyHabit, index: number): Habit {
     id: h.id,
     name: h.name,
     category,
+    archivedAt: h.archivedAt ?? null,
     streak: h.streak ?? 0,
     doneToday: h.doneToday ?? false,
     progressToday: (h as Habit).progressToday ?? 0,

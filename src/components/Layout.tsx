@@ -17,6 +17,7 @@ export function Layout() {
     activeAccountId,
     accounts,
     habits,
+    archivedHabits,
     coreAspects,
     bountyTasks,
     checks,
@@ -38,6 +39,9 @@ export function Layout() {
     setLinkedHabits,
     setLinkedCoreAspects,
     renameHabit,
+    archiveHabit,
+    restoreHabit,
+    deleteHabit,
     addHabit,
     addCoreAspect,
     addBountyTask,
@@ -162,6 +166,7 @@ export function Layout() {
       return (
         <HabitsPage
           habits={habits}
+          archivedHabits={archivedHabits}
           coreAspects={coreAspects}
           bountyTasks={bountyTasks}
           timeRecords={timeRecords}
@@ -172,6 +177,9 @@ export function Layout() {
           onRenameHabit={renameHabit}
           onSetLinked={setLinkedHabits}
           onSetLinkedCoreAspects={setLinkedCoreAspects}
+          onArchiveHabit={archiveHabit}
+          onDeleteHabit={deleteHabit}
+          onRestoreHabit={restoreHabit}
           onUpdatePreferences={updatePreferences}
           onResetToday={resetToday}
         />

@@ -22,6 +22,7 @@ const CATEGORIES: {
 
 type HabitsPageProps = {
   habits: Habit[]
+  archivedHabits: Habit[]
   coreAspects: CoreAspect[]
   bountyTasks: WeeklyTask[]
   timeRecords: TimeRecord[]
@@ -32,12 +33,16 @@ type HabitsPageProps = {
   onRenameHabit: (habitId: string, name: string) => void
   onSetLinked: (habitId: string, linkedIds: string[]) => void
   onSetLinkedCoreAspects: (habitId: string, aspectIds: string[]) => void
+  onArchiveHabit: (id: string) => void
+  onDeleteHabit: (id: string) => void
+  onRestoreHabit: (id: string) => void
   onUpdatePreferences: (patch: Partial<AppPreferences>) => void
   onResetToday: () => void
 }
 
 export function HabitsPage({
   habits,
+  archivedHabits,
   coreAspects,
   bountyTasks,
   timeRecords,
@@ -48,6 +53,9 @@ export function HabitsPage({
   onRenameHabit,
   onSetLinked,
   onSetLinkedCoreAspects,
+  onArchiveHabit,
+  onDeleteHabit,
+  onRestoreHabit,
   onUpdatePreferences,
   onResetToday,
 }: HabitsPageProps) {
@@ -119,6 +127,9 @@ export function HabitsPage({
                     onRename={onRenameHabit}
                     onSetLinked={onSetLinked}
                     onSetLinkedCoreAspects={onSetLinkedCoreAspects}
+                    onArchive={onArchiveHabit}
+                    onDelete={onDeleteHabit}
+                    onRestore={onRestoreHabit}
                   />
                 ))}
               </div>
@@ -126,6 +137,44 @@ export function HabitsPage({
           </section>
         )
       })}
+
+      {archivedHabits.length > 0 ? (
+        <section className="habits-page__section" aria-label="Archived habits">
+          <header className="habits-page__section-header">
+            <div>
+              <h2 className="habits-page__section-title">Archived</h2>
+              <p className="habits-page__section-subtitle">
+                Hidden from the active boards. Restore them whenever you want.
+              </p>
+            </div>
+            <span className="habits-page__count">{archivedHabits.length} items</span>
+          </header>
+
+          <div className="habits-page__grid">
+            {archivedHabits.map((habit) => (
+              <HabitOverviewCard
+                key={habit.id}
+                habit={habit}
+                streakSymbol={streakSymbol}
+                streakSymbolImageUrl={streakSymbolImageUrl}
+                rawXpEarned={habit.totalXpEarned ?? 0}
+                preferences={preferences}
+                allHabits={habits}
+                allCoreAspects={coreAspects}
+                timeRecords={timeRecords}
+                onToggle={onToggle}
+                onRename={onRenameHabit}
+                onSetLinked={onSetLinked}
+                onSetLinkedCoreAspects={onSetLinkedCoreAspects}
+                onArchive={onArchiveHabit}
+                onDelete={onDeleteHabit}
+                onRestore={onRestoreHabit}
+                archived
+              />
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       <section className="habits-page__section" aria-label="Reset controls">
         <header className="habits-page__section-header">

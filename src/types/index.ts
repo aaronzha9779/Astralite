@@ -37,6 +37,8 @@ export type Habit = {
   id: string
   name: string
   category: HabitCategory
+  /** Null when active; set to a date when archived. */
+  archivedAt: string | null
   streak: number
   doneToday: boolean
   progressToday: number

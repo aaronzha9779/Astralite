@@ -18,6 +18,10 @@ type HabitOverviewCardProps = {
   onRename: (habitId: string, name: string) => void
   onSetLinked: (habitId: string, linkedIds: string[]) => void
   onSetLinkedCoreAspects: (habitId: string, aspectIds: string[]) => void
+  onArchive: (id: string) => void
+  onDelete: (id: string) => void
+  onRestore: (id: string) => void
+  archived?: boolean
 }
 
 export function HabitOverviewCard({
@@ -33,8 +37,15 @@ export function HabitOverviewCard({
   onRename,
   onSetLinked,
   onSetLinkedCoreAspects,
+  onArchive,
+  onDelete,
+  onRestore,
+  archived = false,
 }: HabitOverviewCardProps) {
   const [showLink, setShowLink] = useState(false)
+  const [showManage, setShowManage] = useState(false)
+  const [pendingAction, setPendingAction] = useState<'archive' | 'delete' | null>(null)
+  const [confirmName, setConfirmName] = useState('')
   const [isEditingName, setIsEditingName] = useState(false)
   const [draftName, setDraftName] = useState(habit.name)
   const displayStreakSymbol = habit.streak > 30 ? '❤️‍🔥' : streakSymbol
@@ -90,24 +101,51 @@ export function HabitOverviewCard({
     setIsEditingName(false)
   }
 
+  function handleManageAction(action: 'archive' | 'delete') {
+    setPendingAction(action)
+    setConfirmName('')
+    setShowManage(true)
+  }
+
+  function closeManage() {
+    setShowManage(false)
+    setPendingAction(null)
+    setConfirmName('')
+  }
+
+  function confirmAction() {
+    if (confirmName.trim().toLowerCase() !== habit.name.trim().toLowerCase()) return
+    if (pendingAction === 'archive') onArchive(habit.id)
+    if (pendingAction === 'delete') onDelete(habit.id)
+    closeManage()
+  }
+
   return (
     <article
-      className={`habit-overview${habit.doneToday ? ' habit-overview--done' : ''}`}
+      className={`habit-overview${habit.doneToday ? ' habit-overview--done' : ''}${archived ? ' habit-overview--archived' : ''}`}
     >
       <header className="habit-overview__header">
-        <button
-          type="button"
-          className="habit-overview__check"
-          onClick={handleToggle}
-          aria-pressed={habit.doneToday}
-          aria-label={habit.doneToday ? 'Mark incomplete' : 'Mark complete'}
-        >
-          <span
-            className={`habit-overview__check-box${habit.doneToday ? ' habit-overview__check-box--done' : ''}`}
-          />
-        </button>
+        {archived ? (
+          <span className="habit-overview__archived-badge">Archived</span>
+        ) : (
+          <button
+            type="button"
+            className="habit-overview__check"
+            onClick={handleToggle}
+            aria-pressed={habit.doneToday}
+            aria-label={habit.doneToday ? 'Mark incomplete' : 'Mark complete'}
+          >
+            <span
+              className={`habit-overview__check-box${habit.doneToday ? ' habit-overview__check-box--done' : ''}`}
+            />
+          </button>
+        )}
         <div className="habit-overview__title-block">
-          {isEditingName ? (
+          {archived ? (
+            <div className="habit-overview__name-row">
+              <h3 className="habit-overview__name">{habit.name}</h3>
+            </div>
+          ) : isEditingName ? (
             <div className="habit-overview__name-editor">
               <input
                 className="habit-overview__name-input"
@@ -168,7 +206,7 @@ export function HabitOverviewCard({
             </div>
           ) : null}
         </div>
-        {habit.streak > 0 ? (
+        {!archived && habit.streak > 0 ? (
           <span className="habit-overview__streak" title="Current streak">
             {habit.streak > 30 || !streakSymbolImageUrl ? (
               <>{displayStreakSymbol}</>
@@ -229,65 +267,158 @@ export function HabitOverviewCard({
         </p>
       ) : null}
 
-      <div className="habit-overview__tools">
-        <button
-          type="button"
-          className="habit-overview__tool-btn"
-          onClick={() => setShowLink((s) => !s)}
-        >
-          {showLink ? 'Hide links' : 'Manage links'}
-        </button>
-      </div>
-
-      {showLink ? (
-        <div className="habit-overview__link-groups">
-          <div>
-            <p className="habit-overview__link-title">Linked habits</p>
-            <ul className="habit-overview__link-list">
-              {linkOptions.map((h) => (
-                <li key={h.id}>
-                  <label>
-                    <input
-                      type="checkbox"
-                      checked={(habit.linkedHabitIds ?? []).includes(h.id)}
-                      onChange={() => toggleLink(h.id)}
-                    />
-                    {h.name}
-                    <span className="habit-overview__link-cat">{h.category}</span>
-                  </label>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <div>
-            <p className="habit-overview__link-title">Core aspects</p>
-            <ul className="habit-overview__link-list">
-              {allCoreAspects.length === 0 ? (
-                <li className="habit-overview__link-empty">No core aspects yet.</li>
-              ) : (
-                allCoreAspects.map((aspect) => (
-                  <li key={aspect.id}>
-                    <label>
-                      <input
-                        type="checkbox"
-                        checked={(habit.linkedCoreAspectIds ?? []).includes(aspect.id)}
-                        onChange={() => toggleCoreAspectLink(aspect.id)}
-                      />
-                      {aspect.name}
-                      <span className="habit-overview__link-cat">
-                        {aspect.progressToday}/100
-                      </span>
-                    </label>
-                  </li>
-                ))
-              )}
-            </ul>
-          </div>
+      {archived ? (
+        <div className="habit-overview__archived-actions">
+          <button
+            type="button"
+            className="habit-overview__tool-btn habit-overview__tool-btn--primary"
+            onClick={() => onRestore(habit.id)}
+          >
+            Restore
+          </button>
+          <button
+            type="button"
+            className="habit-overview__tool-btn habit-overview__tool-btn--danger"
+            onClick={() => handleManageAction('delete')}
+          >
+            Delete
+          </button>
         </div>
-      ) : null}
+      ) : (
+        <>
+          <div className="habit-overview__tools">
+            <button
+              type="button"
+              className="habit-overview__tool-btn"
+              onClick={() => setShowLink((s) => !s)}
+            >
+              {showLink ? 'Hide links' : 'Manage links'}
+            </button>
+            <button
+              type="button"
+              className="habit-overview__tool-btn"
+              onClick={() => {
+                setShowManage((s) => !s)
+                setPendingAction(null)
+                setConfirmName('')
+              }}
+            >
+              {showManage ? 'Hide actions' : 'Actions'}
+            </button>
+          </div>
 
-      <p className="habit-overview__xp-earned">{rawXpEarned} XP earned</p>
+          {showManage ? (
+            <div className="habit-overview__manage-panel">
+              {pendingAction ? (
+                <div className="habit-overview__confirm-box">
+                  <p className="habit-overview__link-title">
+                    {pendingAction === 'archive' ? 'Archive this item?' : 'Delete this item?'}
+                  </p>
+                  <p className="habit-overview__confirm-copy">
+                    Type <strong>{habit.name}</strong> to confirm.
+                  </p>
+                  {pendingAction === 'delete' ? (
+                    <p className="habit-overview__confirm-copy habit-overview__confirm-copy--danger">
+                      Deleting removes history, time logs, and preferences for this item.
+                    </p>
+                  ) : null}
+                  <input
+                    className="habit-overview__confirm-input"
+                    type="text"
+                    value={confirmName}
+                    onChange={(e) => setConfirmName(e.target.value)}
+                    placeholder={`Type ${habit.name}`}
+                  />
+                  <div className="habit-overview__confirm-actions">
+                    <button
+                      type="button"
+                      className="habit-overview__tool-btn habit-overview__tool-btn--danger"
+                      disabled={confirmName.trim().toLowerCase() !== habit.name.trim().toLowerCase()}
+                      onClick={confirmAction}
+                    >
+                      {pendingAction === 'archive' ? 'Archive' : 'Delete'}
+                    </button>
+                    <button
+                      type="button"
+                      className="habit-overview__tool-btn"
+                      onClick={closeManage}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="habit-overview__manage-actions">
+                  <button
+                    type="button"
+                    className="habit-overview__tool-btn"
+                    onClick={() => handleManageAction('archive')}
+                  >
+                    Archive
+                  </button>
+                  <button
+                    type="button"
+                    className="habit-overview__tool-btn habit-overview__tool-btn--danger"
+                    onClick={() => handleManageAction('delete')}
+                  >
+                    Delete
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : null}
+
+          {showLink ? (
+            <div className="habit-overview__link-groups">
+              <div>
+                <p className="habit-overview__link-title">Linked habits</p>
+                <ul className="habit-overview__link-list">
+                  {linkOptions.map((h) => (
+                    <li key={h.id}>
+                      <label>
+                        <input
+                          type="checkbox"
+                          checked={(habit.linkedHabitIds ?? []).includes(h.id)}
+                          onChange={() => toggleLink(h.id)}
+                        />
+                        {h.name}
+                        <span className="habit-overview__link-cat">{h.category}</span>
+                      </label>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              <div>
+                <p className="habit-overview__link-title">Core aspects</p>
+                <ul className="habit-overview__link-list">
+                  {allCoreAspects.length === 0 ? (
+                    <li className="habit-overview__link-empty">No core aspects yet.</li>
+                  ) : (
+                    allCoreAspects.map((aspect) => (
+                      <li key={aspect.id}>
+                        <label>
+                          <input
+                            type="checkbox"
+                            checked={(habit.linkedCoreAspectIds ?? []).includes(aspect.id)}
+                            onChange={() => toggleCoreAspectLink(aspect.id)}
+                          />
+                          {aspect.name}
+                          <span className="habit-overview__link-cat">
+                            {aspect.progressToday}/100
+                          </span>
+                        </label>
+                      </li>
+                    ))
+                  )}
+                </ul>
+              </div>
+            </div>
+          ) : null}
+
+          <p className="habit-overview__xp-earned">{rawXpEarned} XP earned</p>
+        </>
+      )}
     </article>
   )
 }
