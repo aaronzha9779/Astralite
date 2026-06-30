@@ -23,6 +23,7 @@ export function Layout() {
     checks,
     weeklyTasks,
     dashboard,
+    archivedRewards,
     completions,
     timeRecords,
     rewards,
@@ -56,6 +57,7 @@ export function Layout() {
     removeWeeklyTask,
     setBountiesOpen,
     setChecksOpen,
+    setCategoryCollapsed,
     setWeeklyOpen,
     setDailyGoal,
     resetToday,
@@ -70,6 +72,7 @@ export function Layout() {
     addReward,
     updateReward,
     removeReward,
+    restoreReward,
     reorderReward,
     updateProfile,
     updatePreferences,
@@ -182,6 +185,8 @@ export function Layout() {
           onRestoreHabit={restoreHabit}
           onUpdatePreferences={updatePreferences}
           onResetToday={resetToday}
+          dashboard={dashboard}
+          onSetCategoryCollapsed={setCategoryCollapsed}
         />
       )
     }
@@ -205,6 +210,7 @@ export function Layout() {
         <Shop
           profile={profile}
           rewards={rewards}
+          archivedRewards={archivedRewards}
           purchasedRewards={purchasedRewards}
           dailySpinUsed={dailySpinUsed}
           dailySpinOptions={{
@@ -218,6 +224,7 @@ export function Layout() {
           onAddReward={addReward}
           onUpdateReward={updateReward}
           onRemoveReward={removeReward}
+          onRestoreReward={restoreReward}
           onReorderReward={reorderReward}
           saveError={saveError}
         />

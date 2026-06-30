@@ -80,6 +80,8 @@ export type DashboardPrefs = {
   collapsedCategories: Partial<Record<HabitCategory, boolean>>
   /** Index into quotes when showing a fixed quote; null = random on load. */
   activeQuoteIndex: number | null
+  /** Last day the quote index was refreshed. */
+  activeQuoteDate: string | null
 }
 
 export type AppPreferences = {
@@ -169,6 +171,7 @@ export type Reward = {
   emoji: string
   imageUrl?: string | null
   oneTime: boolean
+  archivedAt: string | null
 }
 
 export type HeatmapDay = {

@@ -13,6 +13,7 @@ type DailySpinResult =
 type ShopProps = {
   profile: UserProfile
   rewards: Reward[]
+  archivedRewards: Reward[]
   purchasedRewards: PurchasedReward[]
   saveError: string | null
   dailySpinUsed: boolean
@@ -25,6 +26,7 @@ type ShopProps = {
   onAddReward: (reward: Omit<Reward, 'id'>) => boolean
   onUpdateReward: (rewardId: string, patch: Partial<Omit<Reward, 'id'>>) => boolean
   onRemoveReward: (rewardId: string) => boolean
+  onRestoreReward: (rewardId: string) => boolean
   onReorderReward: (draggedId: string, targetId: string) => boolean
 }
 
@@ -35,6 +37,7 @@ const EMPTY_REWARD: Omit<Reward, 'id'> = {
   emoji: '🎁',
   imageUrl: null,
   oneTime: false,
+  archivedAt: null,
 }
 
 const MAX_REWARD_IMAGE_DIMENSION = 256
@@ -88,6 +91,7 @@ async function buildRewardImageDataUrl(file: File): Promise<string> {
 export function Shop({
   profile,
   rewards,
+  archivedRewards,
   purchasedRewards,
   saveError,
   dailySpinUsed,
@@ -97,6 +101,7 @@ export function Shop({
   onAddReward,
   onUpdateReward,
   onRemoveReward,
+  onRestoreReward,
   onReorderReward,
 }: ShopProps) {
   const [message, setMessage] = useState<string | null>(null)
@@ -220,6 +225,7 @@ export function Shop({
       emoji: reward.emoji,
       imageUrl: reward.imageUrl ?? null,
       oneTime: reward.oneTime,
+      archivedAt: reward.archivedAt ?? null,
     })
   }
 
@@ -433,6 +439,20 @@ export function Shop({
             >
               Edit selected
             </button>
+            <button
+              type="button"
+              className="shop__delete"
+              onClick={() => {
+                const archived = onRemoveReward(selectedReward.id)
+                if (!archived) {
+                  showMessage('Reward could not be archived.')
+                } else {
+                  showMessage(`Archived ${selectedReward.name}.`)
+                }
+              }}
+            >
+              Archive
+            </button>
           </div>
         </section>
       ) : null}
@@ -510,7 +530,7 @@ export function Shop({
                       showMessage(`Removed ${reward.name}.`)
                     }}
                   >
-                    Delete
+                    Archive
                   </button>
                 </div>
                 <button
@@ -529,6 +549,68 @@ export function Shop({
           )
         })}
       </ul>
+
+      <section className="shop__archive" aria-label="Archived rewards">
+        <div className="shop__archive-head">
+          <div>
+            <h2 className="dashboard__section-title">Rewards archive</h2>
+            <p className="shop__editor-hint">
+              Archived rewards stay saved here until you bring them back.
+            </p>
+          </div>
+          <span className="shop__archive-count">{archivedRewards.length} archived</span>
+        </div>
+
+        {archivedRewards.length === 0 ? (
+          <p className="shop__archive-empty">No archived rewards yet.</p>
+        ) : (
+          <ul className="shop__grid shop__grid--archive">
+            {archivedRewards.map((reward) => (
+              <li key={reward.id} className="shop__card shop__card--archived">
+                <div className="shop__card-top">
+                  <span className="shop__drag" aria-hidden="true">
+                    ▣
+                  </span>
+                  {reward.imageUrl ? (
+                    <img className="shop__symbol-img" src={reward.imageUrl} alt="" />
+                  ) : (
+                    <span className="shop__emoji" aria-hidden="true">
+                      {reward.emoji}
+                    </span>
+                  )}
+                </div>
+                <div className="shop__info">
+                  <h2 className="shop__name">{reward.name}</h2>
+                  <p className="shop__desc">{reward.description}</p>
+                </div>
+                <div className="shop__meta">
+                  <span className="shop__cost">{reward.cost} UXP</span>
+                  <span className="shop__type">Archived</span>
+                </div>
+                <div className="shop__footer">
+                  <span className="shop__archive-date">
+                    {reward.archivedAt ? `Archived ${new Date(reward.archivedAt).toLocaleDateString()}` : 'Archived'}
+                  </span>
+                  <button
+                    type="button"
+                    className="shop__buy shop__buy--success"
+                    onClick={() => {
+                      const restored = onRestoreReward(reward.id)
+                      if (!restored) {
+                        showMessage('Reward could not be restored.')
+                        return
+                      }
+                      showMessage(`Restored ${reward.name}.`)
+                    }}
+                  >
+                    Restore
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
 
       {spinOpen ? (
         <div className="shop__spin-modal" role="dialog" aria-modal="true" aria-label="Daily spin">

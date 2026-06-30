@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import type {
   AppPreferences,
   CoreAspect,
+  DashboardPrefs,
   Habit,
   HabitCategory,
   TimeRecord,
@@ -27,6 +28,7 @@ type HabitsPageProps = {
   bountyTasks: WeeklyTask[]
   timeRecords: TimeRecord[]
   preferences: AppPreferences
+  dashboard: DashboardPrefs
   streakSymbol: string
   streakSymbolImageUrl: string | null
   onToggle: (id: string) => void
@@ -37,6 +39,7 @@ type HabitsPageProps = {
   onDeleteHabit: (id: string) => void
   onRestoreHabit: (id: string) => void
   onUpdatePreferences: (patch: Partial<AppPreferences>) => void
+  onSetCategoryCollapsed: (category: HabitCategory, collapsed: boolean) => void
   onResetToday: () => void
 }
 
@@ -47,6 +50,7 @@ export function HabitsPage({
   bountyTasks,
   timeRecords,
   preferences,
+  dashboard,
   streakSymbol,
   streakSymbolImageUrl,
   onToggle,
@@ -57,6 +61,7 @@ export function HabitsPage({
   onDeleteHabit,
   onRestoreHabit,
   onUpdatePreferences,
+  onSetCategoryCollapsed,
   onResetToday,
 }: HabitsPageProps) {
   const [selectedByCategory, setSelectedByCategory] = useState<
@@ -98,6 +103,7 @@ export function HabitsPage({
 
       {CATEGORIES.map(({ key, title, subtitle }) => {
         const items = byCategory[key]
+        const collapsed = !!dashboard.collapsedCategories[key]
         return (
           <section key={key} className="habits-page__section" aria-label={title}>
             <header className="habits-page__section-header">
@@ -105,10 +111,23 @@ export function HabitsPage({
                 <h2 className="habits-page__section-title">{title}</h2>
                 <p className="habits-page__section-subtitle">{subtitle}</p>
               </div>
-              <span className="habits-page__count">{items.length} items</span>
+              <div className="habits-page__section-actions">
+                <span className="habits-page__count">{items.length} items</span>
+                <button
+                  type="button"
+                  className="habits-page__collapse-btn"
+                  onClick={() => onSetCategoryCollapsed(key, !collapsed)}
+                >
+                  {collapsed ? 'Show cards' : 'Hide cards'}
+                </button>
+              </div>
             </header>
 
-            {items.length === 0 ? (
+            {collapsed ? (
+              <p className="habits-page__collapsed-note">
+                {title} cards are hidden. Use the toggle above to bring them back.
+              </p>
+            ) : items.length === 0 ? (
               <p className="habits-page__empty">No {title.toLowerCase()} yet.</p>
             ) : (
               <div className="habits-page__grid">

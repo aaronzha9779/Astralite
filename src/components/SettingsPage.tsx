@@ -280,111 +280,118 @@ function ProgressionEditor({
         </p>
       </div>
 
-      <div className="settings-page__rank-list">
-        {ranks.map((rank) => (
-          <article
-            key={rank.id}
-            className={`settings-page__rank-card${draggedRankId === rank.id ? ' settings-page__rank-card--dragging' : ''}`}
-            draggable
-            onDragStart={() => setDraggedRankId(rank.id)}
-            onDragEnd={() => setDraggedRankId(null)}
-            onDragOver={(e) => e.preventDefault()}
-            onDrop={() => {
-              if (!draggedRankId || draggedRankId === rank.id) return
-              setRanks((prev) => {
-                const from = prev.findIndex((item) => item.id === draggedRankId)
-                const to = prev.findIndex((item) => item.id === rank.id)
-                if (from === -1 || to === -1) return prev
-                const next = [...prev]
-                const [moved] = next.splice(from, 1)
-                next.splice(to, 0, moved)
-                return next
-              })
-              setDraggedRankId(null)
-            }}
-          >
-            <div className="settings-page__rank-head">
-              <span className="settings-page__rank-drag" aria-hidden="true">
-                ⋮⋮
-              </span>
-              <div className="settings-page__rank-preview">
-                {rank.imageUrl ? (
-                  <img
-                    className="settings-page__rank-preview-img"
-                    src={rank.imageUrl}
-                    alt=""
+      <details className="settings-page__mini-details">
+        <summary className="settings-page__mini-summary">
+          <span>Ranks</span>
+          <span className="settings-page__hint">{ranks.length} tiers</span>
+        </summary>
+
+        <div className="settings-page__rank-list">
+          {ranks.map((rank) => (
+            <article
+              key={rank.id}
+              className={`settings-page__rank-card${draggedRankId === rank.id ? ' settings-page__rank-card--dragging' : ''}`}
+              draggable
+              onDragStart={() => setDraggedRankId(rank.id)}
+              onDragEnd={() => setDraggedRankId(null)}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={() => {
+                if (!draggedRankId || draggedRankId === rank.id) return
+                setRanks((prev) => {
+                  const from = prev.findIndex((item) => item.id === draggedRankId)
+                  const to = prev.findIndex((item) => item.id === rank.id)
+                  if (from === -1 || to === -1) return prev
+                  const next = [...prev]
+                  const [moved] = next.splice(from, 1)
+                  next.splice(to, 0, moved)
+                  return next
+                })
+                setDraggedRankId(null)
+              }}
+            >
+              <div className="settings-page__rank-head">
+                <span className="settings-page__rank-drag" aria-hidden="true">
+                  ⋮⋮
+                </span>
+                <div className="settings-page__rank-preview">
+                  {rank.imageUrl ? (
+                    <img
+                      className="settings-page__rank-preview-img"
+                      src={rank.imageUrl}
+                      alt=""
+                    />
+                  ) : (
+                    <span className="settings-page__rank-preview-fallback">
+                      {rank.name.slice(0, 1).toUpperCase()}
+                    </span>
+                  )}
+                </div>
+                <div>
+                  <strong>{rank.name}</strong>
+                  <p className="settings-page__hint">Unlocks at level {rank.minLevel}</p>
+                </div>
+              </div>
+
+              <div className="settings-page__grid">
+                <label className="settings-page__field">
+                  <span>Rank name</span>
+                  <input
+                    className="settings-page__input"
+                    type="text"
+                    value={rank.name}
+                    onChange={(e) => updateRank(rank.id, { name: e.target.value })}
                   />
-                ) : (
-                  <span className="settings-page__rank-preview-fallback">
-                    {rank.name.slice(0, 1).toUpperCase()}
-                  </span>
-                )}
+                </label>
+                <label className="settings-page__field">
+                  <span>Starts at level</span>
+                  <input
+                    className="settings-page__input"
+                    type="number"
+                    min={1}
+                    step={1}
+                    value={rank.minLevel}
+                    onChange={(e) =>
+                      updateRank(rank.id, {
+                        minLevel: Math.max(1, Number(e.target.value) || 1),
+                      })
+                    }
+                  />
+                </label>
               </div>
-              <div>
-                <strong>{rank.name}</strong>
-                <p className="settings-page__hint">Unlocks at level {rank.minLevel}</p>
+
+              <div className="settings-page__profile-actions">
+                <label className="settings-page__btn settings-page__btn--file">
+                  Upload PNG
+                  <input
+                    className="settings-page__file"
+                    type="file"
+                    accept="image/png"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0] ?? null
+                      void handleRankImageUpload(rank.id, file)
+                    }}
+                  />
+                </label>
+                <button
+                  type="button"
+                  className="settings-page__btn"
+                  onClick={() => updateRank(rank.id, { imageUrl: null })}
+                >
+                  Clear badge
+                </button>
+                <button
+                  type="button"
+                  className="settings-page__btn settings-page__btn--danger"
+                  disabled={ranks.length <= 1}
+                  onClick={() => removeRank(rank.id)}
+                >
+                  Delete rank
+                </button>
               </div>
-            </div>
-
-            <div className="settings-page__grid">
-              <label className="settings-page__field">
-                <span>Rank name</span>
-                <input
-                  className="settings-page__input"
-                  type="text"
-                  value={rank.name}
-                  onChange={(e) => updateRank(rank.id, { name: e.target.value })}
-                />
-              </label>
-              <label className="settings-page__field">
-                <span>Starts at level</span>
-                <input
-                  className="settings-page__input"
-                  type="number"
-                  min={1}
-                  step={1}
-                  value={rank.minLevel}
-                  onChange={(e) =>
-                    updateRank(rank.id, {
-                      minLevel: Math.max(1, Number(e.target.value) || 1),
-                    })
-                  }
-                />
-              </label>
-            </div>
-
-            <div className="settings-page__profile-actions">
-              <label className="settings-page__btn settings-page__btn--file">
-                Upload PNG
-                <input
-                  className="settings-page__file"
-                  type="file"
-                  accept="image/png"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0] ?? null
-                    void handleRankImageUpload(rank.id, file)
-                  }}
-                />
-              </label>
-              <button
-                type="button"
-                className="settings-page__btn"
-                onClick={() => updateRank(rank.id, { imageUrl: null })}
-              >
-                Clear badge
-              </button>
-              <button
-                type="button"
-                className="settings-page__btn settings-page__btn--danger"
-                disabled={ranks.length <= 1}
-                onClick={() => removeRank(rank.id)}
-              >
-                Delete rank
-              </button>
-            </div>
-          </article>
-        ))}
-      </div>
+            </article>
+          ))}
+        </div>
+      </details>
 
       <div className="settings-page__section-head">
         <h3 className="settings-page__subhead">Daily spin</h3>
@@ -405,10 +412,10 @@ function ProgressionEditor({
       </label>
 
       <div className="settings-page__reward-picks">
-        {rewards.length === 0 ? (
+        {rewards.filter((reward) => !reward.archivedAt).length === 0 ? (
           <p className="settings-page__hint">Add shop rewards first to include them on the wheel.</p>
         ) : (
-          rewards.map((reward) => (
+          rewards.filter((reward) => !reward.archivedAt).map((reward) => (
             <label key={reward.id} className="settings-page__pick">
               <input
                 type="checkbox"
@@ -699,53 +706,80 @@ export function SettingsPage({
 
       <section className="settings-page__card">
         <div className="settings-page__section-head">
-          <h2 className="dashboard__section-title">Streak symbol</h2>
+          <h2 className="dashboard__section-title">Visuals</h2>
           <p className="settings-page__hint">
-            Upload a PNG for streaks under 31 days, or fall back to the default emoji.
+            Tune the streak motif and accent color that shape the app&apos;s visual identity.
           </p>
         </div>
 
-        <div className="settings-page__streak-row">
-          <div className="settings-page__streak-preview">
-            {profile.streakSymbolImageUrl ? (
-              <img
-                className="settings-page__streak-img"
-                src={profile.streakSymbolImageUrl}
-                alt="Current streak symbol"
-              />
-            ) : (
-              <span className="settings-page__streak-emoji" aria-hidden="true">
-                {profile.streakSymbol}
-              </span>
-            )}
+        <div className="settings-page__visuals">
+          <div className="settings-page__visuals-block">
+            <div className="settings-page__section-head">
+              <h3 className="settings-page__subhead">Streak symbol</h3>
+              <p className="settings-page__hint">
+                Upload a PNG for streaks under 31 days, or fall back to the default emoji.
+              </p>
+            </div>
+
+            <div className="settings-page__streak-row">
+              <div className="settings-page__streak-preview">
+                {profile.streakSymbolImageUrl ? (
+                  <img
+                    className="settings-page__streak-img"
+                    src={profile.streakSymbolImageUrl}
+                    alt="Current streak symbol"
+                  />
+                ) : (
+                  <span className="settings-page__streak-emoji" aria-hidden="true">
+                    {profile.streakSymbol}
+                  </span>
+                )}
+              </div>
+              <div className="settings-page__profile-actions">
+                <button
+                  type="button"
+                  className="settings-page__btn"
+                  onClick={() => streakInputRef.current?.click()}
+                >
+                  Upload streak PNG
+                </button>
+                <button
+                  type="button"
+                  className="settings-page__btn"
+                  onClick={() => {
+                    onUpdateProfile({ streakSymbolImageUrl: null })
+                    showMessage('Streak symbol image removed.')
+                  }}
+                >
+                  Use emoji fallback
+                </button>
+                <input
+                  ref={streakInputRef}
+                  className="settings-page__file"
+                  type="file"
+                  accept="image/png"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0] ?? null
+                    void handleStreakUpload(file)
+                  }}
+                />
+              </div>
+            </div>
           </div>
-          <div className="settings-page__profile-actions">
-            <button
-              type="button"
-              className="settings-page__btn"
-              onClick={() => streakInputRef.current?.click()}
-            >
-              Upload streak PNG
-            </button>
-            <button
-              type="button"
-              className="settings-page__btn"
-              onClick={() => {
-                onUpdateProfile({ streakSymbolImageUrl: null })
-                showMessage('Streak symbol image removed.')
-              }}
-            >
-              Use emoji fallback
-            </button>
-            <input
-              ref={streakInputRef}
-              className="settings-page__file"
-              type="file"
-              accept="image/png"
-              onChange={(e) => {
-                const file = e.target.files?.[0] ?? null
-                void handleStreakUpload(file)
-              }}
+
+          <div className="settings-page__visuals-block">
+            <div className="settings-page__section-head">
+              <h3 className="settings-page__subhead">Color scheme</h3>
+              <p className="settings-page__hint">
+                Set the app accent with a hex code or the color picker square.
+              </p>
+            </div>
+
+            <AccentColorEditor
+              key={profile.accentColor}
+              profile={profile}
+              onUpdateProfile={onUpdateProfile}
+              showMessage={showMessage}
             />
           </div>
         </div>
@@ -777,22 +811,6 @@ export function SettingsPage({
             showMessage={showMessage}
           />
         </details>
-      </section>
-
-      <section className="settings-page__card">
-        <div className="settings-page__section-head">
-          <h2 className="dashboard__section-title">Color scheme</h2>
-          <p className="settings-page__hint">
-            Set the app accent with a hex code or the color picker square.
-          </p>
-        </div>
-
-        <AccentColorEditor
-          key={profile.accentColor}
-          profile={profile}
-          onUpdateProfile={onUpdateProfile}
-          showMessage={showMessage}
-        />
       </section>
 
       <section className="settings-page__card settings-page__card--danger">

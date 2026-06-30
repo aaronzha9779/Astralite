@@ -9,6 +9,7 @@ export const rewards: Reward[] = [
     emoji: '🛋️',
     imageUrl: null,
     oneTime: false,
+    archivedAt: null,
   },
   {
     id: 'gold-theme',
@@ -18,6 +19,7 @@ export const rewards: Reward[] = [
     emoji: '✨',
     imageUrl: null,
     oneTime: true,
+    archivedAt: null,
   },
   {
     id: 'focus-boost',
@@ -27,6 +29,7 @@ export const rewards: Reward[] = [
     emoji: '⚡',
     imageUrl: null,
     oneTime: false,
+    archivedAt: null,
   },
   {
     id: 'badge-grinder',
@@ -36,6 +39,7 @@ export const rewards: Reward[] = [
     emoji: '🏅',
     imageUrl: null,
     oneTime: true,
+    archivedAt: null,
   },
   {
     id: 'double-xp',
@@ -45,6 +49,7 @@ export const rewards: Reward[] = [
     emoji: '💎',
     imageUrl: null,
     oneTime: false,
+    archivedAt: null,
   },
   {
     id: 'legend-title',
@@ -54,5 +59,6 @@ export const rewards: Reward[] = [
     emoji: '👑',
     imageUrl: null,
     oneTime: true,
+    archivedAt: null,
   },
 ]

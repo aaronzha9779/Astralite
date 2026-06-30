@@ -133,6 +133,7 @@ const defaultDashboard: DashboardPrefs = {
   weeklyOpen: false,
   collapsedCategories: {},
   activeQuoteIndex: null,
+  activeQuoteDate: getTodayISO(),
 }
 
 const defaultPreferences: AppPreferences = {
@@ -254,6 +255,7 @@ function normalizeState(state: AppState): AppState {
         state.dashboard?.quotes?.length
           ? state.dashboard.quotes
           : defaultDashboard.quotes,
+      activeQuoteDate: state.dashboard?.activeQuoteDate ?? defaultDashboard.activeQuoteDate,
     },
     preferences: {
       ...defaultPreferences,
@@ -301,6 +303,7 @@ function normalizeState(state: AppState): AppState {
     rewards: (state.rewards?.length ? state.rewards : defaultRewards).map((reward) => ({
       ...reward,
       imageUrl: reward.imageUrl ?? null,
+      archivedAt: reward.archivedAt ?? null,
     })),
     completions: (state.completions ?? []).map((completion) => ({
       ...completion,

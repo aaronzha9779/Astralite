@@ -16,7 +16,7 @@ function pickQuote(dashboard: DashboardPrefs): string | null {
   if (activeQuoteIndex !== null && quotes[activeQuoteIndex]) {
     return quotes[activeQuoteIndex]
   }
-  return quotes[Math.floor(Math.random() * quotes.length)]
+  return quotes[0] ?? null
 }
 
 export function DailyInspiration({

@@ -135,7 +135,9 @@ export function Sidebar({
                   <span className="profile-card__account-handle">{account.handle}</span>
                 </span>
                 {account.id === activeAccountId ? (
-                  <span className="profile-card__account-badge">Active</span>
+                  <span className="profile-card__account-badge" aria-label="Active account">
+                    ★
+                  </span>
                 ) : null}
               </button>
             ))}

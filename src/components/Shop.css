@@ -104,6 +104,10 @@
   gap: 0.75rem;
 }
 
+.shop__grid--archive {
+  margin-top: 0.75rem;
+}
+
 .shop__card {
   display: flex;
   flex-direction: column;
@@ -127,6 +131,11 @@
 
 .shop__card--dragging {
   opacity: 0.5;
+}
+
+.shop__card--archived {
+  border-style: dashed;
+  background: color-mix(in srgb, var(--surface-raised) 88%, var(--border) 12%);
 }
 
 .shop__card--sparkle {
@@ -281,6 +290,39 @@
   justify-content: space-between;
   gap: 0.75rem;
   margin-top: auto;
+}
+
+.shop__archive {
+  margin-top: 1.4rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.shop__archive-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.shop__archive-count {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.shop__archive-empty {
+  margin: 0;
+  padding: 0.8rem 0;
+  font-size: 0.875rem;
+  color: var(--text-muted);
+}
+
+.shop__archive-date {
+  font-size: 0.7rem;
+  color: var(--text-muted);
 }
 
 .shop__footer-actions,

@@ -144,6 +144,30 @@
   gap: 1rem;
 }
 
+.settings-page__mini-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  padding: 0.85rem 0 0;
+}
+
+.settings-page__mini-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  cursor: pointer;
+  list-style: none;
+  padding: 0.65rem 0.8rem;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.settings-page__mini-summary::-webkit-details-marker {
+  display: none;
+}
+
 .settings-page__input,
 .settings-page__picker,
 .settings-page__btn,
@@ -283,6 +307,21 @@
 .settings-page__rank-list {
   display: grid;
   gap: 0.9rem;
+}
+
+.settings-page__visuals {
+  display: grid;
+  gap: 1rem;
+}
+
+.settings-page__visuals-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  padding: 0.9rem;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface);
 }
 
 .settings-page__reward-picks {

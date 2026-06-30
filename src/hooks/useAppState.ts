@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createEmptyAppState, defaultAppState } from '../data/seedData'
 import { addCompletion, removeCompletion } from '../lib/completions'
+import { playCompletionChime } from '../lib/audio'
 import { getTodayISO } from '../lib/dates'
 import {
   applyCompletionOnDate,
@@ -132,6 +133,10 @@ function prepareState(base: AppState): AppState {
   const today = getTodayISO()
   const daysElapsed = getDayDifference(base.lastActiveDate, today)
   const habits = applyDailyReset(base.habits, base.lastActiveDate)
+  const dashboard =
+    base.dashboard.activeQuoteDate === today && hasValidQuoteIndex(base.dashboard)
+      ? base.dashboard
+      : refreshDashboardQuote(base.dashboard, today)
   const coreAspects =
     base.lastActiveDate === today
       ? base.coreAspects
@@ -151,6 +156,7 @@ function prepareState(base: AppState): AppState {
 
   return {
     ...base,
+    dashboard,
     habits,
     coreAspects,
     bountyTasks:
@@ -171,6 +177,38 @@ const CHECK_TASK_XP = 2
 function sanitizeAccentColor(color: string | undefined): string {
   const trimmed = color?.trim() ?? ''
   return /^#(?:[0-9a-fA-F]{6})$/.test(trimmed) ? trimmed : '#a3e635'
+}
+
+function getRandomQuoteIndex(quoteCount: number, previousIndex: number | null) {
+  if (quoteCount <= 0) return null
+  if (quoteCount === 1) return 0
+
+  let next = Math.floor(Math.random() * quoteCount)
+  if (previousIndex !== null) {
+    while (next === previousIndex) {
+      next = Math.floor(Math.random() * quoteCount)
+    }
+  }
+  return next
+}
+
+function refreshDashboardQuote(dashboard: DashboardPrefs, today: string): DashboardPrefs {
+  return {
+    ...dashboard,
+    activeQuoteIndex: getRandomQuoteIndex(
+      dashboard.quotes.length,
+      dashboard.activeQuoteIndex,
+    ),
+    activeQuoteDate: today,
+  }
+}
+
+function hasValidQuoteIndex(dashboard: DashboardPrefs): boolean {
+  return (
+    dashboard.activeQuoteIndex !== null &&
+    dashboard.activeQuoteIndex >= 0 &&
+    dashboard.activeQuoteIndex < dashboard.quotes.length
+  )
 }
 
 function applyCoreAspectIncrements(
@@ -429,6 +467,10 @@ export function useAppState() {
         return {
           ...prev,
           habits: applyDailyReset(prev.habits, prev.lastActiveDate),
+          dashboard:
+            prev.dashboard.activeQuoteDate === today && hasValidQuoteIndex(prev.dashboard)
+              ? prev.dashboard
+              : refreshDashboardQuote(prev.dashboard, today),
           coreAspects: prev.coreAspects.map((aspect) =>
             aspect.progressToday > 0 ? { ...aspect, progressToday: 0 } : aspect,
           ),
@@ -464,6 +506,14 @@ export function useAppState() {
   const archivedHabits = useMemo(
     () => state.habits.filter((habit) => habit.archivedAt),
     [state.habits],
+  )
+  const activeRewards = useMemo(
+    () => state.rewards.filter((reward) => !reward.archivedAt),
+    [state.rewards],
+  )
+  const archivedRewards = useMemo(
+    () => state.rewards.filter((reward) => reward.archivedAt),
+    [state.rewards],
   )
   const accounts = useMemo<AccountSummary[]>(
     () =>
@@ -1257,6 +1307,7 @@ export function useAppState() {
   }, [updateCurrentState])
 
   const incrementCoreAspect = useCallback((id: string) => {
+    playCompletionChime()
     updateCurrentState((prev) => ({
       ...prev,
       coreAspects: prev.coreAspects.map((aspect) =>
@@ -1409,6 +1460,10 @@ export function useAppState() {
 
       return {
         ...prev,
+        dashboard:
+          prev.dashboard.activeQuoteDate === today && hasValidQuoteIndex(prev.dashboard)
+            ? prev.dashboard
+            : refreshDashboardQuote(prev.dashboard, today),
         habits,
         coreAspects,
         bountyTasks,
@@ -1453,6 +1508,7 @@ export function useAppState() {
           ...empty.dashboard,
           quotes: prev.dashboard.quotes,
           activeQuoteIndex: prev.dashboard.activeQuoteIndex,
+          activeQuoteDate: prev.dashboard.activeQuoteDate,
         },
       }
     })
@@ -1523,7 +1579,7 @@ export function useAppState() {
 
     updateCurrentState((prev) => {
       const reward = prev.rewards.find((r) => r.id === rewardId)
-      if (!reward) return prev
+      if (!reward || reward.archivedAt) return prev
 
       const available = prev.profile.shopXp ?? 0
       if (available < reward.cost) {
@@ -1570,6 +1626,7 @@ export function useAppState() {
       }
 
       const rewardPool = prev.rewards.filter((reward) => {
+        if (reward.archivedAt) return false
         if (!prev.preferences.dailySpinRewardIds.includes(reward.id)) return false
         if (!reward.oneTime) return true
         return !prev.purchasedRewards.some((purchase) => purchase.rewardId === reward.id)
@@ -1647,6 +1704,7 @@ export function useAppState() {
           imageUrl: input.imageUrl ?? null,
           cost,
           oneTime: input.oneTime,
+          archivedAt: null,
         },
       ],
     }))
@@ -1672,6 +1730,8 @@ export function useAppState() {
             patch.cost == null
               ? reward.cost
               : Math.max(0, Math.round(patch.cost)),
+          archivedAt:
+            patch.archivedAt === undefined ? reward.archivedAt ?? null : patch.archivedAt,
         }
       }),
     }))
@@ -1679,17 +1739,36 @@ export function useAppState() {
   }, [updateCurrentState])
 
   const removeReward = useCallback((rewardId: string) => {
-    let removed = false
+    const today = getTodayISO()
+    let archived = false
     updateCurrentState((prev) => {
-      if (!prev.rewards.some((reward) => reward.id === rewardId)) return prev
-      removed = true
+      const reward = prev.rewards.find((item) => item.id === rewardId)
+      if (!reward || reward.archivedAt) return prev
+      archived = true
       return {
         ...prev,
-        rewards: prev.rewards.filter((reward) => reward.id !== rewardId),
-        purchasedRewards: prev.purchasedRewards.filter((purchase) => purchase.rewardId !== rewardId),
+        rewards: prev.rewards.map((item) =>
+          item.id === rewardId ? { ...item, archivedAt: today } : item,
+        ),
       }
     })
-    return removed
+    return archived
+  }, [updateCurrentState])
+
+  const restoreReward = useCallback((rewardId: string) => {
+    let restored = false
+    updateCurrentState((prev) => {
+      const reward = prev.rewards.find((item) => item.id === rewardId)
+      if (!reward || !reward.archivedAt) return prev
+      restored = true
+      return {
+        ...prev,
+        rewards: prev.rewards.map((item) =>
+          item.id === rewardId ? { ...item, archivedAt: null } : item,
+        ),
+      }
+    })
+    return restored
   }, [updateCurrentState])
 
   const reorderReward = useCallback((draggedId: string, targetId: string) => {
@@ -1823,7 +1902,8 @@ export function useAppState() {
     preferences,
     completions: state.completions,
     timeRecords: state.timeRecords,
-    rewards: state.rewards,
+    rewards: activeRewards,
+    archivedRewards,
     purchasedRewards: state.purchasedRewards,
     dailySpinUsed: state.lastDailySpinDate === getTodayISO(),
     profile,
@@ -1873,6 +1953,7 @@ export function useAppState() {
     addReward,
     updateReward,
     removeReward,
+    restoreReward,
     reorderReward,
     updateProfile,
     createAccount,

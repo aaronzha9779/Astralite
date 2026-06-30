@@ -231,6 +231,7 @@ export const defaultAppState: AppState = {
     weeklyOpen: false,
     collapsedCategories: {},
     activeQuoteIndex: null,
+    activeQuoteDate: today,
   },
   profile: {
     name: 'Grinder',
@@ -273,6 +274,7 @@ export function createEmptyAppState(): AppState {
       weeklyOpen: false,
       collapsedCategories: {},
       activeQuoteIndex: null,
+      activeQuoteDate: getTodayISO(),
     },
     profile: {
       name: 'Grinder',
