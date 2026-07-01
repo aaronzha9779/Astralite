@@ -301,6 +301,20 @@
   gap: 0.75rem;
 }
 
+.shop__archive-toggle {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
 .shop__archive-head {
   display: flex;
   align-items: flex-end;
@@ -311,6 +325,17 @@
 .shop__archive-count {
   font-size: 0.75rem;
   color: var(--text-muted);
+}
+
+.shop__archive-chevron {
+  flex-shrink: 0;
+  margin-top: 0.15rem;
+  color: var(--text-muted);
+  transition: transform 0.2s ease;
+}
+
+.shop__archive-chevron--open {
+  transform: rotate(180deg);
 }
 
 .shop__archive-empty {
@@ -348,6 +373,14 @@
   white-space: nowrap;
 }
 
+.shop__delete--subtle {
+  padding: 0.35rem 0.55rem;
+  border-color: transparent;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+
 .shop__buy {
   border-color: color-mix(in srgb, var(--accent) 50%, var(--border));
   background: color-mix(in srgb, var(--accent) 12%, var(--surface));
@@ -364,6 +397,11 @@
 .shop__delete:hover:not(:disabled),
 .shop__save:hover:not(:disabled) {
   border-color: var(--accent);
+}
+
+.shop__delete--subtle:hover:not(:disabled) {
+  border-color: transparent;
+  background: color-mix(in srgb, var(--border) 24%, transparent);
 }
 
 .shop__buy:disabled,

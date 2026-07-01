@@ -170,9 +170,9 @@ function prepareState(base: AppState): AppState {
   }
 }
 
-const WEEKLY_TASK_XP = 10
+const WEEKLY_TASK_XP = 100
 const BOUNTY_TASK_XP = 25
-const CHECK_TASK_XP = 2
+const CHECK_TASK_XP = 20
 
 function sanitizeAccentColor(color: string | undefined): string {
   const trimmed = color?.trim() ?? ''

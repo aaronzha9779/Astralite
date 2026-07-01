@@ -116,6 +116,7 @@ export function Shop({
   const [spinRotation, setSpinRotation] = useState(0)
   const [spinResult, setSpinResult] = useState<DailySpinResult | null>(null)
   const [spinSpinning, setSpinSpinning] = useState(false)
+  const [archiveOpen, setArchiveOpen] = useState(false)
   const [requestedSelectedRewardId, setSelectedRewardId] = useState<string | null>(
     rewards[0]?.id ?? null,
   )
@@ -441,7 +442,7 @@ export function Shop({
             </button>
             <button
               type="button"
-              className="shop__delete"
+              className="shop__delete shop__delete--subtle"
               onClick={() => {
                 const archived = onRemoveReward(selectedReward.id)
                 if (!archived) {
@@ -518,7 +519,7 @@ export function Shop({
                   </button>
                   <button
                     type="button"
-                    className="shop__delete"
+                    className="shop__delete shop__delete--subtle"
                     onClick={(e) => {
                       e.stopPropagation()
                       if (editingId === reward.id) resetEditor()
@@ -551,65 +552,77 @@ export function Shop({
       </ul>
 
       <section className="shop__archive" aria-label="Archived rewards">
-        <div className="shop__archive-head">
-          <div>
-            <h2 className="dashboard__section-title">Rewards archive</h2>
-            <p className="shop__editor-hint">
-              Archived rewards stay saved here until you bring them back.
-            </p>
+        <button
+          type="button"
+          className="shop__archive-toggle"
+          onClick={() => setArchiveOpen((value) => !value)}
+          aria-expanded={archiveOpen}
+        >
+          <div className="shop__archive-head">
+            <div>
+              <h2 className="dashboard__section-title">Rewards archive</h2>
+              <p className="shop__editor-hint">
+                Archived rewards stay saved here until you bring them back.
+              </p>
+            </div>
+            <span className="shop__archive-count">{archivedRewards.length} archived</span>
           </div>
-          <span className="shop__archive-count">{archivedRewards.length} archived</span>
-        </div>
+          <span className={`shop__archive-chevron${archiveOpen ? ' shop__archive-chevron--open' : ''}`} aria-hidden="true">
+            ▾
+          </span>
+        </button>
 
-        {archivedRewards.length === 0 ? (
-          <p className="shop__archive-empty">No archived rewards yet.</p>
-        ) : (
-          <ul className="shop__grid shop__grid--archive">
-            {archivedRewards.map((reward) => (
-              <li key={reward.id} className="shop__card shop__card--archived">
-                <div className="shop__card-top">
-                  <span className="shop__drag" aria-hidden="true">
-                    ▣
-                  </span>
-                  {reward.imageUrl ? (
-                    <img className="shop__symbol-img" src={reward.imageUrl} alt="" />
-                  ) : (
-                    <span className="shop__emoji" aria-hidden="true">
-                      {reward.emoji}
+        {archiveOpen ? (
+          archivedRewards.length === 0 ? (
+            <p className="shop__archive-empty">No archived rewards yet.</p>
+          ) : (
+            <ul className="shop__grid shop__grid--archive">
+              {archivedRewards.map((reward) => (
+                <li key={reward.id} className="shop__card shop__card--archived">
+                  <div className="shop__card-top">
+                    <span className="shop__drag" aria-hidden="true">
+                      ▣
                     </span>
-                  )}
-                </div>
-                <div className="shop__info">
-                  <h2 className="shop__name">{reward.name}</h2>
-                  <p className="shop__desc">{reward.description}</p>
-                </div>
-                <div className="shop__meta">
-                  <span className="shop__cost">{reward.cost} UXP</span>
-                  <span className="shop__type">Archived</span>
-                </div>
-                <div className="shop__footer">
-                  <span className="shop__archive-date">
-                    {reward.archivedAt ? `Archived ${new Date(reward.archivedAt).toLocaleDateString()}` : 'Archived'}
-                  </span>
-                  <button
-                    type="button"
-                    className="shop__buy shop__buy--success"
-                    onClick={() => {
-                      const restored = onRestoreReward(reward.id)
-                      if (!restored) {
-                        showMessage('Reward could not be restored.')
-                        return
-                      }
-                      showMessage(`Restored ${reward.name}.`)
-                    }}
-                  >
-                    Restore
-                  </button>
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
+                    {reward.imageUrl ? (
+                      <img className="shop__symbol-img" src={reward.imageUrl} alt="" />
+                    ) : (
+                      <span className="shop__emoji" aria-hidden="true">
+                        {reward.emoji}
+                      </span>
+                    )}
+                  </div>
+                  <div className="shop__info">
+                    <h2 className="shop__name">{reward.name}</h2>
+                    <p className="shop__desc">{reward.description}</p>
+                  </div>
+                  <div className="shop__meta">
+                    <span className="shop__cost">{reward.cost} UXP</span>
+                    <span className="shop__type">Archived</span>
+                  </div>
+                  <div className="shop__footer">
+                    <span className="shop__archive-date">
+                      {reward.archivedAt ? `Archived ${new Date(reward.archivedAt).toLocaleDateString()}` : 'Archived'}
+                    </span>
+                    <button
+                      type="button"
+                      className="shop__buy shop__buy--success"
+                      onClick={() => {
+                        const restored = onRestoreReward(reward.id)
+                        if (!restored) {
+                          showMessage('Reward could not be restored.')
+                          return
+                        }
+                        showMessage(`Restored ${reward.name}.`)
+                      }}
+                    >
+                      Restore
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )
+        ) : null}
       </section>
 
       {spinOpen ? (

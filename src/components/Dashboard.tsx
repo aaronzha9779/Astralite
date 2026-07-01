@@ -162,7 +162,7 @@ export function Dashboard({
       <WeeklyTasksPanel
         tasks={checks}
         title="Checks"
-        xpReward={2}
+        xpReward={20}
         placeholder="Add quick check…"
         emptyMessage="No checks yet — add a lightweight item when you want quick XP."
         open={dashboard.checksOpen}
@@ -174,7 +174,7 @@ export function Dashboard({
 
       <WeeklyTasksPanel
         tasks={weeklyTasks}
-        xpReward={10}
+        xpReward={100}
         open={dashboard.weeklyOpen}
         onOpenChange={onWeeklyOpenChange}
         onToggle={onWeeklyToggle}
