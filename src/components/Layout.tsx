@@ -1,14 +1,14 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { mainNavItems, shopNavItem } from '../data/fakeData'
 import { useAppState } from '../hooks/useAppState'
 import { Dashboard } from './Dashboard'
+import { IntegrationProtocolsPage } from './IntegrationProtocolsPage'
 import { HabitsPage } from './HabitsPage'
 import { Header } from './Header'
 import { SettingsPage } from './SettingsPage'
 import { Shop } from './Shop'
 import { Sidebar } from './Sidebar'
 import { StatsPage } from './StatsPage'
-import { TimerPage } from './TimerPage'
 import './Layout.css'
 
 export function Layout() {
@@ -22,6 +22,7 @@ export function Layout() {
     bountyTasks,
     checks,
     weeklyTasks,
+    protocols,
     dashboard,
     archivedRewards,
     completions,
@@ -35,8 +36,6 @@ export function Layout() {
     statsPageSummary,
     toggleHabit,
     incrementHobby,
-    addManualTime,
-    logTimerSession,
     setLinkedHabits,
     setLinkedCoreAspects,
     renameHabit,
@@ -58,7 +57,9 @@ export function Layout() {
     setBountiesOpen,
     setChecksOpen,
     setCategoryCollapsed,
+    setSidebarOpen,
     setWeeklyOpen,
+    setSettingsSectionOpen,
     setDailyGoal,
     resetToday,
     resetBestDay,
@@ -82,35 +83,13 @@ export function Layout() {
     exportSaveFile,
     importSaveFile,
     saveError,
+    updateProtocols,
   } = useAppState()
-  const [timerHabitId, setTimerHabitId] = useState(habits[0]?.id ?? '')
-  const [timerElapsed, setTimerElapsed] = useState(0)
-  const [timerRunning, setTimerRunning] = useState(false)
-  const selectedTimerHabitId = useMemo(
-    () => (habits.some((habit) => habit.id === timerHabitId) ? timerHabitId : (habits[0]?.id ?? '')),
-    [habits, timerHabitId],
-  )
   const rawXpByHabit = useMemo(() => {
     return Object.fromEntries(
       habits.map((habit) => [habit.id, habit.totalXpEarned ?? 0]),
     )
   }, [habits])
-
-  useEffect(() => {
-    if (!timerRunning) return
-    const intervalId = window.setInterval(() => {
-      setTimerElapsed((value) => value + 1)
-    }, 1000)
-    return () => window.clearInterval(intervalId)
-  }, [timerRunning])
-
-  function handleTimerReset() {
-    setTimerRunning(false)
-    if (timerElapsed >= 60 && selectedTimerHabitId) {
-      logTimerSession(selectedTimerHabitId, Math.round(timerElapsed / 60))
-    }
-    setTimerElapsed(0)
-  }
 
   function renderMain() {
     if (activeNavId === 'dashboard') {
@@ -149,18 +128,12 @@ export function Layout() {
       )
     }
 
-    if (activeNavId === 'timer') {
+    if (activeNavId === 'protocols') {
       return (
-        <TimerPage
-          habits={habits}
-          habitId={selectedTimerHabitId}
-          elapsed={timerElapsed}
-          running={timerRunning}
-          onHabitIdChange={setTimerHabitId}
-          onStart={() => setTimerRunning(true)}
-          onStop={() => setTimerRunning(false)}
-          onReset={handleTimerReset}
-          onManualTime={addManualTime}
+        <IntegrationProtocolsPage
+          protocols={protocols}
+          rewards={rewards}
+          onUpdateProtocols={updateProtocols}
         />
       )
     }
@@ -237,6 +210,7 @@ export function Layout() {
           profile={profile}
           accounts={accounts}
           activeAccountId={activeAccountId}
+          settingsSections={dashboard.settingsSections}
           onUpdateProfile={updateProfile}
           onCreateAccount={createAccount}
           onDeleteAccount={deleteAccount}
@@ -247,6 +221,7 @@ export function Layout() {
           canResetBestDay={statsPageSummary.some((stat) => stat.id === 'best-day' && stat.value !== '—')}
           onSoftReset={softReset}
           onFullReset={fullReset}
+          onSettingsSectionOpenChange={setSettingsSectionOpen}
         />
       )
     }
@@ -276,6 +251,8 @@ export function Layout() {
           profile={profile}
           accounts={accounts}
           activeAccountId={activeAccountId}
+          open={dashboard.sidebarOpen}
+          onOpenChange={setSidebarOpen}
           onSwitchAccount={switchAccount}
           onExportSaveFile={exportSaveFile}
           onImportSaveFile={importSaveFile}

@@ -1,7 +1,15 @@
 import { getTodayISO } from '../lib/dates'
 import { DEFAULT_RANKS } from './ranks'
 import { rewards } from './rewards'
-import type { AppPreferences, AppState, CompletionRecord, CoreAspect, Habit } from '../types'
+import type {
+  AppPreferences,
+  AppState,
+  CompletionRecord,
+  CoreAspect,
+  Habit,
+  IntegrationProtocol,
+  ProtocolStep,
+} from '../types'
 
 const today = getTodayISO()
 const defaultPreferences: AppPreferences = {
@@ -159,6 +167,83 @@ const seedCoreAspects: CoreAspect[] = [
   { id: 'ca5', name: 'Creativity', progressToday: 6, totalProgress: 106 },
 ]
 
+function createProtocolStep(
+  id: string,
+  title: string,
+  children: ProtocolStep[] = [],
+): ProtocolStep {
+  return { id, title, done: false, children }
+}
+
+const seedProtocols: IntegrationProtocol[] = [
+  {
+    id: 'ip1',
+    title: 'Health Core Loop',
+    summary: 'Build a clean daily baseline that unlocks the rest of the tree.',
+    thumbnailLabel: 'VITAL',
+    thumbnailUrl: null,
+    priority: 5,
+    active: true,
+    archivedAt: null,
+    structure: 'standard',
+    intervalDays: null,
+    deadline: null,
+    rewardId: null,
+    rewardName: 'Streak Badge',
+    steps: [
+      createProtocolStep('ip1-s1', 'Hydrate before coffee'),
+      createProtocolStep('ip1-s2', 'Workout / mobility block', [
+        createProtocolStep('ip1-s2a', 'Warm up'),
+        createProtocolStep('ip1-s2b', 'Main set'),
+      ]),
+      createProtocolStep('ip1-s3', 'Skincare and reset the space'),
+    ],
+    updatedAt: today,
+  },
+  {
+    id: 'ip2',
+    title: 'Anti-Regression Protocol',
+    summary: 'Use spaced recall to keep old wins from sliding back.',
+    thumbnailLabel: 'RECALL',
+    thumbnailUrl: null,
+    priority: 4,
+    active: false,
+    archivedAt: null,
+    structure: 'recall',
+    intervalDays: 2,
+    deadline: null,
+    rewardId: null,
+    rewardName: 'Recall Token',
+    steps: [
+      createProtocolStep('ip2-s1', 'Review the previous layer'),
+      createProtocolStep('ip2-s2', 'Repeat the default replacement'),
+      createProtocolStep('ip2-s3', 'Log the friction point'),
+    ],
+    updatedAt: today,
+  },
+  {
+    id: 'ip3',
+    title: 'Skill Ascension',
+    summary: 'Stack deliberate practice into a clean mastery ladder.',
+    thumbnailLabel: 'SKILL',
+    thumbnailUrl: null,
+    priority: 3,
+    active: false,
+    archivedAt: null,
+    structure: 'standard',
+    intervalDays: null,
+    deadline: null,
+    rewardId: null,
+    rewardName: 'Mastery Chest',
+    steps: [
+      createProtocolStep('ip3-s1', 'Choose the smallest possible rep'),
+      createProtocolStep('ip3-s2', 'Execute one clean set'),
+      createProtocolStep('ip3-s3', 'Capture the next adjustment'),
+    ],
+    updatedAt: today,
+  },
+]
+
 function toLocalISODate(d: Date): string {
   const y = d.getFullYear()
   const m = String(d.getMonth() + 1).padStart(2, '0')
@@ -219,6 +304,7 @@ export const defaultAppState: AppState = {
     { id: 'w1', name: 'Meal prep Sunday', done: false },
     { id: 'w2', name: 'Review goals', done: true },
   ],
+  protocols: structuredClone(seedProtocols),
   dashboard: {
     quotes: [
       'Small steps every day beat big bursts once a month.',
@@ -229,6 +315,13 @@ export const defaultAppState: AppState = {
     bountiesOpen: false,
     checksOpen: false,
     weeklyOpen: false,
+    sidebarOpen: true,
+    settingsSections: {
+      accounts: true,
+      visuals: true,
+      progression: true,
+      danger: true,
+    },
     collapsedCategories: {},
     activeQuoteIndex: null,
     activeQuoteDate: today,
@@ -262,6 +355,7 @@ export function createEmptyAppState(): AppState {
     bountyTasks: [],
     checks: [],
     weeklyTasks: [],
+    protocols: [],
     dashboard: {
       quotes: [
         'Small steps every day beat big bursts once a month.',
@@ -272,6 +366,13 @@ export function createEmptyAppState(): AppState {
       bountiesOpen: false,
       checksOpen: false,
       weeklyOpen: false,
+      sidebarOpen: true,
+      settingsSections: {
+        accounts: true,
+        visuals: true,
+        progression: true,
+        danger: true,
+      },
       collapsedCategories: {},
       activeQuoteIndex: null,
       activeQuoteDate: getTodayISO(),

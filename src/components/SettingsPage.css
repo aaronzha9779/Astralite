@@ -127,15 +127,30 @@
 }
 
 .settings-page__details-summary {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
   cursor: pointer;
   list-style: none;
+  padding-right: 1.5rem;
 }
 
 .settings-page__details-summary::-webkit-details-marker {
   display: none;
+}
+
+.settings-page__details-summary::after {
+  content: '▾';
+  position: absolute;
+  right: 0;
+  top: 0.1rem;
+  color: var(--text-muted);
+  transition: transform 0.2s ease;
+}
+
+.settings-page__details[open] > .settings-page__details-summary::after {
+  transform: rotate(180deg);
 }
 
 .settings-page__details-body {

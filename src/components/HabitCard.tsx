@@ -1,11 +1,12 @@
 import { useState } from 'react'
 import { playCompletionChime } from '../lib/audio'
 import { getHabitMaturity } from '../lib/maturity'
-import type { Habit } from '../types'
+import type { AppPreferences, Habit } from '../types'
 import './HabitCard.css'
 
 type HabitCardProps = {
   habit: Habit
+  preferences: AppPreferences
   streakSymbol: string
   streakSymbolImageUrl: string | null
   completionXp: number
@@ -17,6 +18,7 @@ type HabitCardProps = {
 
 export function HabitCard({
   habit,
+  preferences,
   streakSymbol,
   streakSymbolImageUrl,
   completionXp,
@@ -27,7 +29,7 @@ export function HabitCard({
 }: HabitCardProps) {
   const [showXp, setShowXp] = useState(false)
   const displayStreakSymbol = habit.streak > 30 ? '❤️‍🔥' : streakSymbol
-  const maturity = getHabitMaturity(rawXpEarned)
+  const maturity = getHabitMaturity(rawXpEarned, preferences)
   const isHobby = habit.category === 'hobby'
   const backgroundProgress = isHobby ? Math.min(100, habit.progressToday) : habit.doneToday ? 100 : 0
 
@@ -94,7 +96,7 @@ export function HabitCard({
             </span>
             <span className="habit-card__progress-label">
               {isHobby
-                ? `${habit.progressToday} / 100 progress`
+                ? `${habit.progressToday} / 100 today`
                 : `${maturity.minutes} / ${maturity.minutesToNext} XP to next`}
             </span>
           </span>

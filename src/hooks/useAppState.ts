@@ -36,9 +36,11 @@ import type {
   CompletionRecord,
   CoreAspect,
   DashboardPrefs,
+  IntegrationProtocol,
   Habit,
   HabitCategory,
   Reward,
+  SettingsSection,
 } from '../types'
 
 type AccountsState = {
@@ -280,10 +282,10 @@ function removeHabitSettings(
   preferences: AppState['preferences'],
   habitId: string,
 ): AppState['preferences'] {
-  const { [habitId]: _removedCompletionXp, ...itemCompletionXp } =
-    preferences.itemCompletionXp
-  const { [habitId]: _removedBaseMinutes, ...itemBaseMinutes } =
-    preferences.itemBaseMinutes
+  const itemCompletionXp = { ...preferences.itemCompletionXp }
+  delete itemCompletionXp[habitId]
+  const itemBaseMinutes = { ...preferences.itemBaseMinutes }
+  delete itemBaseMinutes[habitId]
 
   return {
     ...preferences,
@@ -1364,6 +1366,39 @@ export function useAppState() {
     }))
   }, [updateCurrentState])
 
+  const updateProtocols = useCallback(
+    (updater: (protocols: IntegrationProtocol[]) => IntegrationProtocol[]) => {
+      updateCurrentState((prev) => ({
+        ...prev,
+        protocols: updater(prev.protocols ?? []),
+      }))
+    },
+    [updateCurrentState],
+  )
+
+  const setSidebarOpen = useCallback((open: boolean) => {
+    updateCurrentState((prev) => ({
+      ...prev,
+      dashboard: { ...prev.dashboard, sidebarOpen: open },
+    }))
+  }, [updateCurrentState])
+
+  const setSettingsSectionOpen = useCallback(
+    (section: SettingsSection, open: boolean) => {
+      updateCurrentState((prev) => ({
+        ...prev,
+        dashboard: {
+          ...prev.dashboard,
+          settingsSections: {
+            ...prev.dashboard.settingsSections,
+            [section]: open,
+          },
+        },
+      }))
+    },
+    [updateCurrentState],
+  )
+
   const setCategoryCollapsed = useCallback(
     (category: HabitCategory, collapsed: boolean) => {
       updateCurrentState((prev) => ({
@@ -1898,6 +1933,7 @@ export function useAppState() {
     bountyTasks: state.bountyTasks,
     checks: state.checks,
     weeklyTasks: state.weeklyTasks,
+    protocols: state.protocols,
     dashboard: state.dashboard,
     preferences,
     completions: state.completions,
@@ -1938,7 +1974,10 @@ export function useAppState() {
     setBountiesOpen,
     setChecksOpen,
     setCategoryCollapsed,
+    setSidebarOpen,
     setWeeklyOpen,
+    updateProtocols,
+    setSettingsSectionOpen,
     setDailyGoal,
     updatePreferences,
     resetToday,

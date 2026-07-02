@@ -84,6 +84,7 @@ export function TaskColumn({
             <HabitCard
               key={habit.id}
               habit={habit}
+              preferences={preferences}
               completionXp={preferences.itemCompletionXp[habit.id] ?? 15}
               rawXpEarned={rawXpByHabit[habit.id] ?? 0}
               streakSymbol={streakSymbol}

@@ -9,6 +9,7 @@ import type {
   WeeklyTask,
 } from '../types'
 import { HabitOverviewCard } from './HabitOverviewCard'
+import { FocusTimer } from './FocusTimer'
 import './HabitsPage.css'
 
 const CATEGORIES: {
@@ -67,6 +68,8 @@ export function HabitsPage({
   const [selectedByCategory, setSelectedByCategory] = useState<
     Partial<Record<HabitCategory | 'bounty', string>>
   >({})
+  const [archivedOpen, setArchivedOpen] = useState(false)
+  const [focusMinutes, setFocusMinutes] = useState(25)
 
   const byCategory = useMemo(() => {
     const map: Record<HabitCategory, Habit[]> = {
@@ -91,6 +94,15 @@ export function HabitsPage({
       : bountyTasks[0]?.id
     return next
   }, [bountyTasks, byCategory, selectedByCategory])
+  const focusTarget = useMemo(() => {
+    if (habits.length === 0) return null
+
+    return [...habits].sort((a, b) => {
+      if (b.priority !== a.priority) return b.priority - a.priority
+      if (b.streak !== a.streak) return b.streak - a.streak
+      return a.name.localeCompare(b.name)
+    })[0] ?? null
+  }, [habits])
 
   return (
     <main className="dashboard habits-page">
@@ -100,6 +112,23 @@ export function HabitsPage({
           Track progress, link related items, and manage your testing resets
         </p>
       </header>
+
+      {focusTarget ? (
+        <section className="habits-page__focus-shell" aria-label="Focus timer">
+          <div className="habits-page__focus-copy">
+            <p className="habits-page__focus-kicker">Compact focus window</p>
+            <h2 className="habits-page__focus-title">{focusTarget.name}</h2>
+            <p className="habits-page__focus-subtitle">
+              The timer now lives here, collapsed by default, and follows your highest-priority active card.
+            </p>
+          </div>
+          <FocusTimer
+            habitName={focusTarget.name}
+            minutes={focusMinutes}
+            onMinutesChange={setFocusMinutes}
+          />
+        </section>
+      ) : null}
 
       {CATEGORIES.map(({ key, title, subtitle }) => {
         const items = byCategory[key]
@@ -159,39 +188,68 @@ export function HabitsPage({
 
       {archivedHabits.length > 0 ? (
         <section className="habits-page__section" aria-label="Archived habits">
-          <header className="habits-page__section-header">
-            <div>
-              <h2 className="habits-page__section-title">Archived</h2>
-              <p className="habits-page__section-subtitle">
-                Hidden from the active boards. Restore them whenever you want.
-              </p>
+          <button
+            type="button"
+            className="habits-page__archive-toggle"
+            onClick={() => setArchivedOpen((value) => !value)}
+            aria-expanded={archivedOpen}
+          >
+            <div className="habits-page__section-header">
+              <div>
+                <h2 className="habits-page__section-title">Archived cards</h2>
+                <p className="habits-page__section-subtitle">
+                  Hidden from the active boards. Restore them whenever you want.
+                </p>
+              </div>
+              <span className="habits-page__count">{archivedHabits.length} items</span>
             </div>
-            <span className="habits-page__count">{archivedHabits.length} items</span>
-          </header>
+            <span
+              className={`habits-page__archive-chevron${archivedOpen ? ' habits-page__archive-chevron--open' : ''}`}
+              aria-hidden="true"
+            >
+              ▾
+            </span>
+          </button>
 
-          <div className="habits-page__grid">
-            {archivedHabits.map((habit) => (
-              <HabitOverviewCard
-                key={habit.id}
-                habit={habit}
-                streakSymbol={streakSymbol}
-                streakSymbolImageUrl={streakSymbolImageUrl}
-                rawXpEarned={habit.totalXpEarned ?? 0}
-                preferences={preferences}
-                allHabits={habits}
-                allCoreAspects={coreAspects}
-                timeRecords={timeRecords}
-                onToggle={onToggle}
-                onRename={onRenameHabit}
-                onSetLinked={onSetLinked}
-                onSetLinkedCoreAspects={onSetLinkedCoreAspects}
-                onArchive={onArchiveHabit}
-                onDelete={onDeleteHabit}
-                onRestore={onRestoreHabit}
-                archived
-              />
-            ))}
-          </div>
+          {archivedOpen ? (
+            <div className="habits-page__grid">
+              {archivedHabits.map((habit) => (
+                <HabitOverviewCard
+                  key={habit.id}
+                  habit={habit}
+                  streakSymbol={streakSymbol}
+                  streakSymbolImageUrl={streakSymbolImageUrl}
+                  rawXpEarned={habit.totalXpEarned ?? 0}
+                  preferences={preferences}
+                  allHabits={habits}
+                  allCoreAspects={coreAspects}
+                  timeRecords={timeRecords}
+                  onToggle={onToggle}
+                  onRename={onRenameHabit}
+                  onSetLinked={onSetLinked}
+                  onSetLinkedCoreAspects={onSetLinkedCoreAspects}
+                  onArchive={onArchiveHabit}
+                  onDelete={onDeleteHabit}
+                  onRestore={onRestoreHabit}
+                  archived
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="habits-page__collapsed-state">
+              <span className="habits-page__collapsed-pill">Archived hidden</span>
+              <span className="habits-page__collapsed-meta">
+                {archivedHabits.length} saved for later
+              </span>
+              <button
+                type="button"
+                className="habits-page__collapse-btn"
+                onClick={() => setArchivedOpen(true)}
+              >
+                Show archived
+              </button>
+            </div>
+          )}
         </section>
       ) : null}
 

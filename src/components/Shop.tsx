@@ -443,6 +443,7 @@ export function Shop({
             <button
               type="button"
               className="shop__delete shop__delete--subtle"
+              title="Archive this reward"
               onClick={() => {
                 const archived = onRemoveReward(selectedReward.id)
                 if (!archived) {
@@ -520,6 +521,7 @@ export function Shop({
                   <button
                     type="button"
                     className="shop__delete shop__delete--subtle"
+                    title="Archive this reward"
                     onClick={(e) => {
                       e.stopPropagation()
                       if (editingId === reward.id) resetEditor()
@@ -606,6 +608,7 @@ export function Shop({
                     <button
                       type="button"
                       className="shop__buy shop__buy--success"
+                      title="Restore this reward"
                       onClick={() => {
                         const restored = onRestoreReward(reward.id)
                         if (!restored) {

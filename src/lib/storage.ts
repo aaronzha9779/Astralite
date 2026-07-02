@@ -8,8 +8,10 @@ import type {
   AppState,
   CoreAspect,
   DashboardPrefs,
+  IntegrationProtocol,
   Habit,
   HabitCategory,
+  ProtocolStep,
 } from '../types'
 
 const STORAGE_KEY = 'grind-app-v5'
@@ -117,6 +119,7 @@ function migrate(raw: unknown): AppState | null {
     bountyTasks: [],
     checks: [],
     weeklyTasks: [],
+    protocols: [],
     dashboard: defaultDashboard,
   } as AppState)
 }
@@ -131,6 +134,13 @@ const defaultDashboard: DashboardPrefs = {
   bountiesOpen: false,
   checksOpen: false,
   weeklyOpen: false,
+  sidebarOpen: true,
+  settingsSections: {
+    accounts: true,
+    visuals: true,
+    progression: true,
+    danger: true,
+  },
   collapsedCategories: {},
   activeQuoteIndex: null,
   activeQuoteDate: getTodayISO(),
@@ -198,6 +208,48 @@ function normalizeCoreAspect(
   }
 }
 
+function normalizeProtocolStep(
+  step: Partial<ProtocolStep> | undefined,
+  index: number,
+): ProtocolStep {
+  return {
+    id: step?.id ?? `protocol-step-${index + 1}`,
+    title: step?.title?.trim() || `Step ${index + 1}`,
+    done: !!step?.done,
+    children: (step?.children ?? []).map((child, childIndex) =>
+      normalizeProtocolStep(child, childIndex),
+    ),
+  }
+}
+
+function normalizeProtocol(
+  protocol: Partial<IntegrationProtocol> | undefined,
+  index: number,
+): IntegrationProtocol {
+  return {
+    id: protocol?.id ?? `protocol-${index + 1}`,
+    title: protocol?.title?.trim() || `Protocol ${index + 1}`,
+    summary: protocol?.summary?.trim() || 'Integration protocol',
+    thumbnailLabel: protocol?.thumbnailLabel?.trim() || 'QUEST',
+    thumbnailUrl: protocol?.thumbnailUrl ?? null,
+    priority: Math.min(5, Math.max(1, Math.round(protocol?.priority ?? 3))),
+    active: !!protocol?.active,
+    archivedAt: protocol?.archivedAt ?? null,
+    structure: protocol?.structure === 'recall' ? 'recall' : 'standard',
+    intervalDays:
+      protocol?.structure === 'recall'
+        ? Math.max(1, Math.round(protocol?.intervalDays ?? 1))
+        : null,
+    deadline: protocol?.deadline ?? null,
+    rewardId: protocol?.rewardId ?? null,
+    rewardName: protocol?.rewardName?.trim() ?? null,
+    steps: (protocol?.steps ?? []).map((step, stepIndex) =>
+      normalizeProtocolStep(step, stepIndex),
+    ),
+    updatedAt: protocol?.updatedAt ?? new Date().toISOString(),
+  }
+}
+
 function normalizeProfile(profile: LegacyProfile): AppState['profile'] {
   const totalMinutes =
     profile.totalMinutes ??
@@ -244,12 +296,19 @@ function normalizeState(state: AppState): AppState {
     bountyTasks: state.bountyTasks ?? [],
     checks: state.checks ?? [],
     weeklyTasks: state.weeklyTasks ?? [],
+    protocols: (state.protocols ?? []).map((protocol, index) =>
+      normalizeProtocol(protocol, index),
+    ),
     dashboard: {
       ...defaultDashboard,
       ...state.dashboard,
       collapsedCategories: {
         ...defaultDashboard.collapsedCategories,
         ...state.dashboard?.collapsedCategories,
+      },
+      settingsSections: {
+        ...defaultDashboard.settingsSections,
+        ...state.dashboard?.settingsSections,
       },
       quotes:
         state.dashboard?.quotes?.length

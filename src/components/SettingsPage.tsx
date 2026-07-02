@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from 'react'
-import type { AccountSummary, AppPreferences, RankTier, Reward, UserProfile } from '../types'
+import type { AccountSummary, AppPreferences, RankTier, Reward, SettingsSection, UserProfile } from '../types'
 import './SettingsPage.css'
 
 type SettingsPageProps = {
@@ -8,6 +8,7 @@ type SettingsPageProps = {
   activeAccountId: string
   preferences: AppPreferences
   rewards: Reward[]
+  settingsSections: Partial<Record<SettingsSection, boolean>>
   onUpdateProfile: (patch: {
     name?: string
     handle?: string
@@ -22,6 +23,7 @@ type SettingsPageProps = {
   canResetBestDay: boolean
   onSoftReset: () => void
   onFullReset: () => void
+  onSettingsSectionOpenChange: (section: SettingsSection, open: boolean) => void
 }
 
 function readFileAsDataUrl(file: File): Promise<string> {
@@ -383,6 +385,7 @@ function ProgressionEditor({
                   type="button"
                   className="settings-page__btn settings-page__btn--danger"
                   disabled={ranks.length <= 1}
+                  title="Delete this rank"
                   onClick={() => removeRank(rank.id)}
                 >
                   Delete rank
@@ -466,6 +469,7 @@ export function SettingsPage({
   activeAccountId,
   preferences,
   rewards,
+  settingsSections,
   onUpdateProfile,
   onCreateAccount,
   onDeleteAccount,
@@ -474,6 +478,7 @@ export function SettingsPage({
   canResetBestDay,
   onSoftReset,
   onFullReset,
+  onSettingsSectionOpenChange,
 }: SettingsPageProps) {
   const [accountName, setAccountName] = useState('')
   const [accountHandle, setAccountHandle] = useState('')
@@ -600,193 +605,209 @@ export function SettingsPage({
         />
       </section>
 
-      <section className="settings-page__card">
-        <div className="settings-page__section-head">
-          <h2 className="dashboard__section-title">Accounts</h2>
-          <p className="settings-page__hint">
+      <details
+        className="settings-page__details settings-page__card"
+        open={settingsSections.accounts ?? true}
+        onToggle={(e) => onSettingsSectionOpenChange('accounts', e.currentTarget.open)}
+      >
+        <summary className="settings-page__details-summary">
+          <span className="dashboard__section-title">Accounts</span>
+          <span className="settings-page__hint">
             Create another profile here while keeping account switching in the sidebar.
+          </span>
+        </summary>
+        <div className="settings-page__details-body">
+          <div className="settings-page__grid">
+            <label className="settings-page__field">
+              <span>Account name</span>
+              <input
+                className="settings-page__input"
+                type="text"
+                value={accountName}
+                onChange={(e) => setAccountName(e.target.value)}
+              />
+            </label>
+            <label className="settings-page__field">
+              <span>Handle</span>
+              <input
+                className="settings-page__input"
+                type="text"
+                value={accountHandle}
+                onChange={(e) => setAccountHandle(e.target.value)}
+                placeholder="@optional"
+              />
+            </label>
+          </div>
+
+          <p className="settings-page__hint">
+            {accounts.length} account{accounts.length === 1 ? '' : 's'} total.
           </p>
-        </div>
 
-        <div className="settings-page__grid">
-          <label className="settings-page__field">
-            <span>Account name</span>
-            <input
-              className="settings-page__input"
-              type="text"
-              value={accountName}
-              onChange={(e) => setAccountName(e.target.value)}
-            />
-          </label>
-          <label className="settings-page__field">
-            <span>Handle</span>
-            <input
-              className="settings-page__input"
-              type="text"
-              value={accountHandle}
-              onChange={(e) => setAccountHandle(e.target.value)}
-              placeholder="@optional"
-            />
-          </label>
-        </div>
+          <button
+            type="button"
+            className="settings-page__save"
+            disabled={!accountName.trim()}
+            onClick={handleCreateAccount}
+          >
+            Create account
+          </button>
 
-        <p className="settings-page__hint">
-          {accounts.length} account{accounts.length === 1 ? '' : 's'} total.
-        </p>
-
-        <button
-          type="button"
-          className="settings-page__save"
-          disabled={!accountName.trim()}
-          onClick={handleCreateAccount}
-        >
-          Create account
-        </button>
-
-        <div className="settings-page__account-list">
-          {accounts.map((account) => (
-            <article
-              key={account.id}
-              className={`settings-page__account-card${account.id === activeAccountId ? ' settings-page__account-card--active' : ''}`}
-            >
-              <div>
-                <h3 className="settings-page__account-name">{account.name}</h3>
-                <p className="settings-page__account-handle">{account.handle}</p>
-                <p className="settings-page__account-meta">
-                  Last updated {formatUpdatedAt(account.lastUpdatedAt)}
-                </p>
-              </div>
-              <div className="settings-page__account-actions">
-                {account.id === activeAccountId ? (
-                  <span className="settings-page__account-badge">Active</span>
-                ) : null}
-                <button
-                  type="button"
-                  className="settings-page__btn settings-page__btn--danger"
-                  disabled={accounts.length <= 1}
-                  onClick={() =>
-                    setAccountDeleteId((current) =>
-                      current === account.id ? null : account.id,
-                    )
-                  }
-                >
-                  Delete profile
-                </button>
-              </div>
-              {accountDeleteId === account.id ? (
-                <div className="settings-page__account-delete">
-                  <label className="settings-page__field">
-                    <span>Type DELETE to unlock profile removal</span>
-                    <input
-                      className="settings-page__input"
-                      type="text"
-                      value={accountDeletePhrase}
-                      onChange={(e) => setAccountDeletePhrase(e.target.value)}
-                    />
-                  </label>
+          <div className="settings-page__account-list">
+            {accounts.map((account) => (
+              <article
+                key={account.id}
+                className={`settings-page__account-card${account.id === activeAccountId ? ' settings-page__account-card--active' : ''}`}
+              >
+                <div>
+                  <h3 className="settings-page__account-name">{account.name}</h3>
+                  <p className="settings-page__account-handle">{account.handle}</p>
+                  <p className="settings-page__account-meta">
+                    Last updated {formatUpdatedAt(account.lastUpdatedAt)}
+                  </p>
+                </div>
+                <div className="settings-page__account-actions">
+                  {account.id === activeAccountId ? (
+                    <span className="settings-page__account-badge">Active</span>
+                  ) : null}
                   <button
                     type="button"
-                    className="settings-page__save settings-page__save--danger"
-                    disabled={accountDeletePhrase !== 'DELETE' || accounts.length <= 1}
-                    onClick={() => {
-                      onDeleteAccount(account.id)
-                      setAccountDeleteId(null)
-                      setAccountDeletePhrase('')
-                      showMessage(`${account.name} was deleted.`)
-                    }}
+                    className="settings-page__btn settings-page__btn--danger"
+                    disabled={accounts.length <= 1}
+                    title="Delete this profile"
+                    onClick={() =>
+                      setAccountDeleteId((current) =>
+                        current === account.id ? null : account.id,
+                      )
+                    }
                   >
-                    Confirm delete
+                    Delete profile
                   </button>
                 </div>
-              ) : null}
-            </article>
-          ))}
+                {accountDeleteId === account.id ? (
+                  <div className="settings-page__account-delete">
+                    <label className="settings-page__field">
+                      <span>Type DELETE to unlock profile removal</span>
+                      <input
+                        className="settings-page__input"
+                        type="text"
+                        value={accountDeletePhrase}
+                        onChange={(e) => setAccountDeletePhrase(e.target.value)}
+                      />
+                    </label>
+                    <button
+                      type="button"
+                      className="settings-page__save settings-page__save--danger"
+                      disabled={accountDeletePhrase !== 'DELETE' || accounts.length <= 1}
+                      title="Permanently delete this profile"
+                      onClick={() => {
+                        onDeleteAccount(account.id)
+                        setAccountDeleteId(null)
+                        setAccountDeletePhrase('')
+                        showMessage(`${account.name} was deleted.`)
+                      }}
+                    >
+                      Confirm delete
+                    </button>
+                  </div>
+                ) : null}
+              </article>
+            ))}
+          </div>
         </div>
-      </section>
+      </details>
 
-      <section className="settings-page__card">
-        <div className="settings-page__section-head">
-          <h2 className="dashboard__section-title">Visuals</h2>
-          <p className="settings-page__hint">
+      <details
+        className="settings-page__details settings-page__card"
+        open={settingsSections.visuals ?? true}
+        onToggle={(e) => onSettingsSectionOpenChange('visuals', e.currentTarget.open)}
+      >
+        <summary className="settings-page__details-summary">
+          <span className="dashboard__section-title">Visuals</span>
+          <span className="settings-page__hint">
             Tune the streak motif and accent color that shape the app&apos;s visual identity.
-          </p>
-        </div>
+          </span>
+        </summary>
+        <div className="settings-page__details-body">
+          <div className="settings-page__visuals">
+            <div className="settings-page__visuals-block">
+              <div className="settings-page__section-head">
+                <h3 className="settings-page__subhead">Streak symbol</h3>
+                <p className="settings-page__hint">
+                  Upload a PNG for streaks under 31 days, or fall back to the default emoji.
+                </p>
+              </div>
 
-        <div className="settings-page__visuals">
-          <div className="settings-page__visuals-block">
-            <div className="settings-page__section-head">
-              <h3 className="settings-page__subhead">Streak symbol</h3>
-              <p className="settings-page__hint">
-                Upload a PNG for streaks under 31 days, or fall back to the default emoji.
-              </p>
-            </div>
-
-            <div className="settings-page__streak-row">
-              <div className="settings-page__streak-preview">
-                {profile.streakSymbolImageUrl ? (
-                  <img
-                    className="settings-page__streak-img"
-                    src={profile.streakSymbolImageUrl}
-                    alt="Current streak symbol"
+              <div className="settings-page__streak-row">
+                <div className="settings-page__streak-preview">
+                  {profile.streakSymbolImageUrl ? (
+                    <img
+                      className="settings-page__streak-img"
+                      src={profile.streakSymbolImageUrl}
+                      alt="Current streak symbol"
+                    />
+                  ) : (
+                    <span className="settings-page__streak-emoji" aria-hidden="true">
+                      {profile.streakSymbol}
+                    </span>
+                  )}
+                </div>
+                <div className="settings-page__profile-actions">
+                  <button
+                    type="button"
+                    className="settings-page__btn"
+                    onClick={() => streakInputRef.current?.click()}
+                  >
+                    Upload streak PNG
+                  </button>
+                  <button
+                    type="button"
+                    className="settings-page__btn"
+                    onClick={() => {
+                      onUpdateProfile({ streakSymbolImageUrl: null })
+                      showMessage('Streak symbol image removed.')
+                    }}
+                  >
+                    Use emoji fallback
+                  </button>
+                  <input
+                    ref={streakInputRef}
+                    className="settings-page__file"
+                    type="file"
+                    accept="image/png"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0] ?? null
+                      void handleStreakUpload(file)
+                    }}
                   />
-                ) : (
-                  <span className="settings-page__streak-emoji" aria-hidden="true">
-                    {profile.streakSymbol}
-                  </span>
-                )}
-              </div>
-              <div className="settings-page__profile-actions">
-                <button
-                  type="button"
-                  className="settings-page__btn"
-                  onClick={() => streakInputRef.current?.click()}
-                >
-                  Upload streak PNG
-                </button>
-                <button
-                  type="button"
-                  className="settings-page__btn"
-                  onClick={() => {
-                    onUpdateProfile({ streakSymbolImageUrl: null })
-                    showMessage('Streak symbol image removed.')
-                  }}
-                >
-                  Use emoji fallback
-                </button>
-                <input
-                  ref={streakInputRef}
-                  className="settings-page__file"
-                  type="file"
-                  accept="image/png"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0] ?? null
-                    void handleStreakUpload(file)
-                  }}
-                />
+                </div>
               </div>
             </div>
-          </div>
 
-          <div className="settings-page__visuals-block">
-            <div className="settings-page__section-head">
-              <h3 className="settings-page__subhead">Color scheme</h3>
-              <p className="settings-page__hint">
-                Set the app accent with a hex code or the color picker square.
-              </p>
+            <div className="settings-page__visuals-block">
+              <div className="settings-page__section-head">
+                <h3 className="settings-page__subhead">Color scheme</h3>
+                <p className="settings-page__hint">
+                  Set the app accent with a hex code or the color picker square.
+                </p>
+              </div>
+
+              <AccentColorEditor
+                key={profile.accentColor}
+                profile={profile}
+                onUpdateProfile={onUpdateProfile}
+                showMessage={showMessage}
+              />
             </div>
-
-            <AccentColorEditor
-              key={profile.accentColor}
-              profile={profile}
-              onUpdateProfile={onUpdateProfile}
-              showMessage={showMessage}
-            />
           </div>
         </div>
-      </section>
+      </details>
 
       <section className="settings-page__card">
-        <details className="settings-page__details">
+        <details
+          className="settings-page__details"
+          open={settingsSections.progression ?? true}
+          onToggle={(e) => onSettingsSectionOpenChange('progression', e.currentTarget.open)}
+        >
           <summary className="settings-page__details-summary">
             <span className="dashboard__section-title">Progression</span>
             <span className="settings-page__hint">
@@ -813,60 +834,67 @@ export function SettingsPage({
         </details>
       </section>
 
-      <section className="settings-page__card settings-page__card--danger">
-        <div className="settings-page__section-head">
-          <h2 className="dashboard__section-title">Danger zone</h2>
-          <p className="settings-page__hint">
+      <details
+        className="settings-page__details settings-page__card settings-page__card--danger"
+        open={settingsSections.danger ?? true}
+        onToggle={(e) => onSettingsSectionOpenChange('danger', e.currentTarget.open)}
+      >
+        <summary className="settings-page__details-summary">
+          <span className="dashboard__section-title">Danger zone</span>
+          <span className="settings-page__hint">
             Clear all data for the active account only after typing the confirmation phrase.
-          </p>
+          </span>
+        </summary>
+        <div className="settings-page__details-body">
+          <label className="settings-page__field">
+            <span>Type KEEP to clear task data but preserve profile customizations</span>
+            <input
+              className="settings-page__input"
+              type="text"
+              value={softResetPhrase}
+              onChange={(e) => setSoftResetPhrase(e.target.value)}
+            />
+          </label>
+
+          <button
+            type="button"
+            className="settings-page__save"
+            disabled={softResetPhrase !== 'KEEP'}
+            title="Clear progress data for the active account"
+            onClick={() => {
+              onSoftReset()
+              setSoftResetPhrase('')
+              showMessage('Habit data was cleared and profile customizations were kept.')
+            }}
+          >
+            Clear progress only
+          </button>
+
+          <label className="settings-page__field">
+            <span>Type DELETE to unlock reset</span>
+            <input
+              className="settings-page__input"
+              type="text"
+              value={resetPhrase}
+              onChange={(e) => setResetPhrase(e.target.value)}
+            />
+          </label>
+
+          <button
+            type="button"
+            className="settings-page__save settings-page__save--danger"
+            disabled={!canReset}
+            title="Clear all app data for the active account"
+            onClick={() => {
+              onFullReset()
+              setResetPhrase('')
+              showMessage('All app data for this account was cleared.')
+            }}
+          >
+            Clear all app data
+          </button>
         </div>
-
-        <label className="settings-page__field">
-          <span>Type KEEP to clear task data but preserve profile customizations</span>
-          <input
-            className="settings-page__input"
-            type="text"
-            value={softResetPhrase}
-            onChange={(e) => setSoftResetPhrase(e.target.value)}
-          />
-        </label>
-
-        <button
-          type="button"
-          className="settings-page__save"
-          disabled={softResetPhrase !== 'KEEP'}
-          onClick={() => {
-            onSoftReset()
-            setSoftResetPhrase('')
-            showMessage('Habit data was cleared and profile customizations were kept.')
-          }}
-        >
-          Clear progress only
-        </button>
-
-        <label className="settings-page__field">
-          <span>Type DELETE to unlock reset</span>
-          <input
-            className="settings-page__input"
-            type="text"
-            value={resetPhrase}
-            onChange={(e) => setResetPhrase(e.target.value)}
-          />
-        </label>
-
-        <button
-          type="button"
-          className="settings-page__save settings-page__save--danger"
-          disabled={!canReset}
-          onClick={() => {
-            onFullReset()
-            setResetPhrase('')
-            showMessage('All app data for this account was cleared.')
-          }}
-        >
-          Clear all app data
-        </button>
-      </section>
+      </details>
     </main>
   )
 }

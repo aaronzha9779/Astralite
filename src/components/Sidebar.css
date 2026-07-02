@@ -16,6 +16,38 @@
   background: var(--surface-raised);
 }
 
+.profile-card__toggle {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.profile-card__toggle-copy {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  min-width: 0;
+}
+
+.profile-card__toggle-icon {
+  flex-shrink: 0;
+  margin-top: 0.35rem;
+  color: var(--text-muted);
+  transition: transform 0.2s ease;
+}
+
+.profile-card__toggle-icon--open {
+  transform: rotate(180deg);
+}
+
 .profile-card__avatar {
   width: 3rem;
   height: 3rem;
@@ -110,11 +142,23 @@
   overflow: hidden;
 }
 
+.profile-card__xp-meter {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
 .profile-card__xp-fill {
   height: 100%;
   border-radius: 999px;
   background: var(--accent);
   transition: width 0.3s ease;
+}
+
+.profile-card__xp-fill--pulse {
+  animation: profile-xp-pulse 0.7s ease-out;
+  box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 35%, transparent);
 }
 
 .profile-card__section {
@@ -253,6 +297,23 @@
 
 .profile-card__file {
   display: none;
+}
+
+@keyframes profile-xp-pulse {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 45%, transparent);
+    filter: brightness(1);
+  }
+
+  35% {
+    box-shadow: 0 0 0 8px color-mix(in srgb, var(--accent) 18%, transparent);
+    filter: brightness(1.08);
+  }
+
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 0%, transparent);
+    filter: brightness(1);
+  }
 }
 
 @media (max-width: 768px) {

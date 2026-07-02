@@ -33,6 +33,35 @@ export type UserProfile = {
 
 export type HabitCategory = 'daily' | 'hobby' | 'habit'
 
+export type SettingsSection = 'accounts' | 'visuals' | 'progression' | 'danger'
+
+export type ProtocolStructure = 'standard' | 'recall'
+
+export type ProtocolStep = {
+  id: string
+  title: string
+  done: boolean
+  children: ProtocolStep[]
+}
+
+export type IntegrationProtocol = {
+  id: string
+  title: string
+  summary: string
+  thumbnailLabel: string
+  thumbnailUrl: string | null
+  priority: number
+  active: boolean
+  archivedAt: string | null
+  structure: ProtocolStructure
+  intervalDays: number | null
+  deadline: string | null
+  rewardId: string | null
+  rewardName: string | null
+  steps: ProtocolStep[]
+  updatedAt: string
+}
+
 export type Habit = {
   id: string
   name: string
@@ -77,6 +106,8 @@ export type DashboardPrefs = {
   bountiesOpen: boolean
   checksOpen: boolean
   weeklyOpen: boolean
+  sidebarOpen: boolean
+  settingsSections: Partial<Record<SettingsSection, boolean>>
   collapsedCategories: Partial<Record<HabitCategory, boolean>>
   /** Index into quotes when showing a fixed quote; null = random on load. */
   activeQuoteIndex: number | null
@@ -137,6 +168,7 @@ export type AppState = {
   bountyTasks: WeeklyTask[]
   checks: WeeklyTask[]
   weeklyTasks: WeeklyTask[]
+  protocols: IntegrationProtocol[]
   dashboard: DashboardPrefs
   profile: ProfileData
   preferences: AppPreferences

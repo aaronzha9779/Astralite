@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { playCompletionChime } from '../lib/audio'
 import type { AppPreferences, CoreAspect, Habit, TimeRecord } from '../types'
 import { getHabitMaturity, getHobbyMaturity } from '../lib/maturity'
@@ -48,6 +48,8 @@ export function HabitOverviewCard({
   const [confirmName, setConfirmName] = useState('')
   const [isEditingName, setIsEditingName] = useState(false)
   const [draftName, setDraftName] = useState(habit.name)
+  const [xpPulse, setXpPulse] = useState(false)
+  const prevLevelRef = useRef<number | null>(null)
   const displayStreakSymbol = habit.streak > 30 ? '❤️‍🔥' : streakSymbol
 
   const isHobby = habit.category === 'hobby'
@@ -66,6 +68,17 @@ export function HabitOverviewCard({
   const linkedCoreAspectNames = (habit.linkedCoreAspectIds ?? [])
     .map((id) => allCoreAspects.find((aspect) => aspect.id === id)?.name)
     .filter(Boolean) as string[]
+
+  useEffect(() => {
+    if (prevLevelRef.current !== null && prevLevelRef.current !== maturity.level) {
+      setXpPulse(true)
+      const timeoutId = window.setTimeout(() => setXpPulse(false), 700)
+      prevLevelRef.current = maturity.level
+      return () => window.clearTimeout(timeoutId)
+    }
+    prevLevelRef.current = maturity.level
+    return undefined
+  }, [maturity.level])
 
   function toggleLink(targetId: string) {
     const current = habit.linkedHabitIds ?? []
@@ -229,7 +242,7 @@ export function HabitOverviewCard({
           aria-valuemax={100}
         >
           <span
-            className="habit-overview__progress-fill"
+            className={`habit-overview__progress-fill${xpPulse ? ' habit-overview__progress-fill--pulse' : ''}`}
             style={{ width: `${maturity.percent}%` }}
           />
         </div>
@@ -279,6 +292,7 @@ export function HabitOverviewCard({
           <button
             type="button"
             className="habit-overview__tool-btn habit-overview__tool-btn--danger"
+            title="Delete this item"
             onClick={() => handleManageAction('delete')}
           >
             Delete
@@ -333,6 +347,7 @@ export function HabitOverviewCard({
                     <button
                       type="button"
                       className="habit-overview__tool-btn habit-overview__tool-btn--danger"
+                      title="Delete this item"
                       disabled={confirmName.trim().toLowerCase() !== habit.name.trim().toLowerCase()}
                       onClick={confirmAction}
                     >
@@ -352,6 +367,7 @@ export function HabitOverviewCard({
                   <button
                     type="button"
                     className="habit-overview__tool-btn"
+                    title="Archive this item"
                     onClick={() => handleManageAction('archive')}
                   >
                     Archive
@@ -359,6 +375,7 @@ export function HabitOverviewCard({
                   <button
                     type="button"
                     className="habit-overview__tool-btn habit-overview__tool-btn--danger"
+                    title="Delete this item"
                     onClick={() => handleManageAction('delete')}
                   >
                     Delete
