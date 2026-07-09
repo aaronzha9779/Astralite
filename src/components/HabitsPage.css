@@ -4,11 +4,11 @@
   gap: 1rem;
 }
 
-.habits-page__focus-shell {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(220px, 320px);
-  gap: 1rem;
-  align-items: start;
+.habits-page__log-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  align-items: stretch;
   padding: 1rem;
   border-radius: 14px;
   border: 1px solid color-mix(in srgb, var(--accent) 18%, var(--border));
@@ -17,13 +17,13 @@
     linear-gradient(135deg, color-mix(in srgb, var(--accent) 6%, var(--surface-raised)), var(--surface-raised));
 }
 
-.habits-page__focus-copy {
+.habits-page__log-copy {
   display: flex;
   flex-direction: column;
   gap: 0.3rem;
 }
 
-.habits-page__focus-kicker {
+.habits-page__log-kicker {
   font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: 0.08em;
@@ -31,16 +31,20 @@
   color: var(--accent);
 }
 
-.habits-page__focus-title {
+.habits-page__log-title {
   font-size: 1.05rem;
   font-weight: 700;
   color: var(--text);
 }
 
-.habits-page__focus-subtitle {
+.habits-page__log-subtitle {
   max-width: 44rem;
   font-size: 0.8125rem;
   color: var(--text-muted);
+}
+
+.habits-page__log-shell .manual-time-log {
+  width: 100%;
 }
 
 .habits-page__section-header {
@@ -249,7 +253,7 @@
 }
 
 @media (max-width: 720px) {
-  .habits-page__focus-shell {
+  .habits-page__log-shell {
     grid-template-columns: 1fr;
   }
 

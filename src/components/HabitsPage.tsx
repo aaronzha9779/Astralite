@@ -8,8 +8,9 @@ import type {
   TimeRecord,
   WeeklyTask,
 } from '../types'
+import type { XpBreakdown } from '../lib/xp'
 import { HabitOverviewCard } from './HabitOverviewCard'
-import { FocusTimer } from './FocusTimer'
+import { ManualTimeLog } from './ManualTimeLog'
 import './HabitsPage.css'
 
 const CATEGORIES: {
@@ -41,6 +42,7 @@ type HabitsPageProps = {
   onRestoreHabit: (id: string) => void
   onUpdatePreferences: (patch: Partial<AppPreferences>) => void
   onSetCategoryCollapsed: (category: HabitCategory, collapsed: boolean) => void
+  onManualTime: (habitId: string, minutes: number) => XpBreakdown | null
   onResetToday: () => void
 }
 
@@ -63,13 +65,13 @@ export function HabitsPage({
   onRestoreHabit,
   onUpdatePreferences,
   onSetCategoryCollapsed,
+  onManualTime,
   onResetToday,
 }: HabitsPageProps) {
   const [selectedByCategory, setSelectedByCategory] = useState<
     Partial<Record<HabitCategory | 'bounty', string>>
   >({})
   const [archivedOpen, setArchivedOpen] = useState(false)
-  const [focusMinutes, setFocusMinutes] = useState(25)
 
   const byCategory = useMemo(() => {
     const map: Record<HabitCategory, Habit[]> = {
@@ -94,16 +96,6 @@ export function HabitsPage({
       : bountyTasks[0]?.id
     return next
   }, [bountyTasks, byCategory, selectedByCategory])
-  const focusTarget = useMemo(() => {
-    if (habits.length === 0) return null
-
-    return [...habits].sort((a, b) => {
-      if (b.priority !== a.priority) return b.priority - a.priority
-      if (b.streak !== a.streak) return b.streak - a.streak
-      return a.name.localeCompare(b.name)
-    })[0] ?? null
-  }, [habits])
-
   return (
     <main className="dashboard habits-page">
       <header className="dashboard__header">
@@ -113,20 +105,9 @@ export function HabitsPage({
         </p>
       </header>
 
-      {focusTarget ? (
-        <section className="habits-page__focus-shell" aria-label="Focus timer">
-          <div className="habits-page__focus-copy">
-            <p className="habits-page__focus-kicker">Compact focus window</p>
-            <h2 className="habits-page__focus-title">{focusTarget.name}</h2>
-            <p className="habits-page__focus-subtitle">
-              The timer now lives here, collapsed by default, and follows your highest-priority active card.
-            </p>
-          </div>
-          <FocusTimer
-            habitName={focusTarget.name}
-            minutes={focusMinutes}
-            onMinutesChange={setFocusMinutes}
-          />
+      {habits.length > 0 ? (
+        <section className="habits-page__log-shell" aria-label="Log missed time">
+          <ManualTimeLog habits={habits} onLog={onManualTime} />
         </section>
       ) : null}
 

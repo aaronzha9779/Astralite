@@ -49,17 +49,32 @@
 }
 
 .habit-overview__check-box {
+  position: relative;
   display: block;
   width: 1.25rem;
   height: 1.25rem;
   border-radius: 4px;
   border: 1.5px solid var(--border-strong);
+  background: var(--surface);
+  transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .habit-overview__check-box--done {
   border-color: var(--accent);
-  background: var(--accent);
-  box-shadow: inset 0 0 0 2px var(--surface-raised);
+  background: color-mix(in srgb, var(--accent) 88%, white 12%);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 18%, transparent);
+}
+
+.habit-overview__check-box--done::after {
+  content: '✓';
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: var(--surface-raised);
+  font-size: 0.78rem;
+  line-height: 1;
+  font-weight: 800;
 }
 
 .habit-overview__title-block {

@@ -1,6 +1,7 @@
 import { createEmptyAppState } from '../data/seedData'
 import { DEFAULT_RANKS, normalizeRanks } from '../data/ranks'
 import { rewards as defaultRewards } from '../data/rewards'
+import { normalizeProtocolCurrentStepId } from './protocols'
 import { getNowLocalISO, getTodayISO } from './dates'
 import type {
   AccountSummary,
@@ -222,30 +223,68 @@ function normalizeProtocolStep(
   }
 }
 
+function normalizePriority(priority: unknown): number {
+  const value = typeof priority === 'number' && Number.isFinite(priority) ? priority : 3
+  return Math.min(5, Math.max(1, Math.round(value * 2) / 2))
+}
+
+function normalizeIntervalHours(protocol: Partial<IntegrationProtocol> | undefined): number | null {
+  const legacyProtocol = protocol as (Partial<IntegrationProtocol> & { intervalDays?: number }) | undefined
+  if (protocol?.intervalHours != null) {
+    return Math.max(1, Math.round(protocol.intervalHours))
+  }
+  if (legacyProtocol?.intervalDays != null) {
+    return Math.max(1, Math.round(legacyProtocol.intervalDays * 24))
+  }
+  return null
+}
+
 function normalizeProtocol(
   protocol: Partial<IntegrationProtocol> | undefined,
   index: number,
 ): IntegrationProtocol {
+  const structure = protocol?.structure === 'recall' ? 'recall' : 'standard'
+  const steps = (protocol?.steps ?? []).map((step, stepIndex) =>
+    normalizeProtocolStep(step, stepIndex),
+  )
+  const recallCurrentStepId = normalizeProtocolCurrentStepId({
+    id: protocol?.id ?? `protocol-${index + 1}`,
+    title: protocol?.title?.trim() || `Protocol ${index + 1}`,
+    summary: protocol?.summary?.trim() || 'Integration protocol',
+    thumbnailLabel: protocol?.thumbnailLabel?.trim() || 'QUEST',
+    thumbnailUrl: protocol?.thumbnailUrl ?? null,
+    priority: normalizePriority(protocol?.priority),
+    active: !!protocol?.active,
+    archivedAt: protocol?.archivedAt ?? null,
+    completedAt: protocol?.completedAt ?? null,
+    structure,
+    intervalHours: structure === 'recall' ? normalizeIntervalHours(protocol) ?? 24 : null,
+    deadline: protocol?.deadline ?? null,
+    rewardId: protocol?.rewardId ?? null,
+    rewardName: protocol?.rewardName?.trim() ?? null,
+    recallCurrentStepId: protocol?.recallCurrentStepId ?? null,
+    recallLastReviewedAt: protocol?.recallLastReviewedAt ?? null,
+    steps,
+    updatedAt: protocol?.updatedAt ?? new Date().toISOString(),
+  })
   return {
     id: protocol?.id ?? `protocol-${index + 1}`,
     title: protocol?.title?.trim() || `Protocol ${index + 1}`,
     summary: protocol?.summary?.trim() || 'Integration protocol',
     thumbnailLabel: protocol?.thumbnailLabel?.trim() || 'QUEST',
     thumbnailUrl: protocol?.thumbnailUrl ?? null,
-    priority: Math.min(5, Math.max(1, Math.round(protocol?.priority ?? 3))),
+    priority: normalizePriority(protocol?.priority),
     active: !!protocol?.active,
     archivedAt: protocol?.archivedAt ?? null,
-    structure: protocol?.structure === 'recall' ? 'recall' : 'standard',
-    intervalDays:
-      protocol?.structure === 'recall'
-        ? Math.max(1, Math.round(protocol?.intervalDays ?? 1))
-        : null,
+    completedAt: protocol?.completedAt ?? null,
+    structure,
+    intervalHours: structure === 'recall' ? normalizeIntervalHours(protocol) ?? 24 : null,
     deadline: protocol?.deadline ?? null,
     rewardId: protocol?.rewardId ?? null,
     rewardName: protocol?.rewardName?.trim() ?? null,
-    steps: (protocol?.steps ?? []).map((step, stepIndex) =>
-      normalizeProtocolStep(step, stepIndex),
-    ),
+    recallCurrentStepId,
+    recallLastReviewedAt: protocol?.recallLastReviewedAt ?? null,
+    steps,
     updatedAt: protocol?.updatedAt ?? new Date().toISOString(),
   }
 }

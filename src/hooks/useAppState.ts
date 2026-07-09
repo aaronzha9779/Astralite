@@ -19,9 +19,17 @@ import {
   parseSaveFilePayload,
   saveAccounts,
 } from '../lib/storage'
+import {
+  clearProtocolStepCompletion,
+  flattenProtocolSteps,
+  getProtocolStepIndex,
+  isProtocolComplete,
+  normalizeProtocolCurrentStepId,
+} from '../lib/protocols'
 import { getDashboardStats } from '../lib/stats'
 import { getBestDayDate, getStatsPageSummary } from '../lib/statsPage'
 import { addTimeRecord } from '../lib/timeRecords'
+import { getNowLocalISO } from '../lib/dates'
 import {
   calculateCompletionXp,
   calculateTimeXp,
@@ -135,6 +143,7 @@ function prepareState(base: AppState): AppState {
   const today = getTodayISO()
   const daysElapsed = getDayDifference(base.lastActiveDate, today)
   const habits = applyDailyReset(base.habits, base.lastActiveDate)
+  const protocols = applyRecallProtocolTimeBoundary(base.protocols ?? [], getNowLocalISO())
   const dashboard =
     base.dashboard.activeQuoteDate === today && hasValidQuoteIndex(base.dashboard)
       ? base.dashboard
@@ -160,6 +169,7 @@ function prepareState(base: AppState): AppState {
     ...base,
     dashboard,
     habits,
+    protocols,
     coreAspects,
     bountyTasks:
       base.lastActiveDate === today
@@ -224,6 +234,70 @@ function applyCoreAspectIncrements(
       ...aspect,
       progressToday: aspect.progressToday + increment,
       totalProgress: aspect.totalProgress + increment,
+    }
+  })
+}
+
+function getHoursDifference(fromISO: string, toISO: string): number {
+  const from = new Date(fromISO).getTime()
+  const to = new Date(toISO).getTime()
+  if (Number.isNaN(from) || Number.isNaN(to)) return 0
+  return Math.max(0, (to - from) / (1000 * 60 * 60))
+}
+
+function applyRecallProtocolTimeBoundary(
+  protocols: IntegrationProtocol[],
+  now: string,
+): IntegrationProtocol[] {
+  return protocols.map((protocol) => {
+    if (protocol.structure !== 'recall') return protocol
+
+    if (!protocol.recallLastReviewedAt) {
+      return {
+        ...protocol,
+        recallLastReviewedAt: now,
+        updatedAt: now,
+      }
+    }
+
+    const hoursElapsed = getHoursDifference(protocol.recallLastReviewedAt, now)
+    if (hoursElapsed <= 0) return protocol
+
+    const flatSteps = flattenProtocolSteps(protocol.steps)
+    const intervalHours = Math.max(1, protocol.intervalHours ?? 24)
+    const missedWindows = Math.floor(hoursElapsed / intervalHours)
+    if (missedWindows <= 0) return protocol
+
+    if (flatSteps.length === 0) {
+      return {
+        ...protocol,
+        recallCurrentStepId: null,
+        recallLastReviewedAt: now,
+        steps: [],
+        completedAt:
+          protocol.completedAt ?? (isProtocolComplete(protocol.steps) ? now : null),
+        updatedAt: now,
+      }
+    }
+
+    const currentStepId = normalizeProtocolCurrentStepId(protocol)
+    const currentIndex = getProtocolStepIndex(protocol.steps, currentStepId)
+    const currentStep = currentStepId ? flatSteps[currentIndex]?.step ?? null : null
+    let nextCurrentStepId = currentStepId
+
+    if (missedWindows > 0 && currentStep && !currentStep.done) {
+      const nextIndex = Math.max(0, currentIndex - missedWindows)
+      nextCurrentStepId = flatSteps[nextIndex]?.step.id ?? currentStepId
+    }
+
+    return {
+      ...protocol,
+      recallCurrentStepId: nextCurrentStepId,
+      recallLastReviewedAt: now,
+      steps: clearProtocolStepCompletion(protocol.steps),
+      completedAt:
+        protocol.completedAt ?? (isProtocolComplete(protocol.steps) ? now : null),
+      updatedAt: now,
     }
   })
 }
@@ -469,6 +543,7 @@ export function useAppState() {
         return {
           ...prev,
           habits: applyDailyReset(prev.habits, prev.lastActiveDate),
+          protocols: applyRecallProtocolTimeBoundary(prev.protocols ?? [], getNowLocalISO()),
           dashboard:
             prev.dashboard.activeQuoteDate === today && hasValidQuoteIndex(prev.dashboard)
               ? prev.dashboard
@@ -1489,12 +1564,13 @@ export function useAppState() {
       const bountyTasks = bountyState.bountyTasks.map((item) =>
         item.done ? { ...item, done: false } : item,
       )
-      const weeklyTasks = prev.weeklyTasks.map((item) =>
-        item.done ? { ...item, done: false } : item,
-      )
+        const weeklyTasks = prev.weeklyTasks.map((item) =>
+          item.done ? { ...item, done: false } : item,
+        )
+          const protocols = applyRecallProtocolTimeBoundary(prev.protocols ?? [], getNowLocalISO())
 
-      return {
-        ...prev,
+        return {
+          ...prev,
         dashboard:
           prev.dashboard.activeQuoteDate === today && hasValidQuoteIndex(prev.dashboard)
             ? prev.dashboard
@@ -1502,13 +1578,14 @@ export function useAppState() {
         habits,
         coreAspects,
         bountyTasks,
-        checks,
-        weeklyTasks,
-        completions,
-        preferences: bountyState.preferences,
-        lastActiveDate: today,
-      }
-    })
+          checks,
+          weeklyTasks,
+          protocols,
+          completions,
+          preferences: bountyState.preferences,
+          lastActiveDate: today,
+        }
+      })
   }, [updateCurrentState])
 
   const resetBestDay = useCallback(() => {

@@ -53,11 +53,14 @@ export type IntegrationProtocol = {
   priority: number
   active: boolean
   archivedAt: string | null
+  completedAt: string | null
   structure: ProtocolStructure
-  intervalDays: number | null
+  intervalHours: number | null
   deadline: string | null
   rewardId: string | null
   rewardName: string | null
+  recallCurrentStepId: string | null
+  recallLastReviewedAt: string | null
   steps: ProtocolStep[]
   updatedAt: string
 }

@@ -4,13 +4,22 @@ import {
   formatHistoryTime,
   getRecentHistory,
 } from '../lib/statsPage'
-import type { CompletionRecord, CoreAspect, DashboardStat, Habit, TimeRecord } from '../types'
+import type {
+  CompletionRecord,
+  CoreAspect,
+  DashboardStat,
+  Habit,
+  IntegrationProtocol,
+  TimeRecord,
+} from '../types'
+import { flattenProtocolSteps, getProtocolStepTitles } from '../lib/protocols'
 import { ActivityHeatmap } from './ActivityHeatmap'
 import './StatsPage.css'
 
 type StatsPageProps = {
   habits: Habit[]
   coreAspects: CoreAspect[]
+  protocols: IntegrationProtocol[]
   completions: CompletionRecord[]
   timeRecords: TimeRecord[]
   stats: DashboardStat[]
@@ -21,6 +30,7 @@ type StatsPageProps = {
 export function StatsPage({
   habits,
   coreAspects,
+  protocols,
   completions,
   timeRecords,
   stats,
@@ -41,6 +51,23 @@ export function StatsPage({
     }
     return map
   }, [habits])
+  const completedProtocols = useMemo(
+    () =>
+      protocols
+        .filter((protocol) => {
+          const steps = flattenProtocolSteps(protocol.steps)
+          return steps.length > 0 && (protocol.completedAt || steps.every(({ step }) => step.done))
+        })
+        .sort((a, b) => (b.completedAt ?? b.updatedAt).localeCompare(a.completedAt ?? a.updatedAt)),
+    [protocols],
+  )
+  const trophyDetailsById = useMemo(() => {
+    const map: Record<string, string[]> = {}
+    for (const protocol of completedProtocols) {
+      map[protocol.id] = getProtocolStepTitles(protocol.steps)
+    }
+    return map
+  }, [completedProtocols])
 
   function handleCoreAspectSubmit(event: FormEvent) {
     event.preventDefault()
@@ -153,6 +180,54 @@ export function StatsPage({
           completions={completions}
           timeRecords={timeRecords}
         />
+      </section>
+
+      <section className="stats-page__section">
+        <div className="stats-page__section-head">
+          <h2 className="dashboard__section-title">Trophy room</h2>
+          <p className="stats-page__hint">
+            Hover a badge to reveal the completed subquests and the quest identity behind it.
+          </p>
+        </div>
+
+        {completedProtocols.length === 0 ? (
+          <p className="dashboard__empty">No completed protocols yet.</p>
+        ) : (
+          <div className="stats-page__trophy-grid">
+            {completedProtocols.map((protocol) => (
+              <article key={protocol.id} className="stats-page__trophy-card" tabIndex={0}>
+                <div className="stats-page__trophy-badge">
+                  {protocol.thumbnailUrl ? (
+                    <img
+                      className="stats-page__trophy-badge-img"
+                      src={protocol.thumbnailUrl}
+                      alt=""
+                    />
+                  ) : (
+                    <span className="stats-page__trophy-badge-label">{protocol.thumbnailLabel}</span>
+                  )}
+                </div>
+                <div className="stats-page__trophy-hover" aria-hidden="true">
+                  <div className="stats-page__trophy-hover-copy">
+                    <h3 className="stats-page__trophy-title">{protocol.title}</h3>
+                    <p className="stats-page__trophy-meta">
+                      {protocol.rewardName ?? 'No reward attached'} ·{' '}
+                      {protocol.completedAt ? `Cleared ${protocol.completedAt.slice(0, 10)}` : 'Recently cleared'}
+                    </p>
+                  </div>
+                  <p className="stats-page__trophy-hover-title">Completed steps</p>
+                  <ul className="stats-page__trophy-list">
+                    {trophyDetailsById[protocol.id]?.map((title, index) => (
+                      <li key={`${protocol.id}-${index}`} className="stats-page__trophy-step">
+                        {title}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
       </section>
 
       <section className="stats-page__section">

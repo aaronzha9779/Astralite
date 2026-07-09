@@ -63,7 +63,29 @@
   border-radius: 4px;
   border: 1.5px solid var(--border-strong);
   background: transparent;
-  transition: background 0.15s, border-color 0.15s;
+  transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
+}
+
+.habit-card__check::after {
+  content: '✓';
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: transparent;
+  font-size: 0.72rem;
+  line-height: 1;
+  font-weight: 800;
+}
+
+.habit-card__check--done {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 88%, white 12%);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 18%, transparent);
+}
+
+.habit-card__check--done::after {
+  color: var(--surface-raised);
 }
 
 .habit-card__check-button {

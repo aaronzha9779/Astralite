@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { mainNavItems, shopNavItem } from '../data/fakeData'
 import { useAppState } from '../hooks/useAppState'
+import { getProtocolTrackerPath } from '../lib/protocols'
 import { Dashboard } from './Dashboard'
 import { IntegrationProtocolsPage } from './IntegrationProtocolsPage'
 import { HabitsPage } from './HabitsPage'
@@ -35,6 +36,7 @@ export function Layout() {
     uxpBurst,
     statsPageSummary,
     toggleHabit,
+    addManualTime,
     incrementHobby,
     setLinkedHabits,
     setLinkedCoreAspects,
@@ -90,6 +92,23 @@ export function Layout() {
       habits.map((habit) => [habit.id, habit.totalXpEarned ?? 0]),
     )
   }, [habits])
+  const activeProtocolTrackers = useMemo(
+    () =>
+      protocols
+        .filter((protocol) => protocol.active)
+        .map((protocol) => {
+          const trackerPath = getProtocolTrackerPath(protocol)
+          const currentTask = trackerPath?.map((step) => step.title).join(' / ')
+          return {
+            id: protocol.id,
+            title: protocol.title,
+            thumbnailUrl: protocol.thumbnailUrl,
+            thumbnailLabel: protocol.thumbnailLabel,
+            currentTask: currentTask ?? 'All visible steps complete',
+          }
+        }),
+    [protocols],
+  )
 
   function renderMain() {
     if (activeNavId === 'dashboard') {
@@ -160,6 +179,7 @@ export function Layout() {
           onResetToday={resetToday}
           dashboard={dashboard}
           onSetCategoryCollapsed={setCategoryCollapsed}
+          onManualTime={addManualTime}
         />
       )
     }
@@ -169,6 +189,7 @@ export function Layout() {
         <StatsPage
           habits={habits}
           coreAspects={coreAspects}
+          protocols={protocols}
           completions={completions}
           timeRecords={timeRecords}
           stats={statsPageSummary}
@@ -250,6 +271,7 @@ export function Layout() {
         <Sidebar
           profile={profile}
           accounts={accounts}
+          activeProtocols={activeProtocolTrackers}
           activeAccountId={activeAccountId}
           open={dashboard.sidebarOpen}
           onOpenChange={setSidebarOpen}
