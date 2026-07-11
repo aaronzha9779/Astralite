@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { playCompletionChime } from '../lib/audio'
 import type { IntegrationProtocol, ProtocolStep, Reward } from '../types'
 import {
@@ -14,6 +14,7 @@ import './IntegrationProtocolsPage.css'
 type IntegrationProtocolsPageProps = {
   protocols: IntegrationProtocol[]
   rewards: Reward[]
+  onDeleteProtocol: (protocolId: string) => boolean
   onUpdateProtocols: (
     updater: (protocols: IntegrationProtocol[]) => IntegrationProtocol[],
   ) => void
@@ -194,8 +195,8 @@ function reorderProtocolList(
   return next
 }
 
-function formatDate(date: string | null): string {
-  if (!date) return 'No deadline'
+function formatDate(date: string | null): string | null {
+  if (!date) return null
   try {
     return new Intl.DateTimeFormat(undefined, {
       month: 'short',
@@ -230,6 +231,15 @@ function ProtocolStepRow({
   onDragEnd: () => void
   onDropStep: (stepId: string) => void
 }) {
+  const inputRef = useRef<HTMLTextAreaElement | null>(null)
+
+  useEffect(() => {
+    const el = inputRef.current
+    if (!el) return
+    el.style.height = 'auto'
+    el.style.height = `${el.scrollHeight}px`
+  }, [step.title])
+
   return (
     <li className="protocol-step" style={{ ['--step-depth' as string]: depth }}>
       <div
@@ -260,15 +270,21 @@ function ProtocolStepRow({
         >
           <span aria-hidden="true" />
         </button>
-        <input
+        <textarea
+          ref={inputRef}
           className="protocol-step__input"
-          type="text"
+          rows={1}
           value={step.title}
+          onInput={(e) => {
+            const target = e.currentTarget
+            target.style.height = 'auto'
+            target.style.height = `${target.scrollHeight}px`
+          }}
           onChange={(e) => onRename(step.id, e.target.value)}
         />
         <div className="protocol-step__actions">
           <button type="button" className="protocol-step__action" onClick={() => onAddChild(step.id)}>
-            + branch
+            +
           </button>
           <button type="button" className="protocol-step__action" onClick={() => onRemove(step.id)}>
             ×
@@ -301,6 +317,7 @@ function ProtocolStepRow({
 export function IntegrationProtocolsPage({
   protocols,
   rewards,
+  onDeleteProtocol,
   onUpdateProtocols,
 }: IntegrationProtocolsPageProps) {
   const [selectedProtocolId, setSelectedProtocolId] = useState(protocols[0]?.id ?? '')
@@ -308,7 +325,9 @@ export function IntegrationProtocolsPage({
   const [draggedStepId, setDraggedStepId] = useState<string | null>(null)
   const [collapsedSettings, setCollapsedSettings] = useState<Record<string, boolean>>({})
   const [collapsedProtocols, setCollapsedProtocols] = useState<Record<string, boolean>>({})
+  const [collapsedArchived, setCollapsedArchived] = useState(false)
   const [draftByProtocol, setDraftByProtocol] = useState<Record<string, string>>({})
+  const [deletePhraseByProtocol, setDeletePhraseByProtocol] = useState<Record<string, string>>({})
 
   const selectedProtocol =
     protocols.find((protocol) => protocol.id === selectedProtocolId) ??
@@ -319,6 +338,14 @@ export function IntegrationProtocolsPage({
     () => new Map(rewards.map((reward) => [reward.id, reward])),
     [rewards],
   )
+  const activeProtocols = useMemo(
+    () => protocols.filter((protocol) => !protocol.archivedAt),
+    [protocols],
+  )
+  const archivedProtocols = useMemo(
+    () => protocols.filter((protocol) => protocol.archivedAt),
+    [protocols],
+  )
 
   function updateAny(protocolId: string, updater: (protocol: IntegrationProtocol) => IntegrationProtocol) {
     onUpdateProtocols((prev) => updateProtocol(prev, protocolId, updater))
@@ -326,11 +353,26 @@ export function IntegrationProtocolsPage({
 
   function toggleActive(protocolId: string) {
     onUpdateProtocols((prev) =>
-      prev.map((protocol) => ({
-        ...protocol,
-        active: protocol.id === protocolId ? !protocol.active : protocol.active,
-        updatedAt: new Date().toISOString(),
-      })),
+      prev.map((protocol) => {
+        if (protocol.id !== protocolId) return protocol
+
+        const now = new Date().toISOString()
+        if (protocol.active) {
+          return {
+            ...protocol,
+            active: false,
+            pausedAt: now,
+            updatedAt: now,
+          }
+        }
+
+        return {
+          ...protocol,
+          active: true,
+          pausedAt: null,
+          updatedAt: now,
+        }
+      }),
     )
   }
 
@@ -345,6 +387,7 @@ export function IntegrationProtocolsPage({
       thumbnailUrl: null,
       priority: 3,
       active: false,
+      pausedAt: null,
       archivedAt: null,
       completedAt: null,
       structure: 'standard' as const,
@@ -570,6 +613,18 @@ export function IntegrationProtocolsPage({
     )
   }
 
+  function handleDeleteProtocol(protocolId: string) {
+    const deleted = onDeleteProtocol(protocolId)
+    if (deleted) {
+      setDeletePhraseByProtocol((prev) => {
+        const next = { ...prev }
+        delete next[protocolId]
+        return next
+      })
+    }
+    return deleted
+  }
+
   async function handleThumbnailUpload(protocolId: string, file: File | null) {
     if (!file) return
     const imageUrl = await readFileAsDataUrl(file)
@@ -622,6 +677,7 @@ export function IntegrationProtocolsPage({
         ...protocol,
         archivedAt: protocol.archivedAt ? null : archivedAt,
         active: protocol.archivedAt ? protocol.active : false,
+        pausedAt: protocol.pausedAt,
         updatedAt: archivedAt,
       })),
     )
@@ -650,13 +706,14 @@ export function IntegrationProtocolsPage({
       </header>
 
       <section className="protocols-page__board" aria-label="Protocols board">
-        {protocols.map((protocol) => {
+        {activeProtocols.map((protocol) => {
           const stats = getProtocolStepCount(protocol.steps)
           const percent = stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0
           const settingsOpen = !!collapsedSettings[protocol.id]
           const collapsed = !!collapsedProtocols[protocol.id]
           const reward = protocol.rewardId ? rewardMap.get(protocol.rewardId) ?? null : null
           const selected = protocol.id === selectedProtocol?.id
+          const deadlineLabel = formatDate(protocol.deadline)
           const currentPointerPath =
             protocol.structure === 'recall'
               ? findProtocolStepPathById(
@@ -719,6 +776,7 @@ export function IntegrationProtocolsPage({
                       }))
                     }
                   />
+                  {deadlineLabel ? <span className="protocol-card__deadline">Due {deadlineLabel}</span> : null}
                 </div>
                 <div className="protocol-card__stars" aria-label={`Priority ${protocol.priority} of 5`}>
                   {Array.from({ length: 5 }).map((_, index) => {
@@ -754,7 +812,7 @@ export function IntegrationProtocolsPage({
               </header>
 
               <p className="protocol-card__current-step">
-                <span className="protocol-card__current-step-label">Current step</span>
+                <span className="protocol-card__current-step-label">Current</span>
                 <span className="protocol-card__current-step-value">
                   {currentPointerPath ? currentPointerPath.map((step) => step.title).join(' / ') : 'All visible steps complete'}
                 </span>
@@ -769,7 +827,7 @@ export function IntegrationProtocolsPage({
                     }))
                   }}
                 >
-                  {collapsed ? 'Expand' : 'Collapse'}
+                  <span aria-hidden="true">{collapsed ? '▸' : '▾'}</span>
                 </button>
               </p>
 
@@ -778,30 +836,39 @@ export function IntegrationProtocolsPage({
                   <div className="protocol-card__meta">
                     <button
                       type="button"
-                      className={`protocol-card__active${protocol.active ? ' protocol-card__active--on' : ''}`}
+                      className={`protocol-card__active${protocol.active ? ' protocol-card__active--on' : ''}${protocol.pausedAt ? ' protocol-card__active--paused' : ''}`}
+                      aria-label={
+                        protocol.pausedAt
+                          ? 'Resume paused contract'
+                          : protocol.active
+                            ? 'Pause activated contract'
+                            : 'Activate contract'
+                      }
                       onClick={(e) => {
                         e.stopPropagation()
                         toggleActive(protocol.id)
                       }}
                     >
-                      {protocol.active ? 'Active contract' : 'Start contract'}
+                      {protocol.pausedAt ? (
+                        <>
+                          <span className="protocol-card__active-label protocol-card__active-label--default">Paused</span>
+                          <span className="protocol-card__active-label protocol-card__active-label--hover" aria-hidden="true">
+                            Continue
+                          </span>
+                        </>
+                      ) : protocol.active ? (
+                        <>
+                          <span className="protocol-card__active-label protocol-card__active-label--default">Activated</span>
+                          <span className="protocol-card__active-label protocol-card__active-label--hover" aria-hidden="true">
+                            Pause
+                          </span>
+                        </>
+                      ) : (
+                        'Activate'
+                      )}
                     </button>
                     <span className="protocol-card__tag">{protocol.structure === 'recall' ? 'Recall arc' : 'Standard arc'}</span>
-                    <span className="protocol-card__tag">{formatDate(protocol.deadline)}</span>
                     {protocol.completedAt ? <span className="protocol-card__tag protocol-card__tag--complete">Completed</span> : null}
-                    <button
-                      type="button"
-                      className="protocol-card__settings-toggle"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        setCollapsedSettings((prev) => ({
-                          ...prev,
-                          [protocol.id]: !prev[protocol.id],
-                        }))
-                      }}
-                    >
-                      {settingsOpen ? 'Hide settings' : 'Settings'}
-                    </button>
                   </div>
 
                   <div className="protocol-card__progress" aria-hidden="true">
@@ -856,24 +923,44 @@ export function IntegrationProtocolsPage({
                     <div className="protocol-card__reward">
                       {reward ? (
                         <div className="protocol-card__reward-pill">
-                          {reward.imageUrl ? (
-                            <img className="protocol-card__reward-img" src={reward.imageUrl} alt="" />
-                          ) : (
-                            <span className="protocol-card__reward-emoji" aria-hidden="true">
-                              {reward.emoji}
-                            </span>
-                          )}
-                          <span>{reward.name}</span>
+                          <span className="protocol-card__reward-kicker">Reward</span>
+                          <span className="protocol-card__reward-row">
+                            {reward.imageUrl ? (
+                              <img className="protocol-card__reward-img" src={reward.imageUrl} alt="" />
+                            ) : (
+                              <span className="protocol-card__reward-emoji" aria-hidden="true">
+                                {reward.emoji}
+                              </span>
+                            )}
+                            <span>{reward.name}</span>
+                          </span>
                         </div>
                       ) : protocol.rewardName ? (
                         <div className="protocol-card__reward-pill">
-                          <span className="protocol-card__reward-emoji" aria-hidden="true">
-                            ◈
+                          <span className="protocol-card__reward-kicker">Reward</span>
+                          <span className="protocol-card__reward-row">
+                            <span className="protocol-card__reward-emoji" aria-hidden="true">
+                              ◈
+                            </span>
+                            <span>{protocol.rewardName}</span>
                           </span>
-                          <span>{protocol.rewardName}</span>
                         </div>
                       ) : null}
                     </div>
+                    <button
+                      type="button"
+                      className="protocol-card__settings-toggle"
+                      aria-label={settingsOpen ? 'Hide protocol settings' : 'Open protocol settings'}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setCollapsedSettings((prev) => ({
+                          ...prev,
+                          [protocol.id]: !prev[protocol.id],
+                        }))
+                      }}
+                    >
+                      ⚙
+                    </button>
                   </footer>
 
                   {settingsOpen ? (
@@ -926,6 +1013,52 @@ export function IntegrationProtocolsPage({
                           ))}
                         </select>
                       </label>
+                      <div className="protocol-card__field protocol-card__field--full protocol-card__field--danger protocol-card__field--danger-mini">
+                        <div className="protocol-card__field-head-row">
+                          <span>Delete</span>
+                          <button
+                            type="button"
+                            className="protocol-card__text-action"
+                            onClick={() => handleArchive(protocol.id)}
+                          >
+                            Archive protocol
+                          </button>
+                        </div>
+                        <div className="protocol-card__danger-row">
+                          <input
+                            className="protocol-card__select protocol-card__select--compact protocol-card__select--safeguard"
+                            type="text"
+                            value={deletePhraseByProtocol[protocol.id] ?? ''}
+                            placeholder="DELETE"
+                            onChange={(e) =>
+                              setDeletePhraseByProtocol((prev) => ({
+                                ...prev,
+                                [protocol.id]: e.target.value,
+                              }))
+                            }
+                          />
+                          <button
+                            type="button"
+                            className="protocol-card__archive-btn protocol-card__archive-btn--danger protocol-card__archive-btn--tiny"
+                            disabled={(deletePhraseByProtocol[protocol.id] ?? '') !== 'DELETE'}
+                            onClick={() => {
+                              if (handleDeleteProtocol(protocol.id)) {
+                                setCollapsedSettings((prev) => ({
+                                  ...prev,
+                                  [protocol.id]: false,
+                                }))
+                                setCollapsedProtocols((prev) => {
+                                  const next = { ...prev }
+                                  delete next[protocol.id]
+                                  return next
+                                })
+                              }
+                            }}
+                          >
+                            X
+                          </button>
+                        </div>
+                      </div>
                       <label className="protocol-card__field">
                         <span>Thumbnail image</span>
                         <input
@@ -938,13 +1071,6 @@ export function IntegrationProtocolsPage({
                           }}
                         />
                       </label>
-                      <button
-                        type="button"
-                        className="protocol-card__archive-btn"
-                        onClick={() => handleArchive(protocol.id)}
-                      >
-                        {protocol.archivedAt ? 'Restore protocol' : 'Archive protocol'}
-                      </button>
                       <button
                         type="button"
                         className="protocol-card__archive-btn protocol-card__archive-btn--secondary"
@@ -960,6 +1086,190 @@ export function IntegrationProtocolsPage({
           )
         })}
       </section>
+      {archivedProtocols.length > 0 ? (
+        <section className="protocols-page__archive" aria-label="Archived protocols">
+          <button
+            type="button"
+            className="protocols-page__archive-toggle"
+            onClick={() => setCollapsedArchived((value) => !value)}
+            aria-expanded={!collapsedArchived}
+          >
+            <div className="protocols-page__archive-head">
+              <div>
+                <h2 className="dashboard__section-title">Archived protocols</h2>
+                <p className="protocols-page__archive-copy">
+                  Hidden from the active board until you restore them.
+                </p>
+              </div>
+              <span className="protocols-page__archive-count">{archivedProtocols.length} archived</span>
+            </div>
+            <span
+              className={`protocols-page__archive-chevron${collapsedArchived ? '' : ' protocols-page__archive-chevron--open'}`}
+              aria-hidden="true"
+            >
+              ▾
+            </span>
+          </button>
+
+          {!collapsedArchived ? (
+            <div className="protocols-page__archive-grid">
+              {archivedProtocols.map((protocol) => {
+                const reward = protocol.rewardId ? rewardMap.get(protocol.rewardId) ?? null : null
+                const settingsOpen = !!collapsedSettings[protocol.id]
+                const deletePhrase = deletePhraseByProtocol[protocol.id] ?? ''
+                const canDelete = deletePhrase === 'DELETE'
+                const deadlineLabel = formatDate(protocol.deadline)
+                return (
+                  <article
+                    key={protocol.id}
+                    className="protocol-card protocol-card--archived protocol-card--archived-visible"
+                    onClick={() => setSelectedProtocolId(protocol.id)}
+                  >
+                    <header className="protocol-card__header">
+                      <button
+                        type="button"
+                        className="protocol-card__drag"
+                        aria-hidden="true"
+                        tabIndex={-1}
+                      >
+                        ⋮⋮
+                      </button>
+                      <button type="button" className="protocol-card__thumbnail">
+                        {protocol.thumbnailUrl ? (
+                          <img className="protocol-card__thumbnail-img" src={protocol.thumbnailUrl} alt="" />
+                        ) : (
+                          <span className="protocol-card__thumbnail-label">{protocol.thumbnailLabel}</span>
+                        )}
+                      </button>
+                      <div className="protocol-card__title-block">
+                        <input className="protocol-card__title" type="text" value={protocol.title} readOnly />
+                        {deadlineLabel ? (
+                          <span className="protocol-card__deadline">Due {deadlineLabel}</span>
+                        ) : null}
+                      </div>
+                      <div className="protocol-card__stars" aria-hidden="true">
+                        {Array.from({ length: 5 }).map((_, index) => (
+                          <span key={index} className="protocol-card__star protocol-card__star--readonly">
+                            ★
+                          </span>
+                        ))}
+                      </div>
+                    </header>
+                    <p className="protocol-card__current-step">
+                      <span className="protocol-card__current-step-label">Archived</span>
+                      <span className="protocol-card__current-step-value">Hidden until restored</span>
+                    </p>
+                    <div className="protocol-card__meta">
+                      <button
+                        type="button"
+                        className="protocol-card__active protocol-card__active--on"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleArchive(protocol.id)
+                        }}
+                      >
+                        Restore
+                      </button>
+                    </div>
+                    <footer className="protocol-card__footer">
+                      <div className="protocol-card__reward">
+                        {reward ? (
+                          <div className="protocol-card__reward-pill">
+                            {reward.imageUrl ? (
+                              <img className="protocol-card__reward-img" src={reward.imageUrl} alt="" />
+                            ) : (
+                              <span className="protocol-card__reward-emoji" aria-hidden="true">
+                                {reward.emoji}
+                              </span>
+                            )}
+                            <span>{reward.name}</span>
+                          </div>
+                        ) : protocol.rewardName ? (
+                          <div className="protocol-card__reward-pill">
+                            <span className="protocol-card__reward-emoji" aria-hidden="true">
+                              ◈
+                            </span>
+                            <span>{protocol.rewardName}</span>
+                          </div>
+                        ) : null}
+                      </div>
+                      <button
+                        type="button"
+                        className="protocol-card__settings-toggle"
+                        aria-label={settingsOpen ? 'Hide protocol settings' : 'Open protocol settings'}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setCollapsedSettings((prev) => ({
+                            ...prev,
+                            [protocol.id]: !prev[protocol.id],
+                          }))
+                        }}
+                      >
+                        ⚙
+                      </button>
+                    </footer>
+                    {settingsOpen ? (
+                      <section className="protocol-card__settings" onClick={(e) => e.stopPropagation()}>
+                        <label className="protocol-card__field">
+                          <span>Structure</span>
+                          <select className="protocol-card__select" value={protocol.structure} disabled>
+                            <option value="standard">Standard protocol</option>
+                            <option value="recall">Recall protocol</option>
+                          </select>
+                        </label>
+                      <div className="protocol-card__field protocol-card__field--full protocol-card__field--danger protocol-card__field--danger-mini">
+                          <div className="protocol-card__field-head-row">
+                            <span>Delete</span>
+                            <button
+                              type="button"
+                              className="protocol-card__text-action"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleArchive(protocol.id)
+                              }}
+                            >
+                              Restore protocol
+                            </button>
+                          </div>
+                          <div className="protocol-card__danger-row">
+                            <input
+                              className="protocol-card__select protocol-card__select--compact protocol-card__select--safeguard"
+                              type="text"
+                              value={deletePhrase}
+                              placeholder="DELETE"
+                              onChange={(e) =>
+                                setDeletePhraseByProtocol((prev) => ({
+                                  ...prev,
+                                  [protocol.id]: e.target.value,
+                                }))
+                              }
+                            />
+                            <button
+                              type="button"
+                              className="protocol-card__archive-btn protocol-card__archive-btn--danger protocol-card__archive-btn--tiny"
+                              disabled={!canDelete}
+                              onClick={() => {
+                                if (handleDeleteProtocol(protocol.id)) {
+                                  setCollapsedSettings((prev) => ({
+                                    ...prev,
+                                    [protocol.id]: false,
+                                  }))
+                              }
+                            }}
+                          >
+                              X
+                            </button>
+                          </div>
+                        </div>
+                      </section>
+                    ) : null}
+                  </article>
+                )
+              })}
+            </div>
+          ) : null}
+        </section>
+      ) : null}
 
     </main>
   )

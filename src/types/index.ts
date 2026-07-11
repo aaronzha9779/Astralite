@@ -52,6 +52,7 @@ export type IntegrationProtocol = {
   thumbnailUrl: string | null
   priority: number
   active: boolean
+  pausedAt: string | null
   archivedAt: string | null
   completedAt: string | null
   structure: ProtocolStructure

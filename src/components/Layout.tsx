@@ -96,7 +96,7 @@ export function Layout() {
   const activeProtocolTrackers = useMemo(
     () =>
       protocols
-        .filter((protocol) => protocol.active)
+        .filter((protocol) => protocol.active && !protocol.pausedAt)
         .map((protocol) => {
           const trackerPath = getProtocolTrackerPath(protocol)
           const currentTask = trackerPath?.map((step) => step.title).join(' / ')
@@ -153,6 +153,7 @@ export function Layout() {
         <IntegrationProtocolsPage
           protocols={protocols}
           rewards={rewards}
+          onDeleteProtocol={deleteProtocol}
           onUpdateProtocols={updateProtocols}
         />
       )
@@ -238,9 +239,7 @@ export function Layout() {
           onDeleteAccount={deleteAccount}
           preferences={preferences}
           rewards={rewards}
-          protocols={protocols}
           onUpdatePreferences={updatePreferences}
-          onDeleteProtocol={deleteProtocol}
           onResetBestDay={resetBestDay}
           canResetBestDay={statsPageSummary.some((stat) => stat.id === 'best-day' && stat.value !== '—')}
           onSoftReset={softReset}
