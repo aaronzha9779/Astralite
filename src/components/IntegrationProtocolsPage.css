@@ -491,9 +491,9 @@
 }
 
 .protocol-step__check {
-  width: 1.15rem;
-  height: 1.15rem;
-  border-radius: 4px;
+  width: 1.3rem;
+  height: 1.3rem;
+  border-radius: 5px;
   border: 1.5px solid var(--border-strong);
   background: transparent;
   display: grid;
@@ -509,21 +509,22 @@
 
 .protocol-step__check span {
   position: relative;
-  width: 0.65rem;
-  height: 0.65rem;
+  width: 0.8rem;
+  height: 0.8rem;
+  display: grid;
+  place-items: center;
 }
 
 .protocol-step__check span::before {
   content: '✓';
-  position: absolute;
-  inset: 0;
+  position: static;
   display: grid;
   place-items: center;
-  font-size: 0.65rem;
+  font-size: 0.85rem;
   line-height: 1;
   font-weight: 800;
   color: transparent;
-  transform: translateY(-0.02rem) scale(0.8);
+  transform: none;
 }
 
 .protocol-step__check--done span {
@@ -671,6 +672,16 @@
   gap: 0.35rem;
   font-size: 0.75rem;
   color: var(--text-muted);
+}
+
+.protocol-card__field--compact {
+  max-width: 16rem;
+}
+
+.protocol-card__select--compact {
+  min-height: 2.35rem;
+  padding-block: 0.38rem;
+  font-size: 0.8rem;
 }
 
 .protocol-card__field--full {

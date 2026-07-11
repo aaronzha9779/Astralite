@@ -28,7 +28,6 @@ type SettingsPageProps = {
   onCreateAccount: (name: string, handle?: string) => void
   onDeleteAccount: (accountId: string) => void
   onUpdatePreferences: (patch: Partial<AppPreferences>) => void
-  onUpdateProtocolReward: (protocolId: string, rewardId: string | null) => void
   onDeleteProtocol: (protocolId: string) => boolean
   onResetBestDay: () => boolean
   canResetBestDay: boolean
@@ -476,56 +475,29 @@ function ProgressionEditor({
 
 type ProtocolManagementEditorProps = {
   protocols: IntegrationProtocol[]
-  rewards: Reward[]
-  onUpdateProtocolReward: (protocolId: string, rewardId: string | null) => void
   onDeleteProtocol: (protocolId: string) => boolean
   showMessage: (next: string) => void
 }
 
 function ProtocolManagementEditor({
   protocols,
-  rewards,
-  onUpdateProtocolReward,
   onDeleteProtocol,
   showMessage,
 }: ProtocolManagementEditorProps) {
   const [deletePhraseByProtocol, setDeletePhraseByProtocol] = useState<Record<string, string>>({})
 
-  function getRewardOptions(protocol: IntegrationProtocol) {
-    if (!protocol.rewardId) return rewards
-    if (rewards.some((reward) => reward.id === protocol.rewardId)) return rewards
-    return [
-      ...rewards,
-      {
-        id: protocol.rewardId,
-        name: protocol.rewardName ?? 'Current reward',
-        description: '',
-        cost: 0,
-        emoji: '◈',
-        imageUrl: null,
-        oneTime: false,
-        archivedAt: null,
-      },
-    ]
-  }
-
   return (
     <div className="settings-page__details-body">
       <div className="settings-page__section-head">
-        <h3 className="settings-page__subhead">Integration protocols</h3>
-        <p className="settings-page__hint">
-          Assign a reward here and remove a protocol only after typing the confirmation phrase.
-        </p>
+        <h3 className="settings-page__subhead">Integration protocol deletion</h3>
+        <p className="settings-page__hint">Remove a protocol only after typing the confirmation phrase.</p>
       </div>
 
       {protocols.length === 0 ? (
-        <p className="settings-page__hint">
-          Create a protocol first to manage its reward or delete it here.
-        </p>
+        <p className="settings-page__hint">Create a protocol first if you want it listed here.</p>
       ) : (
         <div className="settings-page__protocol-list">
           {protocols.map((protocol) => {
-            const rewardOptions = getRewardOptions(protocol)
             const deletePhrase = deletePhraseByProtocol[protocol.id] ?? ''
             const canDelete = deletePhrase === 'DELETE'
 
@@ -540,22 +512,6 @@ function ProtocolManagementEditor({
                     {protocol.active ? 'Active' : 'Inactive'}
                   </span>
                 </div>
-
-                <label className="settings-page__field">
-                  <span>Reward</span>
-                  <select
-                    className="settings-page__input"
-                    value={protocol.rewardId ?? ''}
-                    onChange={(e) => onUpdateProtocolReward(protocol.id, e.target.value || null)}
-                  >
-                    <option value="">No reward attached</option>
-                    {rewardOptions.map((reward) => (
-                      <option key={reward.id} value={reward.id}>
-                        {reward.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
 
                 <div className="settings-page__protocol-delete">
                   <label className="settings-page__field">
@@ -613,7 +569,6 @@ export function SettingsPage({
   onCreateAccount,
   onDeleteAccount,
   onUpdatePreferences,
-  onUpdateProtocolReward,
   onDeleteProtocol,
   onResetBestDay,
   canResetBestDay,
@@ -976,8 +931,6 @@ export function SettingsPage({
           <ProtocolManagementEditor
             key={protocols.map((protocol) => `${protocol.id}:${protocol.rewardId ?? 'none'}:${protocol.title}`).join('|')}
             protocols={protocols}
-            rewards={rewards}
-            onUpdateProtocolReward={onUpdateProtocolReward}
             onDeleteProtocol={onDeleteProtocol}
             showMessage={showMessage}
           />

@@ -558,6 +558,18 @@ export function IntegrationProtocolsPage({
     )
   }
 
+  function handleRewardSelect(protocolId: string, rewardId: string) {
+    const reward = rewardMap.get(rewardId)
+    onUpdateProtocols((prev) =>
+      updateProtocol(prev, protocolId, (protocol) => ({
+        ...protocol,
+        rewardId,
+        rewardName: reward?.name ?? null,
+        updatedAt: new Date().toISOString(),
+      })),
+    )
+  }
+
   async function handleThumbnailUpload(protocolId: string, file: File | null) {
     if (!file) return
     const imageUrl = await readFileAsDataUrl(file)
@@ -899,6 +911,21 @@ export function IntegrationProtocolsPage({
                           />
                         </label>
                       ) : null}
+                      <label className="protocol-card__field protocol-card__field--compact">
+                        <span>Reward</span>
+                        <select
+                          className="protocol-card__select protocol-card__select--compact"
+                          value={protocol.rewardId ?? ''}
+                          onChange={(e) => handleRewardSelect(protocol.id, e.target.value)}
+                        >
+                          <option value="">No reward attached</option>
+                          {rewards.map((rewardOption) => (
+                            <option key={rewardOption.id} value={rewardOption.id}>
+                              {rewardOption.name}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
                       <label className="protocol-card__field">
                         <span>Thumbnail image</span>
                         <input
