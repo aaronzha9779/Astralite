@@ -1,5 +1,13 @@
 import { useMemo, useRef, useState } from 'react'
-import type { AccountSummary, AppPreferences, RankTier, Reward, SettingsSection, UserProfile } from '../types'
+import type {
+  AccountSummary,
+  AppPreferences,
+  IntegrationProtocol,
+  RankTier,
+  Reward,
+  SettingsSection,
+  UserProfile,
+} from '../types'
 import './SettingsPage.css'
 
 type SettingsPageProps = {
@@ -8,6 +16,7 @@ type SettingsPageProps = {
   activeAccountId: string
   preferences: AppPreferences
   rewards: Reward[]
+  protocols: IntegrationProtocol[]
   settingsSections: Partial<Record<SettingsSection, boolean>>
   onUpdateProfile: (patch: {
     name?: string
@@ -19,6 +28,8 @@ type SettingsPageProps = {
   onCreateAccount: (name: string, handle?: string) => void
   onDeleteAccount: (accountId: string) => void
   onUpdatePreferences: (patch: Partial<AppPreferences>) => void
+  onUpdateProtocolReward: (protocolId: string, rewardId: string | null) => void
+  onDeleteProtocol: (protocolId: string) => boolean
   onResetBestDay: () => boolean
   canResetBestDay: boolean
   onSoftReset: () => void
@@ -463,17 +474,147 @@ function ProgressionEditor({
   )
 }
 
+type ProtocolManagementEditorProps = {
+  protocols: IntegrationProtocol[]
+  rewards: Reward[]
+  onUpdateProtocolReward: (protocolId: string, rewardId: string | null) => void
+  onDeleteProtocol: (protocolId: string) => boolean
+  showMessage: (next: string) => void
+}
+
+function ProtocolManagementEditor({
+  protocols,
+  rewards,
+  onUpdateProtocolReward,
+  onDeleteProtocol,
+  showMessage,
+}: ProtocolManagementEditorProps) {
+  const [deletePhraseByProtocol, setDeletePhraseByProtocol] = useState<Record<string, string>>({})
+
+  function getRewardOptions(protocol: IntegrationProtocol) {
+    if (!protocol.rewardId) return rewards
+    if (rewards.some((reward) => reward.id === protocol.rewardId)) return rewards
+    return [
+      ...rewards,
+      {
+        id: protocol.rewardId,
+        name: protocol.rewardName ?? 'Current reward',
+        description: '',
+        cost: 0,
+        emoji: '◈',
+        imageUrl: null,
+        oneTime: false,
+        archivedAt: null,
+      },
+    ]
+  }
+
+  return (
+    <div className="settings-page__details-body">
+      <div className="settings-page__section-head">
+        <h3 className="settings-page__subhead">Integration protocols</h3>
+        <p className="settings-page__hint">
+          Assign a reward here and remove a protocol only after typing the confirmation phrase.
+        </p>
+      </div>
+
+      {protocols.length === 0 ? (
+        <p className="settings-page__hint">
+          Create a protocol first to manage its reward or delete it here.
+        </p>
+      ) : (
+        <div className="settings-page__protocol-list">
+          {protocols.map((protocol) => {
+            const rewardOptions = getRewardOptions(protocol)
+            const deletePhrase = deletePhraseByProtocol[protocol.id] ?? ''
+            const canDelete = deletePhrase === 'DELETE'
+
+            return (
+              <article key={protocol.id} className="settings-page__protocol-card">
+                <div className="settings-page__protocol-head">
+                  <div>
+                    <h4 className="settings-page__protocol-title">{protocol.title}</h4>
+                    <p className="settings-page__hint">{protocol.summary || 'Integration protocol'}</p>
+                  </div>
+                  <span className="settings-page__account-badge">
+                    {protocol.active ? 'Active' : 'Inactive'}
+                  </span>
+                </div>
+
+                <label className="settings-page__field">
+                  <span>Reward</span>
+                  <select
+                    className="settings-page__input"
+                    value={protocol.rewardId ?? ''}
+                    onChange={(e) => onUpdateProtocolReward(protocol.id, e.target.value || null)}
+                  >
+                    <option value="">No reward attached</option>
+                    {rewardOptions.map((reward) => (
+                      <option key={reward.id} value={reward.id}>
+                        {reward.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <div className="settings-page__protocol-delete">
+                  <label className="settings-page__field">
+                    <span>Type DELETE to permanently remove this protocol</span>
+                    <input
+                      className="settings-page__input"
+                      type="text"
+                      value={deletePhrase}
+                      onChange={(e) =>
+                        setDeletePhraseByProtocol((prev) => ({
+                          ...prev,
+                          [protocol.id]: e.target.value,
+                        }))
+                      }
+                    />
+                  </label>
+                  <button
+                    type="button"
+                    className="settings-page__save settings-page__save--danger"
+                    disabled={!canDelete}
+                    onClick={() => {
+                      if (onDeleteProtocol(protocol.id)) {
+                        setDeletePhraseByProtocol((prev) => {
+                          const next = { ...prev }
+                          delete next[protocol.id]
+                          return next
+                        })
+                        showMessage(`Deleted ${protocol.title}.`)
+                      } else {
+                        showMessage('Protocol was not deleted.')
+                      }
+                    }}
+                  >
+                    Delete protocol
+                  </button>
+                </div>
+              </article>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export function SettingsPage({
   profile,
   accounts,
   activeAccountId,
   preferences,
   rewards,
+  protocols,
   settingsSections,
   onUpdateProfile,
   onCreateAccount,
   onDeleteAccount,
   onUpdatePreferences,
+  onUpdateProtocolReward,
+  onDeleteProtocol,
   onResetBestDay,
   canResetBestDay,
   onSoftReset,
@@ -829,6 +970,15 @@ export function SettingsPage({
             onUpdatePreferences={onUpdatePreferences}
             onResetBestDay={onResetBestDay}
             canResetBestDay={canResetBestDay}
+            showMessage={showMessage}
+          />
+
+          <ProtocolManagementEditor
+            key={protocols.map((protocol) => `${protocol.id}:${protocol.rewardId ?? 'none'}:${protocol.title}`).join('|')}
+            protocols={protocols}
+            rewards={rewards}
+            onUpdateProtocolReward={onUpdateProtocolReward}
+            onDeleteProtocol={onDeleteProtocol}
             showMessage={showMessage}
           />
         </details>

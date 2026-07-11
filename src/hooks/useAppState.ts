@@ -1451,6 +1451,54 @@ export function useAppState() {
     [updateCurrentState],
   )
 
+  const updateProtocolReward = useCallback(
+    (protocolId: string, rewardId: string | null) => {
+      updateCurrentState((prev) => {
+        const reward = rewardId
+          ? prev.rewards.find((item) => item.id === rewardId) ?? null
+          : null
+
+        return {
+          ...prev,
+          protocols: (prev.protocols ?? []).map((protocol) =>
+            protocol.id === protocolId
+              ? {
+                  ...protocol,
+                  rewardId,
+                  rewardName: reward?.name ?? null,
+                  updatedAt: new Date().toISOString(),
+                }
+              : protocol,
+          ),
+        }
+      })
+    },
+    [updateCurrentState],
+  )
+
+  const deleteProtocol = useCallback(
+    (protocolId: string) => {
+      let deleted = false
+      updateCurrentState((prev) => {
+        const nextProtocols = (prev.protocols ?? []).filter((protocol) => {
+          if (protocol.id !== protocolId) return true
+          deleted = true
+          return false
+        })
+
+        if (!deleted) return prev
+
+        return {
+          ...prev,
+          protocols: nextProtocols,
+        }
+      })
+
+      return deleted
+    },
+    [updateCurrentState],
+  )
+
   const setSidebarOpen = useCallback((open: boolean) => {
     updateCurrentState((prev) => ({
       ...prev,
@@ -2054,6 +2102,8 @@ export function useAppState() {
     setSidebarOpen,
     setWeeklyOpen,
     updateProtocols,
+    updateProtocolReward,
+    deleteProtocol,
     setSettingsSectionOpen,
     setDailyGoal,
     updatePreferences,

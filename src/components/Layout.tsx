@@ -78,6 +78,8 @@ export function Layout() {
     restoreReward,
     reorderReward,
     updateProfile,
+    updateProtocolReward,
+    deleteProtocol,
     updatePreferences,
     createAccount,
     switchAccount,
@@ -237,7 +239,10 @@ export function Layout() {
           onDeleteAccount={deleteAccount}
           preferences={preferences}
           rewards={rewards}
+          protocols={protocols}
           onUpdatePreferences={updatePreferences}
+          onUpdateProtocolReward={updateProtocolReward}
+          onDeleteProtocol={deleteProtocol}
           onResetBestDay={resetBestDay}
           canResetBestDay={statsPageSummary.some((stat) => stat.id === 'best-day' && stat.value !== '—')}
           onSoftReset={softReset}

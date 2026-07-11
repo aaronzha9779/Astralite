@@ -558,20 +558,6 @@ export function IntegrationProtocolsPage({
     )
   }
 
-  function handleThumbnailSelect(protocolId: string, rewardId: string) {
-    const reward = rewardMap.get(rewardId)
-    onUpdateProtocols((prev) =>
-      updateProtocol(prev, protocolId, (protocol) => ({
-        ...protocol,
-        rewardId,
-        rewardName: reward?.name ?? null,
-        thumbnailUrl: reward?.imageUrl ?? null,
-        thumbnailLabel: reward?.name?.slice(0, 6).toUpperCase() ?? protocol.thumbnailLabel,
-        updatedAt: new Date().toISOString(),
-      })),
-    )
-  }
-
   async function handleThumbnailUpload(protocolId: string, file: File | null) {
     if (!file) return
     const imageUrl = await readFileAsDataUrl(file)
@@ -587,33 +573,11 @@ export function IntegrationProtocolsPage({
     )
   }
 
-  function handleThumbnailLabelChange(protocolId: string, thumbnailLabel: string) {
-    onUpdateProtocols((prev) =>
-      updateProtocol(prev, protocolId, (protocol) => ({
-        ...protocol,
-        thumbnailLabel: thumbnailLabel || 'QUEST',
-        updatedAt: new Date().toISOString(),
-      })),
-    )
-  }
-
   function handleClearThumbnail(protocolId: string) {
     onUpdateProtocols((prev) =>
       updateProtocol(prev, protocolId, (protocol) => ({
         ...protocol,
         thumbnailUrl: null,
-        updatedAt: new Date().toISOString(),
-      })),
-    )
-  }
-
-  function handleRewardSelect(protocolId: string, rewardId: string) {
-    const reward = rewardMap.get(rewardId)
-    onUpdateProtocols((prev) =>
-      updateProtocol(prev, protocolId, (protocol) => ({
-        ...protocol,
-        rewardId,
-        rewardName: reward?.name ?? null,
         updatedAt: new Date().toISOString(),
       })),
     )
@@ -743,7 +707,6 @@ export function IntegrationProtocolsPage({
                       }))
                     }
                   />
-                  <p className="protocol-card__summary">{protocol.summary}</p>
                 </div>
                 <div className="protocol-card__stars" aria-label={`Priority ${protocol.priority} of 5`}>
                   {Array.from({ length: 5 }).map((_, index) => {
@@ -879,23 +842,6 @@ export function IntegrationProtocolsPage({
 
                   <footer className="protocol-card__footer">
                     <div className="protocol-card__reward">
-                      <span className="protocol-card__footer-label">Reward</span>
-                      <select
-                        className="protocol-card__select"
-                        value={protocol.rewardId ?? ''}
-                        onChange={(e) => {
-                          e.stopPropagation()
-                          handleRewardSelect(protocol.id, e.target.value)
-                        }}
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <option value="">Choose a reward</option>
-                        {rewards.map((rewardOption) => (
-                          <option key={rewardOption.id} value={rewardOption.id}>
-                            {rewardOption.name}
-                          </option>
-                        ))}
-                      </select>
                       {reward ? (
                         <div className="protocol-card__reward-pill">
                           {reward.imageUrl ? (
@@ -964,30 +910,6 @@ export function IntegrationProtocolsPage({
                             e.currentTarget.value = ''
                           }}
                         />
-                      </label>
-                      <label className="protocol-card__field">
-                        <span>Thumbnail label</span>
-                        <input
-                          className="protocol-card__select"
-                          type="text"
-                          value={protocol.thumbnailLabel}
-                          onChange={(e) => handleThumbnailLabelChange(protocol.id, e.target.value)}
-                        />
-                      </label>
-                      <label className="protocol-card__field protocol-card__field--full">
-                        <span>Thumbnail reward</span>
-                        <select
-                          className="protocol-card__select"
-                          value={protocol.rewardId ?? ''}
-                          onChange={(e) => handleThumbnailSelect(protocol.id, e.target.value)}
-                        >
-                          <option value="">Use label only</option>
-                          {rewards.map((rewardOption) => (
-                            <option key={rewardOption.id} value={rewardOption.id}>
-                              {rewardOption.name}
-                            </option>
-                          ))}
-                        </select>
                       </label>
                       <button
                         type="button"
