@@ -8,6 +8,8 @@ type ActiveProtocolTrackerItem = {
   thumbnailUrl: string | null
   thumbnailLabel: string
   currentTask: string
+  completedSteps: number
+  totalSteps: number
 }
 
 type SidebarProps = {
@@ -227,12 +229,15 @@ export function Sidebar({
       {activeProtocols.length > 0 ? (
         <section className="profile-card profile-card__tracker" aria-label="Current quests">
           <div className="profile-card__section-head">
-            <span className="profile-card__section-label">Current quests</span>
+            <span className="profile-card__section-label">ACTIVE QUESTS</span>
             <span className="profile-card__section-meta">{activeProtocols.length}</span>
           </div>
           <div className="profile-card__quests">
             {activeProtocols.map((quest) => (
               <article key={quest.id} className="profile-card__quest">
+                <span className="profile-card__quest-progress">
+                  {quest.completedSteps}/{quest.totalSteps}
+                </span>
                 <div className="profile-card__quest-thumb" aria-hidden="true">
                   {quest.thumbnailUrl ? (
                     <img className="profile-card__quest-thumb-img" src={quest.thumbnailUrl} alt="" />
@@ -242,7 +247,9 @@ export function Sidebar({
                 </div>
                 <div className="profile-card__quest-copy">
                   <p className="profile-card__quest-task">
-                    <span className="profile-card__quest-name">{quest.title}:</span>{' '}
+                    <span className="profile-card__quest-title-row">
+                      <span className="profile-card__quest-name">{quest.title}</span>
+                    </span>
                     <span className="profile-card__quest-step">{quest.currentTask}</span>
                   </p>
                 </div>

@@ -18,7 +18,7 @@ const CATEGORIES: {
   title: string
   subtitle: string
 }[] = [
-  { key: 'daily', title: 'Dailies', subtitle: 'Every day essentials' },
+  { key: 'daily', title: 'Dailies', subtitle: 'Every day essentials · linked items check off together' },
   { key: 'habit', title: 'Habits', subtitle: 'Build consistency' },
   { key: 'hobby', title: 'Hobbies', subtitle: 'Grow mastery through time' },
 ]
@@ -101,7 +101,7 @@ export function HabitsPage({
       <header className="dashboard__header">
         <h1 className="dashboard__title">Habits & Hobbies</h1>
         <p className="dashboard__subtitle">
-          Track progress, link related items, and manage your testing resets
+          Track progress, link related items, and manage resets
         </p>
       </header>
 

@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { mainNavItems, shopNavItem } from '../data/fakeData'
 import { useAppState } from '../hooks/useAppState'
-import { getProtocolTrackerPath } from '../lib/protocols'
+import { getProtocolStepCount, getProtocolTrackerLabel } from '../lib/protocols'
 import { Dashboard } from './Dashboard'
 import { IntegrationProtocolsPage } from './IntegrationProtocolsPage'
 import { HabitsPage } from './HabitsPage'
@@ -96,16 +96,17 @@ export function Layout() {
   const activeProtocolTrackers = useMemo(
     () =>
       protocols
-        .filter((protocol) => protocol.active && !protocol.pausedAt)
+        .filter((protocol) => protocol.active && !protocol.pausedAt && !protocol.archivedAt && !protocol.completedAt)
         .map((protocol) => {
-          const trackerPath = getProtocolTrackerPath(protocol)
-          const currentTask = trackerPath?.map((step) => step.title).join(' / ')
+          const stats = getProtocolStepCount(protocol.steps)
           return {
             id: protocol.id,
             title: protocol.title,
             thumbnailUrl: protocol.thumbnailUrl,
             thumbnailLabel: protocol.thumbnailLabel,
-            currentTask: currentTask ?? 'All visible steps complete',
+            currentTask: getProtocolTrackerLabel(protocol),
+            completedSteps: stats.completed,
+            totalSteps: stats.total,
           }
         }),
     [protocols],

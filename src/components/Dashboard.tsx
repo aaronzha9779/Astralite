@@ -112,7 +112,7 @@ export function Dashboard({
           <p className="dashboard__subtitle">
             {habits.length === 0
               ? 'Add tasks in any column to start grinding'
-              : `${completedDailies} of ${dailyCount} dailies complete · linked items check off together`}
+              : `${completedDailies} of ${dailyCount} dailies complete`}
           </p>
         </div>
       </header>
@@ -139,6 +139,7 @@ export function Dashboard({
             onToggle={onToggle}
             onIncrementHobby={onIncrementHobby}
             onAdd={onAdd}
+            showSubtitle={false}
             getLinkedNames={(allHabits, habit) => getLinkedNames(allHabits, coreAspects, habit)}
           />
         ))}

@@ -21,6 +21,10 @@
   margin-top: auto;
 }
 
+.settings-page .dashboard__section-title {
+  color: color-mix(in srgb, var(--text) 84%, white 16%);
+}
+
 .settings-page__section-head {
   display: flex;
   flex-direction: column;

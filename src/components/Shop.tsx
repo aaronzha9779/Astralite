@@ -341,8 +341,8 @@ export function Shop({
           <div>
             <h1 className="dashboard__title">Rewards Shop</h1>
             <p className="dashboard__subtitle">
-              Spend UXP on perks and cosmetics and drag cards to change their order.{' '}
-              <strong className={`shop__balance${balancePulse ? ' shop__balance--pulse' : ''}`}>{profile.availableXp} UXP</strong>{' '}
+              Spend UXP on rewards and activities{' '}
+              <strong className={`shop__balance shop__balance--subtitle${balancePulse ? ' shop__balance--pulse' : ''}`}>{profile.availableXp} UXP</strong>{' '}
               available
             </p>
           </div>
@@ -439,21 +439,6 @@ export function Shop({
               onClick={() => loadRewardIntoEditor(selectedReward)}
             >
               Edit selected
-            </button>
-            <button
-              type="button"
-              className="shop__delete shop__delete--subtle"
-              title="Archive this reward"
-              onClick={() => {
-                const archived = onRemoveReward(selectedReward.id)
-                if (!archived) {
-                  showMessage('Reward could not be archived.')
-                } else {
-                  showMessage(`Archived ${selectedReward.name}.`)
-                }
-              }}
-            >
-              Archive
             </button>
           </div>
         </section>

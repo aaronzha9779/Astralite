@@ -51,6 +51,9 @@ export type IntegrationProtocol = {
   thumbnailLabel: string
   thumbnailUrl: string | null
   priority: number
+  stepXp: number
+  completionXp: number
+  recallStepXpAwardedIds: string[]
   active: boolean
   pausedAt: string | null
   archivedAt: string | null

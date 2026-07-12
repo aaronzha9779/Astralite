@@ -208,17 +208,19 @@
 
 .profile-card__quest {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 0.6rem;
   padding: 0.55rem 0.6rem;
   border-radius: 10px;
   border: 1px solid color-mix(in srgb, var(--accent) 18%, var(--border));
   background: color-mix(in srgb, var(--accent) 7%, var(--surface));
+  position: relative;
 }
 
 .profile-card__quest-thumb {
   width: 2.15rem;
   height: 2.15rem;
+  margin-top: -0.14rem;
   flex-shrink: 0;
   border-radius: 8px;
   overflow: hidden;
@@ -248,9 +250,19 @@
 
 .profile-card__quest-task {
   margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.12rem;
   font-size: 0.75rem;
   color: var(--text);
   line-height: 1.3;
+}
+
+.profile-card__quest-title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 0;
 }
 
 .profile-card__quest-name {
@@ -260,6 +272,25 @@
 
 .profile-card__quest-step {
   color: var(--text-muted);
+}
+
+.profile-card__quest-progress {
+  position: absolute;
+  top: 0.42rem;
+  right: 0.55rem;
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  padding: 0.06rem 0.34rem;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  color: var(--accent);
+  font-size: 0.56rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  line-height: 1;
 }
 
 .profile-card__account {

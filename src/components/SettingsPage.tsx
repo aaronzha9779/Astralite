@@ -543,7 +543,7 @@ export function SettingsPage({
       <header className="dashboard__header">
         <h1 className="dashboard__title">Settings</h1>
         <p className="dashboard__subtitle">
-          Update your profile, tune the app accent, and manage destructive actions safely.
+          Update your profile, tune the app accent, and customize preferences.
         </p>
       </header>
 

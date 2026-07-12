@@ -32,6 +32,7 @@ type TaskColumnProps = {
   rawXpByHabit: Record<string, number>
   streakSymbol: string
   streakSymbolImageUrl: string | null
+  showSubtitle?: boolean
   onToggle: (id: string) => void
   onIncrementHobby: (id: string) => void
   onAdd: (name: string, category: HabitCategory) => void
@@ -46,6 +47,7 @@ export function TaskColumn({
   rawXpByHabit,
   streakSymbol,
   streakSymbolImageUrl,
+  showSubtitle = true,
   onToggle,
   onIncrementHobby,
   onAdd,
@@ -59,7 +61,7 @@ export function TaskColumn({
       <header className="task-column__header">
         <div>
           <h2 className="task-column__title">{meta.title}</h2>
-          <p className="task-column__subtitle">{meta.subtitle}</p>
+          {showSubtitle ? <p className="task-column__subtitle">{meta.subtitle}</p> : null}
         </div>
         {habits.length > 0 ? (
           <span className="task-column__count">

@@ -12,7 +12,7 @@ import type {
   IntegrationProtocol,
   TimeRecord,
 } from '../types'
-import { flattenProtocolSteps, getProtocolStepTitles } from '../lib/protocols'
+import { getProtocolStepTitles } from '../lib/protocols'
 import { ActivityHeatmap } from './ActivityHeatmap'
 import './StatsPage.css'
 
@@ -54,10 +54,7 @@ export function StatsPage({
   const completedProtocols = useMemo(
     () =>
       protocols
-        .filter((protocol) => {
-          const steps = flattenProtocolSteps(protocol.steps)
-          return steps.length > 0 && (protocol.completedAt || steps.every(({ step }) => step.done))
-        })
+        .filter((protocol) => protocol.completedAt && !protocol.archivedAt)
         .sort((a, b) => (b.completedAt ?? b.updatedAt).localeCompare(a.completedAt ?? a.updatedAt)),
     [protocols],
   )
@@ -81,7 +78,7 @@ export function StatsPage({
       <header className="dashboard__header">
         <h1 className="dashboard__title">Stats</h1>
         <p className="dashboard__subtitle">
-          Your grind history and activity over time
+          Your activity history over time
         </p>
       </header>
 
@@ -98,9 +95,6 @@ export function StatsPage({
       <section className="stats-page__section">
         <div className="stats-page__section-head">
           <h2 className="dashboard__section-title">Core aspects</h2>
-          <p className="stats-page__hint">
-            Add them manually here or let linked dashboard items feed them automatically.
-          </p>
         </div>
 
         <form className="stats-page__core-form" onSubmit={handleCoreAspectSubmit}>

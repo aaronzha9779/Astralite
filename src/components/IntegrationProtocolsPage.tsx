@@ -2,14 +2,18 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { playCompletionChime } from '../lib/audio'
 import type { IntegrationProtocol, ProtocolStep, Reward } from '../types'
 import {
+  clearProtocolStepCompletion,
   findProtocolStepPathById,
   findProtocolStepById,
   flattenProtocolSteps,
   getProtocolStepCount,
+  getProtocolTrackerLabel,
   isProtocolComplete,
   normalizeProtocolCurrentStepId,
 } from '../lib/protocols'
 import './IntegrationProtocolsPage.css'
+
+const PROTOCOLS_COLLAPSE_STORAGE_KEY = 'habitup-protocols-collapse-state-v1'
 
 type IntegrationProtocolsPageProps = {
   protocols: IntegrationProtocol[]
@@ -198,6 +202,23 @@ function reorderProtocolList(
 function formatDate(date: string | null): string | null {
   if (!date) return null
   try {
+    const [year, month, day] = date.split('-').map((part) => Number(part))
+    if (
+      Number.isInteger(year) &&
+      Number.isInteger(month) &&
+      Number.isInteger(day) &&
+      month >= 1 &&
+      month <= 12 &&
+      day >= 1 &&
+      day <= 31
+    ) {
+      return new Intl.DateTimeFormat(undefined, {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      }).format(new Date(year, month - 1, day))
+    }
+
     return new Intl.DateTimeFormat(undefined, {
       month: 'short',
       day: 'numeric',
@@ -212,6 +233,8 @@ function ProtocolStepRow({
   step,
   depth,
   currentStepId,
+  showCurrentPointer = false,
+  readOnly = false,
   onToggle,
   onRename,
   onAddChild,
@@ -223,6 +246,8 @@ function ProtocolStepRow({
   step: ProtocolStep
   depth: number
   currentStepId: string | null
+  showCurrentPointer?: boolean
+  readOnly?: boolean
   onToggle: (stepId: string) => void
   onRename: (stepId: string, title: string) => void
   onAddChild: (stepId: string) => void
@@ -243,53 +268,90 @@ function ProtocolStepRow({
   return (
     <li className="protocol-step" style={{ ['--step-depth' as string]: depth }}>
       <div
-        className={`protocol-step__row${step.done ? ' protocol-step__row--done' : ''}${step.id === currentStepId ? ' protocol-step__row--current' : ''}`}
-        onDragOver={(e) => e.preventDefault()}
-        onDrop={() => onDropStep(step.id)}
+        className={`protocol-step__row${step.done ? ' protocol-step__row--done' : ''}${step.id === currentStepId ? ' protocol-step__row--current' : ''}${step.id === currentStepId && showCurrentPointer ? ' protocol-step__row--current-pointer' : ''}`}
+        onDragOver={
+          readOnly
+            ? undefined
+            : (e) => e.preventDefault()
+        }
+        onDrop={readOnly ? undefined : () => onDropStep(step.id)}
       >
-        <button
-          type="button"
-          className="protocol-step__drag"
-          draggable
-          aria-label={`Drag ${step.title}`}
-          onDragStart={(e) => {
-            e.dataTransfer.effectAllowed = 'move'
-            onDragStart(step.id)
-          }}
-          onDragEnd={onDragEnd}
-          onClick={(e) => e.stopPropagation()}
-        >
-          ⋮⋮
-        </button>
-        <button
-          type="button"
-          className={`protocol-step__check${step.done ? ' protocol-step__check--done' : ''}`}
-          aria-pressed={step.done}
-          aria-label={step.done ? `Mark ${step.title} incomplete` : `Mark ${step.title} complete`}
-          onClick={() => onToggle(step.id)}
-        >
-          <span aria-hidden="true" />
-        </button>
-        <textarea
-          ref={inputRef}
-          className="protocol-step__input"
-          rows={1}
-          value={step.title}
-          onInput={(e) => {
-            const target = e.currentTarget
-            target.style.height = 'auto'
-            target.style.height = `${target.scrollHeight}px`
-          }}
-          onChange={(e) => onRename(step.id, e.target.value)}
-        />
-        <div className="protocol-step__actions">
-          <button type="button" className="protocol-step__action" onClick={() => onAddChild(step.id)}>
-            +
+        {step.id === currentStepId && showCurrentPointer ? (
+          <span className="protocol-step__pointer" aria-hidden="true">
+            ➜
+          </span>
+        ) : null}
+        {readOnly ? (
+          <span className="protocol-step__drag protocol-step__drag--readonly" aria-hidden="true">
+            ⋮⋮
+          </span>
+        ) : (
+          <button
+            type="button"
+            className="protocol-step__drag"
+            draggable
+            aria-label={`Drag ${step.title}`}
+            onDragStart={(e) => {
+              e.dataTransfer.effectAllowed = 'move'
+              onDragStart(step.id)
+            }}
+            onDragEnd={onDragEnd}
+            onClick={(e) => e.stopPropagation()}
+          >
+            ⋮⋮
           </button>
-          <button type="button" className="protocol-step__action" onClick={() => onRemove(step.id)}>
-            ×
+        )}
+        {readOnly ? (
+          <span
+            className={`protocol-step__check${step.done ? ' protocol-step__check--done' : ''} protocol-step__check--readonly`}
+            aria-hidden="true"
+          >
+            <span />
+          </span>
+        ) : (
+          <button
+            type="button"
+            className={`protocol-step__check${step.done ? ' protocol-step__check--done' : ''}`}
+            aria-pressed={step.done}
+            aria-label={step.done ? `Mark ${step.title} incomplete` : `Mark ${step.title} complete`}
+            onClick={() => onToggle(step.id)}
+          >
+            <span aria-hidden="true" />
           </button>
-        </div>
+        )}
+        {readOnly ? (
+          <textarea
+            ref={inputRef}
+            className="protocol-step__input"
+            rows={1}
+            value={step.title}
+            readOnly
+            tabIndex={-1}
+          />
+        ) : (
+          <textarea
+            ref={inputRef}
+            className="protocol-step__input"
+            rows={1}
+            value={step.title}
+            onInput={(e) => {
+              const target = e.currentTarget
+              target.style.height = 'auto'
+              target.style.height = `${target.scrollHeight}px`
+            }}
+            onChange={(e) => onRename(step.id, e.target.value)}
+          />
+        )}
+        {readOnly ? null : (
+          <div className="protocol-step__actions">
+            <button type="button" className="protocol-step__action" onClick={() => onAddChild(step.id)}>
+              +
+            </button>
+            <button type="button" className="protocol-step__action" onClick={() => onRemove(step.id)}>
+              ×
+            </button>
+          </div>
+        )}
       </div>
       {step.children.length > 0 ? (
         <ul className="protocol-step__children">
@@ -299,6 +361,8 @@ function ProtocolStepRow({
               step={child}
               depth={depth + 1}
               currentStepId={currentStepId}
+              showCurrentPointer={showCurrentPointer}
+              readOnly={readOnly}
               onToggle={onToggle}
               onRename={onRename}
               onAddChild={onAddChild}
@@ -325,9 +389,42 @@ export function IntegrationProtocolsPage({
   const [draggedStepId, setDraggedStepId] = useState<string | null>(null)
   const [collapsedSettings, setCollapsedSettings] = useState<Record<string, boolean>>({})
   const [collapsedProtocols, setCollapsedProtocols] = useState<Record<string, boolean>>({})
-  const [collapsedArchived, setCollapsedArchived] = useState(false)
+  const [collapsedArchived, setCollapsedArchived] = useState(() => {
+    try {
+      const raw = window.localStorage.getItem(PROTOCOLS_COLLAPSE_STORAGE_KEY)
+      if (!raw) return false
+      const parsed = JSON.parse(raw) as Partial<{ archived: boolean; completed: boolean }>
+      return !!parsed.archived
+    } catch {
+      return false
+    }
+  })
+  const [collapsedCompleted, setCollapsedCompleted] = useState(() => {
+    try {
+      const raw = window.localStorage.getItem(PROTOCOLS_COLLAPSE_STORAGE_KEY)
+      if (!raw) return false
+      const parsed = JSON.parse(raw) as Partial<{ archived: boolean; completed: boolean }>
+      return !!parsed.completed
+    } catch {
+      return false
+    }
+  })
   const [draftByProtocol, setDraftByProtocol] = useState<Record<string, string>>({})
   const [deletePhraseByProtocol, setDeletePhraseByProtocol] = useState<Record<string, string>>({})
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(
+        PROTOCOLS_COLLAPSE_STORAGE_KEY,
+        JSON.stringify({
+          archived: collapsedArchived,
+          completed: collapsedCompleted,
+        }),
+      )
+    } catch {
+      // Ignore storage failures and keep the UI responsive.
+    }
+  }, [collapsedArchived, collapsedCompleted])
 
   const selectedProtocol =
     protocols.find((protocol) => protocol.id === selectedProtocolId) ??
@@ -339,11 +436,15 @@ export function IntegrationProtocolsPage({
     [rewards],
   )
   const activeProtocols = useMemo(
-    () => protocols.filter((protocol) => !protocol.archivedAt),
+    () => protocols.filter((protocol) => !protocol.archivedAt && !protocol.completedAt),
     [protocols],
   )
   const archivedProtocols = useMemo(
     () => protocols.filter((protocol) => protocol.archivedAt),
+    [protocols],
+  )
+  const completedProtocols = useMemo(
+    () => protocols.filter((protocol) => protocol.completedAt && !protocol.archivedAt),
     [protocols],
   )
 
@@ -386,6 +487,9 @@ export function IntegrationProtocolsPage({
       thumbnailLabel: 'NEW',
       thumbnailUrl: null,
       priority: 3,
+      stepXp: 10,
+      completionXp: 25,
+      recallStepXpAwardedIds: [],
       active: false,
       pausedAt: null,
       archivedAt: null,
@@ -452,21 +556,39 @@ export function IntegrationProtocolsPage({
         }))
         const complete = isProtocolComplete(nextSteps)
         let nextRecallCurrentStepId = protocol.recallCurrentStepId
+        let nextCompletedAt = protocol.completedAt
+        let nextActive = protocol.active
+        let nextPausedAt = protocol.pausedAt
+        let nextRecallLastReviewedAt = protocol.recallLastReviewedAt
+
         if (protocol.structure === 'recall') {
           const currentStepId = normalizeProtocolCurrentStepId(protocol)
-          if (stepId === currentStepId && !protocol.completedAt) {
+          if (complete) {
+            nextCompletedAt = null
+            nextActive = true
+            nextPausedAt = protocol.pausedAt
+            nextRecallCurrentStepId = currentStepId
+            nextRecallLastReviewedAt = now
+          } else if (stepId === currentStepId && !protocol.completedAt) {
             const flattened = flattenProtocolSteps(nextSteps)
             const currentIndex = flattened.findIndex(({ step }) => step.id === stepId)
             const nextStep = flattened[currentIndex + 1]?.step ?? flattened[currentIndex]?.step ?? null
             nextRecallCurrentStepId = nextStep?.id ?? currentStepId
           }
+        } else if (complete) {
+          nextCompletedAt = protocol.completedAt ?? now
+          nextActive = false
+          nextPausedAt = null
         }
 
         return {
           ...protocol,
           steps: nextSteps,
-          completedAt: complete ? protocol.completedAt ?? now : null,
+          completedAt: nextCompletedAt,
+          active: nextActive,
+          pausedAt: nextPausedAt,
           recallCurrentStepId: nextRecallCurrentStepId,
+          recallLastReviewedAt: nextRecallLastReviewedAt,
           updatedAt: now,
         }
       }),
@@ -640,21 +762,31 @@ export function IntegrationProtocolsPage({
     )
   }
 
-  function handleClearThumbnail(protocolId: string) {
-    onUpdateProtocols((prev) =>
-      updateProtocol(prev, protocolId, (protocol) => ({
-        ...protocol,
-        thumbnailUrl: null,
-        updatedAt: new Date().toISOString(),
-      })),
-    )
-  }
-
   function handleDeadlineChange(protocolId: string, deadline: string) {
     onUpdateProtocols((prev) =>
       updateProtocol(prev, protocolId, (protocol) => ({
         ...protocol,
         deadline: deadline || null,
+        updatedAt: new Date().toISOString(),
+      })),
+    )
+  }
+
+  function handleStepXpChange(protocolId: string, stepXp: number) {
+    onUpdateProtocols((prev) =>
+      updateProtocol(prev, protocolId, (protocol) => ({
+        ...protocol,
+        stepXp: Math.max(0, Math.round(stepXp)),
+        updatedAt: new Date().toISOString(),
+      })),
+    )
+  }
+
+  function handleCompletionXpChange(protocolId: string, completionXp: number) {
+    onUpdateProtocols((prev) =>
+      updateProtocol(prev, protocolId, (protocol) => ({
+        ...protocol,
+        completionXp: Math.max(0, Math.round(completionXp)),
         updatedAt: new Date().toISOString(),
       })),
     )
@@ -675,11 +807,47 @@ export function IntegrationProtocolsPage({
     onUpdateProtocols((prev) =>
       updateProtocol(prev, protocolId, (protocol) => ({
         ...protocol,
-        archivedAt: protocol.archivedAt ? null : archivedAt,
-        active: protocol.archivedAt ? protocol.active : false,
-        pausedAt: protocol.pausedAt,
+        archivedAt,
         updatedAt: archivedAt,
       })),
+    )
+  }
+
+  function handleRestore(protocolId: string) {
+    const restoredAt = new Date().toISOString()
+    onUpdateProtocols((prev) =>
+      updateProtocol(prev, protocolId, (protocol) => ({
+        ...protocol,
+        archivedAt: null,
+        updatedAt: restoredAt,
+      })),
+    )
+  }
+
+  function handleRestoreCompleted(protocolId: string) {
+    const restoredAt = new Date().toISOString()
+    onUpdateProtocols((prev) =>
+      updateProtocol(prev, protocolId, (protocol) => {
+        const nextSteps = clearProtocolStepCompletion(protocol.steps)
+        return {
+          ...protocol,
+          archivedAt: null,
+          completedAt: null,
+          active: true,
+          pausedAt: null,
+          recallCurrentStepId:
+            protocol.structure === 'recall'
+              ? normalizeProtocolCurrentStepId({
+                  ...protocol,
+                  steps: nextSteps,
+                  completedAt: null,
+                })
+              : protocol.recallCurrentStepId,
+          recallLastReviewedAt: protocol.structure === 'recall' ? restoredAt : protocol.recallLastReviewedAt,
+          steps: nextSteps,
+          updatedAt: restoredAt,
+        }
+      }),
     )
   }
 
@@ -688,8 +856,14 @@ export function IntegrationProtocolsPage({
       <main className="dashboard protocols-page">
         <header className="dashboard__header">
           <h1 className="protocols-page__page-title">INTEGRATION PROTOCOLS</h1>
-          <button type="button" className="protocols-page__primary-btn" onClick={handleCreateProtocol}>
-            Create protocol
+          <button
+            type="button"
+            className="protocols-page__primary-btn"
+            onClick={handleCreateProtocol}
+            aria-label="Create protocol"
+            title="Create protocol"
+          >
+            <span aria-hidden="true">+</span>
           </button>
         </header>
       </main>
@@ -700,8 +874,14 @@ export function IntegrationProtocolsPage({
     <main className="dashboard protocols-page">
       <header className="dashboard__header">
         <h1 className="protocols-page__page-title">INTEGRATION PROTOCOLS</h1>
-        <button type="button" className="protocols-page__primary-btn" onClick={handleCreateProtocol}>
-          New protocol
+        <button
+          type="button"
+          className="protocols-page__primary-btn"
+          onClick={handleCreateProtocol}
+          aria-label="Create protocol"
+          title="Create protocol"
+        >
+          <span aria-hidden="true">+</span>
         </button>
       </header>
 
@@ -714,14 +894,19 @@ export function IntegrationProtocolsPage({
           const reward = protocol.rewardId ? rewardMap.get(protocol.rewardId) ?? null : null
           const selected = protocol.id === selectedProtocol?.id
           const deadlineLabel = formatDate(protocol.deadline)
-          const currentPointerPath =
-            protocol.structure === 'recall'
+          const isStandardArc = protocol.structure === 'standard'
+          const waitingForRecallCheck =
+            protocol.structure === 'recall' && !protocol.completedAt && isProtocolComplete(protocol.steps)
+          const currentPointerPath = waitingForRecallCheck
+            ? null
+            : protocol.structure === 'recall'
               ? findProtocolStepPathById(
                   protocol.steps,
                   normalizeProtocolCurrentStepId(protocol),
                 )?.path ?? null
               : findFirstIncompleteStep(protocol.steps)
           const currentPointerId = currentPointerPath?.[currentPointerPath.length - 1]?.id ?? null
+          const currentPointerLabel = getProtocolTrackerLabel(protocol)
 
           return (
             <article
@@ -813,9 +998,7 @@ export function IntegrationProtocolsPage({
 
               <p className="protocol-card__current-step">
                 <span className="protocol-card__current-step-label">Current</span>
-                <span className="protocol-card__current-step-value">
-                  {currentPointerPath ? currentPointerPath.map((step) => step.title).join(' / ') : 'All visible steps complete'}
-                </span>
+                <span className="protocol-card__current-step-value">{currentPointerLabel}</span>
                 <button
                   type="button"
                   className="protocol-card__collapse-toggle"
@@ -886,6 +1069,7 @@ export function IntegrationProtocolsPage({
                           step={step}
                           depth={0}
                           currentStepId={currentPointerId}
+                          showCurrentPointer={protocol.structure === 'recall'}
                           onToggle={(stepId) => handleToggleStep(protocol.id, stepId)}
                           onRename={(stepId, title) => handleRenameStep(protocol.id, stepId, title)}
                           onAddChild={(stepId) => handleAddChildStep(protocol.id, stepId)}
@@ -932,7 +1116,10 @@ export function IntegrationProtocolsPage({
                                 {reward.emoji}
                               </span>
                             )}
-                            <span>{reward.name}</span>
+                            <span className="protocol-card__reward-copy">
+                              <span className="protocol-card__reward-name">{reward.name}</span>
+                              <span className="protocol-card__reward-subtext">{protocol.completionXp} XP</span>
+                            </span>
                           </span>
                         </div>
                       ) : protocol.rewardName ? (
@@ -942,7 +1129,10 @@ export function IntegrationProtocolsPage({
                             <span className="protocol-card__reward-emoji" aria-hidden="true">
                               ◈
                             </span>
-                            <span>{protocol.rewardName}</span>
+                            <span className="protocol-card__reward-copy">
+                              <span className="protocol-card__reward-name">{protocol.rewardName}</span>
+                              <span className="protocol-card__reward-subtext">{protocol.completionXp} XP</span>
+                            </span>
                           </span>
                         </div>
                       ) : null}
@@ -965,17 +1155,34 @@ export function IntegrationProtocolsPage({
 
                   {settingsOpen ? (
                     <section className="protocol-card__settings" onClick={(e) => e.stopPropagation()}>
-                      <label className="protocol-card__field">
-                        <span>Structure</span>
-                        <select
-                          className="protocol-card__select"
-                          value={protocol.structure}
-                          onChange={(e) => handleStructureChange(protocol.id, e.target.value === 'recall' ? 'recall' : 'standard')}
-                        >
+                      <div className="protocol-card__field-group protocol-card__field-group--top">
+                        <label className="protocol-card__field">
+                          <span>Structure</span>
+                          <select
+                            className="protocol-card__select"
+                            value={protocol.structure}
+                            onChange={(e) => handleStructureChange(protocol.id, e.target.value === 'recall' ? 'recall' : 'standard')}
+                          >
                           <option value="standard">Standard protocol</option>
                           <option value="recall">Recall protocol</option>
                         </select>
                       </label>
+                        {isStandardArc ? (
+                          <label className="protocol-card__field">
+                            <span>Base XP per step</span>
+                            <input
+                              className="protocol-card__select"
+                              type="number"
+                              min={0}
+                              step={1}
+                              value={protocol.stepXp}
+                              onChange={(e) =>
+                                handleStepXpChange(protocol.id, Number(e.target.value) || 0)
+                              }
+                            />
+                          </label>
+                        ) : null}
+                      </div>
                       <label className="protocol-card__field">
                         <span>Deadline</span>
                         <input
@@ -987,42 +1194,90 @@ export function IntegrationProtocolsPage({
                       </label>
                       {protocol.structure === 'recall' ? (
                         <label className="protocol-card__field">
-                          <span>Recall interval (hours)</span>
+                          <span>Recall interval (hrs)</span>
                           <input
                             className="protocol-card__select"
                             type="number"
-                            min={1}
+                            min={0.25}
+                            step={0.25}
                             max={720}
                             value={protocol.intervalHours ?? 24}
-                            onChange={(e) => handleIntervalChange(protocol.id, Math.max(1, Number(e.target.value) || 1))}
+                            onChange={(e) =>
+                              handleIntervalChange(
+                                protocol.id,
+                                Math.max(0.25, Number(e.target.value) || 0.25),
+                              )
+                            }
                           />
                         </label>
                       ) : null}
-                      <label className="protocol-card__field protocol-card__field--compact">
-                        <span>Reward</span>
-                        <select
-                          className="protocol-card__select protocol-card__select--compact"
-                          value={protocol.rewardId ?? ''}
-                          onChange={(e) => handleRewardSelect(protocol.id, e.target.value)}
-                        >
-                          <option value="">No reward attached</option>
-                          {rewards.map((rewardOption) => (
-                            <option key={rewardOption.id} value={rewardOption.id}>
-                              {rewardOption.name}
-                            </option>
-                          ))}
-                        </select>
+                      {isStandardArc ? (
+                        <label className="protocol-card__field protocol-card__field--compact">
+                          <span>Reward</span>
+                          <select
+                            className="protocol-card__select protocol-card__select--compact"
+                            value={protocol.rewardId ?? ''}
+                            onChange={(e) => handleRewardSelect(protocol.id, e.target.value)}
+                          >
+                            <option value="">No reward attached</option>
+                            {rewards.map((rewardOption) => (
+                              <option key={rewardOption.id} value={rewardOption.id}>
+                                {rewardOption.name}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                      ) : null}
+                      <label className="protocol-card__field">
+                        <span>Final XP reward</span>
+                        <input
+                          className="protocol-card__select"
+                          type="number"
+                          min={0}
+                          step={1}
+                          value={protocol.completionXp}
+                          onChange={(e) =>
+                            handleCompletionXpChange(protocol.id, Number(e.target.value) || 0)
+                          }
+                        />
                       </label>
+                      {!isStandardArc ? (
+                        <label className="protocol-card__field protocol-card__field--compact">
+                          <span>Reward</span>
+                          <select
+                            className="protocol-card__select protocol-card__select--compact"
+                            value={protocol.rewardId ?? ''}
+                            onChange={(e) => handleRewardSelect(protocol.id, e.target.value)}
+                          >
+                            <option value="">No reward attached</option>
+                            {rewards.map((rewardOption) => (
+                              <option key={rewardOption.id} value={rewardOption.id}>
+                                {rewardOption.name}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                      ) : null}
+                      {!isStandardArc ? (
+                        <div className="protocol-card__field-group protocol-card__field-group--xp">
+                          <label className="protocol-card__field">
+                            <span>Base XP per step</span>
+                            <input
+                              className="protocol-card__select"
+                              type="number"
+                              min={0}
+                              step={1}
+                              value={protocol.stepXp}
+                              onChange={(e) =>
+                                handleStepXpChange(protocol.id, Number(e.target.value) || 0)
+                              }
+                            />
+                          </label>
+                        </div>
+                      ) : null}
                       <div className="protocol-card__field protocol-card__field--full protocol-card__field--danger protocol-card__field--danger-mini">
                         <div className="protocol-card__field-head-row">
                           <span>Delete</span>
-                          <button
-                            type="button"
-                            className="protocol-card__text-action"
-                            onClick={() => handleArchive(protocol.id)}
-                          >
-                            Archive protocol
-                          </button>
                         </div>
                         <div className="protocol-card__danger-row">
                           <input
@@ -1071,13 +1326,15 @@ export function IntegrationProtocolsPage({
                           }}
                         />
                       </label>
-                      <button
-                        type="button"
-                        className="protocol-card__archive-btn protocol-card__archive-btn--secondary"
-                        onClick={() => handleClearThumbnail(protocol.id)}
-                      >
-                        Clear thumbnail image
-                      </button>
+                      <div className="protocol-card__settings-footer">
+                        <button
+                          type="button"
+                          className="protocol-card__text-action"
+                          onClick={() => handleArchive(protocol.id)}
+                        >
+                          archive
+                        </button>
+                      </div>
                     </section>
                   ) : null}
                 </>
@@ -1165,7 +1422,7 @@ export function IntegrationProtocolsPage({
                         className="protocol-card__active protocol-card__active--on"
                         onClick={(e) => {
                           e.stopPropagation()
-                          handleArchive(protocol.id)
+                          handleRestore(protocol.id)
                         }}
                       >
                         Restore
@@ -1175,6 +1432,7 @@ export function IntegrationProtocolsPage({
                       <div className="protocol-card__reward">
                         {reward ? (
                           <div className="protocol-card__reward-pill">
+                            <span className="protocol-card__reward-kicker">Reward</span>
                             {reward.imageUrl ? (
                               <img className="protocol-card__reward-img" src={reward.imageUrl} alt="" />
                             ) : (
@@ -1182,14 +1440,21 @@ export function IntegrationProtocolsPage({
                                 {reward.emoji}
                               </span>
                             )}
-                            <span>{reward.name}</span>
+                            <span className="protocol-card__reward-copy">
+                              <span className="protocol-card__reward-name">{reward.name}</span>
+                              <span className="protocol-card__reward-subtext">{protocol.completionXp} XP</span>
+                            </span>
                           </div>
                         ) : protocol.rewardName ? (
                           <div className="protocol-card__reward-pill">
+                            <span className="protocol-card__reward-kicker">Reward</span>
                             <span className="protocol-card__reward-emoji" aria-hidden="true">
                               ◈
                             </span>
-                            <span>{protocol.rewardName}</span>
+                            <span className="protocol-card__reward-copy">
+                              <span className="protocol-card__reward-name">{protocol.rewardName}</span>
+                              <span className="protocol-card__reward-subtext">{protocol.completionXp} XP</span>
+                            </span>
                           </div>
                         ) : null}
                       </div>
@@ -1217,7 +1482,7 @@ export function IntegrationProtocolsPage({
                             <option value="recall">Recall protocol</option>
                           </select>
                         </label>
-                      <div className="protocol-card__field protocol-card__field--full protocol-card__field--danger protocol-card__field--danger-mini">
+                        <div className="protocol-card__field protocol-card__field--full protocol-card__field--danger protocol-card__field--danger-mini">
                           <div className="protocol-card__field-head-row">
                             <span>Delete</span>
                             <button
@@ -1225,7 +1490,7 @@ export function IntegrationProtocolsPage({
                               className="protocol-card__text-action"
                               onClick={(e) => {
                                 e.stopPropagation()
-                                handleArchive(protocol.id)
+                                handleRestore(protocol.id)
                               }}
                             >
                               Restore protocol
@@ -1254,16 +1519,162 @@ export function IntegrationProtocolsPage({
                                     ...prev,
                                     [protocol.id]: false,
                                   }))
-                              }
-                            }}
+                                }
+                              }}
                           >
-                              X
+                            X
                             </button>
                           </div>
                         </div>
                       </section>
                     ) : null}
                   </article>
+                )
+              })}
+            </div>
+          ) : null}
+        </section>
+      ) : null}
+
+      {completedProtocols.length > 0 ? (
+        <section className="protocols-page__archive protocols-page__completed" aria-label="Completed protocols">
+          <button
+            type="button"
+            className="protocols-page__archive-toggle protocols-page__archive-toggle--static"
+            onClick={() => setCollapsedCompleted((value) => !value)}
+            aria-expanded={!collapsedCompleted}
+          >
+            <div className="protocols-page__archive-head">
+              <div>
+                <h2 className="dashboard__section-title">COMPLETED</h2>
+                <p className="protocols-page__archive-copy">
+                  Finished protocols and full step trees you can review or restore.
+                </p>
+              </div>
+              <span className="protocols-page__archive-count">{completedProtocols.length} completed</span>
+            </div>
+            <span
+              className={`protocols-page__archive-chevron${collapsedCompleted ? '' : ' protocols-page__archive-chevron--open'}`}
+              aria-hidden="true"
+            >
+              ▾
+            </span>
+          </button>
+
+          {!collapsedCompleted ? (
+            <div className="protocols-page__archive-grid">
+              {completedProtocols.map((protocol) => {
+                const reward = protocol.rewardId ? rewardMap.get(protocol.rewardId) ?? null : null
+                const deadlineLabel = formatDate(protocol.deadline)
+                return (
+                  <article
+                    key={protocol.id}
+                    className="protocol-card protocol-card--completed protocol-card--archived-visible"
+                    onClick={() => setSelectedProtocolId(protocol.id)}
+                  >
+                  <header className="protocol-card__header">
+                    <button
+                      type="button"
+                      className="protocol-card__drag"
+                      aria-hidden="true"
+                      tabIndex={-1}
+                    >
+                      ⋮⋮
+                    </button>
+                    <button type="button" className="protocol-card__thumbnail">
+                      {protocol.thumbnailUrl ? (
+                        <img className="protocol-card__thumbnail-img" src={protocol.thumbnailUrl} alt="" />
+                      ) : (
+                        <span className="protocol-card__thumbnail-label">{protocol.thumbnailLabel}</span>
+                      )}
+                    </button>
+                    <div className="protocol-card__title-block">
+                      <input className="protocol-card__title" type="text" value={protocol.title} readOnly />
+                      {deadlineLabel ? <span className="protocol-card__deadline">Due {deadlineLabel}</span> : null}
+                    </div>
+                    <div className="protocol-card__stars" aria-hidden="true">
+                      {Array.from({ length: 5 }).map((_, index) => (
+                        <span key={index} className="protocol-card__star protocol-card__star--readonly">
+                          ★
+                        </span>
+                      ))}
+                    </div>
+                  </header>
+
+                  <p className="protocol-card__current-step">
+                    <span className="protocol-card__current-step-label">Completed</span>
+                    <span className="protocol-card__current-step-value">
+                      {protocol.completedAt ? `Cleared ${protocol.completedAt.slice(0, 10)}` : 'Ready to review'}
+                    </span>
+                  </p>
+
+                  <div className="protocol-card__body protocol-card__body--readonly">
+                    <ul className="protocol-card__steps">
+                      {protocol.steps.map((step) => (
+                        <ProtocolStepRow
+                          key={step.id}
+                          step={step}
+                          depth={0}
+                          currentStepId={null}
+                          showCurrentPointer={false}
+                          readOnly
+                          onToggle={() => {}}
+                          onRename={() => {}}
+                          onAddChild={() => {}}
+                          onRemove={() => {}}
+                          onDragStart={() => {}}
+                          onDragEnd={() => {}}
+                          onDropStep={() => {}}
+                        />
+                      ))}
+                    </ul>
+                  </div>
+
+                  <div className="protocol-card__meta">
+                    <button
+                      type="button"
+                      className="protocol-card__active protocol-card__active--on protocol-card__active--restore"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleRestoreCompleted(protocol.id)
+                      }}
+                    >
+                      Restore
+                    </button>
+                  </div>
+
+                  <footer className="protocol-card__footer">
+                    <div className="protocol-card__reward">
+                      {reward ? (
+                        <div className="protocol-card__reward-pill">
+                          <span className="protocol-card__reward-kicker">Reward</span>
+                          {reward.imageUrl ? (
+                            <img className="protocol-card__reward-img" src={reward.imageUrl} alt="" />
+                          ) : (
+                            <span className="protocol-card__reward-emoji" aria-hidden="true">
+                              {reward.emoji}
+                            </span>
+                          )}
+                          <span className="protocol-card__reward-copy">
+                            <span className="protocol-card__reward-name">{reward.name}</span>
+                            <span className="protocol-card__reward-subtext">{protocol.completionXp} XP</span>
+                          </span>
+                        </div>
+                      ) : protocol.rewardName ? (
+                        <div className="protocol-card__reward-pill">
+                          <span className="protocol-card__reward-kicker">Reward</span>
+                          <span className="protocol-card__reward-emoji" aria-hidden="true">
+                            ◈
+                          </span>
+                          <span className="protocol-card__reward-copy">
+                            <span className="protocol-card__reward-name">{protocol.rewardName}</span>
+                            <span className="protocol-card__reward-subtext">{protocol.completionXp} XP</span>
+                          </span>
+                        </div>
+                      ) : null}
+                    </div>
+                  </footer>
+                </article>
                 )
               })}
             </div>

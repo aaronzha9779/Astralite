@@ -81,6 +81,38 @@ export function getProtocolTrackerPath(
     : flattenProtocolSteps(protocol.steps).find(({ step }) => !step.done)?.path ?? null
 }
 
+function formatCountdown(ms: number): string {
+  const totalMinutes = Math.max(1, Math.ceil(ms / (1000 * 60)))
+  return `${totalMinutes}m`
+}
+
+export function getProtocolRecallCountdown(
+  protocol: IntegrationProtocol,
+  now = new Date(),
+): string | null {
+  if (protocol.structure !== 'recall' || protocol.completedAt || !protocol.recallLastReviewedAt) {
+    return null
+  }
+
+  if (!isProtocolComplete(protocol.steps)) return null
+
+  const intervalHours = Math.max(0.25, protocol.intervalHours ?? 24)
+  const nextCheckAt = new Date(protocol.recallLastReviewedAt).getTime() + intervalHours * 60 * 60 * 1000
+  const remainingMs = nextCheckAt - now.getTime()
+  return formatCountdown(Math.max(0, remainingMs))
+}
+
+export function getProtocolTrackerLabel(
+  protocol: IntegrationProtocol,
+  now = new Date(),
+): string {
+  const countdown = getProtocolRecallCountdown(protocol, now)
+  if (countdown) return `Next check in ${countdown}`
+
+  const path = getProtocolTrackerPath(protocol)
+  return path?.map((step) => step.title).join(' / ') ?? 'All visible steps complete'
+}
+
 export function normalizeProtocolCurrentStepId(
   protocol: IntegrationProtocol,
 ): string | null {

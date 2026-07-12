@@ -3,6 +3,10 @@
   font-weight: 600;
 }
 
+.shop__balance--subtitle {
+  margin-left: 0.25rem;
+}
+
 .shop__balance--pulse {
   animation: shop-balance-pulse 0.7s ease-out;
 }
@@ -294,8 +298,10 @@
 
 .shop__archive {
   margin-top: 1.4rem;
-  padding-top: 1.25rem;
-  border-top: 1px solid var(--border);
+  padding: 1rem 1.1rem;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface-raised);
   display: flex;
   flex-direction: column;
   gap: 0.75rem;

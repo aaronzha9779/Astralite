@@ -30,21 +30,79 @@
 }
 
 .protocols-page__primary-btn {
+  position: relative;
   align-self: flex-start;
+  display: inline-grid;
+  place-items: center;
+  width: 3rem;
+  height: 3rem;
   margin-top: 0.35rem;
-  padding: 0.7rem 1rem;
-  border-radius: 999px;
-  border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--border));
-  background: color-mix(in srgb, var(--accent) 14%, var(--surface-raised));
-  color: var(--accent);
+  padding: 0;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--accent) 20%, var(--border-strong) 80%);
+  background:
+    linear-gradient(180deg,
+      color-mix(in srgb, var(--surface-raised) 88%, black 12%),
+      color-mix(in srgb, var(--surface-raised) 76%, black 24%)
+    );
+  color: var(--text);
   font: inherit;
-  font-size: 0.875rem;
-  font-weight: 700;
+  font-size: 1.7rem;
+  font-weight: 500;
+  letter-spacing: 0;
+  line-height: 1;
+  box-shadow:
+    0 10px 18px color-mix(in srgb, black 24%, transparent),
+    0 2px 4px color-mix(in srgb, black 14%, transparent),
+    inset 0 1px 0 color-mix(in srgb, white 6%, transparent),
+    inset 0 -1px 0 color-mix(in srgb, black 26%, transparent);
   cursor: pointer;
+  transition:
+    transform 0.16s ease,
+    box-shadow 0.16s ease,
+    border-color 0.16s ease,
+    filter 0.16s ease;
+}
+
+.protocols-page__primary-btn::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(180deg, color-mix(in srgb, white 4%, transparent), transparent 62%);
+  opacity: 0.28;
+  pointer-events: none;
 }
 
 .protocols-page__primary-btn:hover {
-  border-color: var(--accent);
+  transform: translateY(-1px);
+  border-color: color-mix(in srgb, var(--accent) 24%, var(--border-strong) 76%);
+  box-shadow:
+    0 14px 24px color-mix(in srgb, black 28%, transparent),
+    0 4px 6px color-mix(in srgb, black 12%, transparent),
+    inset 0 1px 0 color-mix(in srgb, white 8%, transparent),
+    inset 0 -1px 0 color-mix(in srgb, black 28%, transparent);
+  color: var(--text);
+  filter: brightness(1.01);
+}
+
+.protocols-page__primary-btn span {
+  display: inline-block;
+  transform: translateY(-0.05rem);
+}
+
+.protocols-page__primary-btn:active {
+  transform: translateY(1px) scale(0.99);
+  box-shadow:
+    0 7px 14px color-mix(in srgb, black 28%, transparent),
+    0 1px 3px color-mix(in srgb, black 14%, transparent),
+    inset 0 1px 0 color-mix(in srgb, white 8%, transparent),
+    inset 0 2px 8px color-mix(in srgb, black 26%, transparent);
+}
+
+.protocols-page__primary-btn:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--accent) 45%, white 55%);
+  outline-offset: 2px;
 }
 
 .protocols-page__hero {
@@ -271,6 +329,8 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+  object-position: center;
+  transform: scale(1.03);
 }
 
 .protocol-card__thumbnail-label {
@@ -496,6 +556,10 @@
   background: color-mix(in srgb, var(--surface) 82%, var(--surface-raised) 18%);
 }
 
+.protocol-step__row--current.protocol-step__row--current-pointer {
+  grid-template-columns: auto auto auto minmax(0, 1fr) auto;
+}
+
 .protocol-step__row--current {
   border: 2px solid color-mix(in srgb, var(--accent) 56%, var(--border) 44%);
   box-shadow:
@@ -519,6 +583,12 @@
   place-items: center;
   cursor: pointer;
   position: relative;
+}
+
+.protocol-step__check:disabled,
+.protocol-step__check--readonly {
+  cursor: default;
+  opacity: 1;
 }
 
 .protocol-step__check--done {
@@ -571,6 +641,10 @@
   align-self: start;
 }
 
+.protocol-step__input[readonly] {
+  cursor: default;
+}
+
 .protocol-step__row--done .protocol-step__input {
   color: var(--text-muted);
   text-decoration: line-through;
@@ -595,6 +669,21 @@
   font-size: 0.9rem;
   line-height: 1;
   cursor: grab;
+}
+
+.protocol-step__drag--readonly {
+  cursor: default;
+  display: inline-grid;
+  place-items: center;
+  align-self: center;
+}
+
+.protocol-step__pointer {
+  color: var(--accent);
+  font-size: 0.82rem;
+  line-height: 1;
+  align-self: center;
+  padding-top: 0.05rem;
 }
 
 .protocol-step__action {
@@ -689,12 +778,32 @@
   font-weight: 600;
 }
 
+.protocol-card__reward-copy {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.08rem;
+  min-width: 0;
+}
+
+.protocol-card__reward-name {
+  min-width: 0;
+}
+
 .protocol-card__reward-kicker {
   font-size: 0.6rem;
   font-weight: 800;
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--accent);
+}
+
+.protocol-card__reward-subtext {
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--accent) 74%, var(--text-muted) 26%);
 }
 
 .protocol-card__reward-row {
@@ -803,6 +912,24 @@
   grid-auto-rows: min-content;
 }
 
+.protocol-card__field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.protocol-card__field-group--top {
+  gap: 0.65rem;
+}
+
+.protocol-card__field-group--xp {
+  grid-column: 2;
+  justify-self: stretch;
+  align-self: start;
+  padding-left: 0;
+}
+
 .protocol-card__field {
   display: flex;
   flex-direction: column;
@@ -876,6 +1003,30 @@
   grid-column: 1 / -1;
 }
 
+.protocol-card__field-group--deadline {
+  min-width: 0;
+}
+
+.protocol-card__active--restore {
+  color: #fde047;
+  border-color: color-mix(in srgb, #fde047 52%, var(--border));
+  background: color-mix(in srgb, #fde047 14%, var(--surface));
+}
+
+.protocol-card__active--restore:hover {
+  color: #facc15;
+  border-color: color-mix(in srgb, #facc15 62%, var(--border));
+  background: color-mix(in srgb, #facc15 22%, var(--surface));
+}
+
+.protocol-card__settings-footer {
+  display: flex;
+  grid-column: 1 / -1;
+  justify-content: flex-end;
+  align-items: flex-end;
+  padding-top: 0.1rem;
+}
+
 .protocol-card__select {
   font-family: var(--obsidian-sans);
   font-size: 0.84rem;
@@ -885,6 +1036,15 @@
   border: 1px solid color-mix(in srgb, var(--border) 70%, var(--accent) 30%);
   background: color-mix(in srgb, var(--surface-raised) 88%, var(--surface) 12%);
   color: var(--text);
+}
+
+.protocol-card__select[type='date']::-webkit-calendar-picker-indicator {
+  opacity: 0.75;
+  filter: brightness(0.75);
+}
+
+.protocol-card__select[type='date']::-webkit-inner-spin-button {
+  opacity: 0.8;
 }
 
 .protocol-card__select::placeholder {
@@ -941,11 +1101,16 @@
   cursor: pointer;
 }
 
+.protocols-page__archive-toggle--static {
+  cursor: default;
+}
+
 .protocols-page__archive-head {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 1rem;
+  text-align: left;
 }
 
 .protocols-page__archive-copy,

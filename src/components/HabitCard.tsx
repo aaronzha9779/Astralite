@@ -96,8 +96,8 @@ export function HabitCard({
             </span>
             <span className="habit-card__progress-label">
               {isHobby
-                ? `${habit.progressToday} / 100 today`
-                : `${maturity.minutes} / ${maturity.minutesToNext} XP to next`}
+                ? `${habit.progressToday} / 100`
+                : `${maturity.minutes} / ${maturity.minutesToNext} XP`}
             </span>
           </span>
         </span>

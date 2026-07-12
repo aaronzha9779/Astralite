@@ -139,6 +139,105 @@ function getLevelUpUxpReward(
   return amount
 }
 
+function getProtocolXpGain(
+  prevProtocols: IntegrationProtocol[],
+  nextProtocols: IntegrationProtocol[],
+): {
+  protocols: IntegrationProtocol[]
+  xpGain: number
+} {
+  const prevById = new Map(prevProtocols.map((protocol) => [protocol.id, protocol]))
+  let total = 0
+  const protocols = nextProtocols.map((next) => {
+    const prev = prevById.get(next.id)
+    if (!prev) return next
+
+    const awardedStepIds = new Set(next.recallStepXpAwardedIds ?? [])
+    let nextAwardedStepIds = next.recallStepXpAwardedIds ?? []
+    let awardedChanged = false
+    const stepXp = Math.max(0, Math.round(next.stepXp ?? 0))
+    const prevDoneIds = new Set(
+      flattenProtocolSteps(prev.steps)
+        .filter(({ step }) => step.done)
+        .map(({ step }) => step.id),
+    )
+    for (const { step } of flattenProtocolSteps(next.steps)) {
+      const newlyCompleted = step.done && !prevDoneIds.has(step.id)
+      if (!newlyCompleted) continue
+      const alreadyAwarded = awardedStepIds.has(step.id)
+      if (next.structure === 'recall' && !alreadyAwarded) {
+        awardedStepIds.add(step.id)
+        awardedChanged = true
+      }
+      if (next.structure === 'recall' && alreadyAwarded) {
+        continue
+      }
+      if (stepXp > 0) {
+        total += stepXp
+      }
+    }
+
+    const completionXp = Math.max(0, Math.round(next.completionXp ?? 0))
+    if (completionXp > 0 && !prev.completedAt && next.completedAt) {
+      total += completionXp
+    }
+
+    if (awardedChanged) {
+      nextAwardedStepIds = Array.from(awardedStepIds)
+      return {
+        ...next,
+        recallStepXpAwardedIds: nextAwardedStepIds,
+      }
+    }
+
+    return next
+  })
+
+  return {
+    protocols,
+    xpGain: total,
+  }
+}
+
+function applyProtocolXpRewards(
+  prev: AppState,
+  nextProtocols: IntegrationProtocol[],
+): {
+  protocols: IntegrationProtocol[]
+  profile: AppState['profile']
+  uxpBonus: number
+  xpGain: number
+} {
+  const protocolRewardResult = getProtocolXpGain(prev.protocols ?? [], nextProtocols)
+  const xpGain = protocolRewardResult.xpGain
+  if (xpGain <= 0) {
+    return {
+      protocols: protocolRewardResult.protocols,
+      profile: prev.profile,
+      uxpBonus: 0,
+      xpGain: 0,
+    }
+  }
+
+  const baseProfile = {
+    ...prev.profile,
+    totalXp: (prev.profile.totalXp ?? 0) + xpGain,
+    shopXp: (prev.profile.shopXp ?? 0) + xpGain,
+  }
+  const uxpBonus = getLevelUpUxpReward(prev, prev.habits, baseProfile, [])
+  const profile =
+    uxpBonus > 0
+      ? { ...baseProfile, shopXp: (baseProfile.shopXp ?? 0) + uxpBonus }
+      : baseProfile
+
+  return {
+    protocols: protocolRewardResult.protocols,
+    profile,
+    uxpBonus,
+    xpGain,
+  }
+}
+
 function prepareState(base: AppState): AppState {
   const today = getTodayISO()
   const daysElapsed = getDayDifference(base.lastActiveDate, today)
@@ -251,6 +350,7 @@ function applyRecallProtocolTimeBoundary(
 ): IntegrationProtocol[] {
   return protocols.map((protocol) => {
     if (protocol.structure !== 'recall') return protocol
+    if (protocol.completedAt) return protocol
 
     if (!protocol.recallLastReviewedAt) {
       return {
@@ -263,9 +363,21 @@ function applyRecallProtocolTimeBoundary(
     const hoursElapsed = getHoursDifference(protocol.recallLastReviewedAt, now)
     if (hoursElapsed <= 0) return protocol
 
+    const complete = isProtocolComplete(protocol.steps)
     const flatSteps = flattenProtocolSteps(protocol.steps)
-    const intervalHours = Math.max(1, protocol.intervalHours ?? 24)
+    const intervalHours = Math.max(0.25, protocol.intervalHours ?? 24)
     const missedWindows = Math.floor(hoursElapsed / intervalHours)
+    if (complete) {
+      if (missedWindows <= 0) return protocol
+      return {
+        ...protocol,
+        active: false,
+        pausedAt: null,
+        completedAt: protocol.completedAt ?? now,
+        updatedAt: now,
+      }
+    }
+
     if (missedWindows <= 0) return protocol
 
     if (flatSteps.length === 0) {
@@ -530,10 +642,37 @@ export function useAppState() {
   )
 
   useEffect(() => {
+    let pendingProtocolBurst: { amount: number; reason: string } | null = null
     const syncDayBoundary = () => {
       const today = getTodayISO()
       updateCurrentState((prev) => {
-        if (prev.lastActiveDate === today) return prev
+        const nowIso = getNowLocalISO()
+        const nextProtocols = applyRecallProtocolTimeBoundary(prev.protocols ?? [], nowIso)
+        const protocolRewards = applyProtocolXpRewards(prev, nextProtocols)
+        pendingProtocolBurst =
+          protocolRewards.uxpBonus > 0 || protocolRewards.xpGain > 0
+            ? {
+                amount: protocolRewards.uxpBonus > 0 ? protocolRewards.uxpBonus : protocolRewards.xpGain,
+                reason: protocolRewards.xpGain > 0 ? 'Protocol XP' : 'Protocol completion',
+              }
+            : null
+        if (prev.lastActiveDate === today) {
+          if (protocolRewards.xpGain <= 0) {
+            return protocolRewards.protocols === prev.protocols
+              ? prev
+              : {
+                  ...prev,
+                  protocols: protocolRewards.protocols,
+                  profile: protocolRewards.profile,
+                }
+          }
+
+          return {
+            ...prev,
+            protocols: protocolRewards.protocols,
+            profile: protocolRewards.profile,
+          }
+        }
         const daysElapsed = getDayDifference(prev.lastActiveDate, today)
         const bountyState = applyBountyIncrease(
           prev.bountyTasks,
@@ -543,7 +682,8 @@ export function useAppState() {
         return {
           ...prev,
           habits: applyDailyReset(prev.habits, prev.lastActiveDate),
-          protocols: applyRecallProtocolTimeBoundary(prev.protocols ?? [], getNowLocalISO()),
+          protocols: protocolRewards.protocols,
+          profile: protocolRewards.profile,
           dashboard:
             prev.dashboard.activeQuoteDate === today && hasValidQuoteIndex(prev.dashboard)
               ? prev.dashboard
@@ -564,6 +704,15 @@ export function useAppState() {
           lastActiveDate: today,
         }
       })
+
+      if (pendingProtocolBurst) {
+        setUxpBurst({
+          id: crypto.randomUUID(),
+          amount: pendingProtocolBurst.amount,
+          reason: pendingProtocolBurst.reason,
+        })
+        pendingProtocolBurst = null
+      }
     }
 
     syncDayBoundary()
@@ -1443,10 +1592,27 @@ export function useAppState() {
 
   const updateProtocols = useCallback(
     (updater: (protocols: IntegrationProtocol[]) => IntegrationProtocol[]) => {
-      updateCurrentState((prev) => ({
-        ...prev,
-        protocols: updater(prev.protocols ?? []),
-      }))
+      let protocolUxpBonus = 0
+      let protocolXpGain = 0
+      updateCurrentState((prev) => {
+        const nextProtocols = updater(prev.protocols ?? [])
+        const protocolRewards = applyProtocolXpRewards(prev, nextProtocols)
+        protocolUxpBonus = protocolRewards.uxpBonus
+        protocolXpGain = protocolRewards.xpGain
+        return {
+          ...prev,
+          protocols: protocolRewards.protocols,
+          profile: protocolRewards.profile,
+        }
+      })
+
+      if (protocolUxpBonus > 0 || protocolXpGain > 0) {
+        setUxpBurst({
+          id: crypto.randomUUID(),
+          amount: protocolUxpBonus > 0 ? protocolUxpBonus : protocolXpGain,
+          reason: protocolXpGain > 0 ? 'Protocol XP' : 'Protocol completion',
+        })
+      }
     },
     [updateCurrentState],
   )

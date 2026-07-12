@@ -231,12 +231,17 @@ function normalizePriority(priority: unknown): number {
 function normalizeIntervalHours(protocol: Partial<IntegrationProtocol> | undefined): number | null {
   const legacyProtocol = protocol as (Partial<IntegrationProtocol> & { intervalDays?: number }) | undefined
   if (protocol?.intervalHours != null) {
-    return Math.max(1, Math.round(protocol.intervalHours))
+    return Math.max(0.25, Number(protocol.intervalHours) || 0.25)
   }
   if (legacyProtocol?.intervalDays != null) {
-    return Math.max(1, Math.round(legacyProtocol.intervalDays * 24))
+    return Math.max(0.25, legacyProtocol.intervalDays * 24)
   }
   return null
+}
+
+function normalizeProtocolXp(value: unknown, fallback: number): number {
+  const numeric = typeof value === 'number' && Number.isFinite(value) ? value : fallback
+  return Math.max(0, Math.round(numeric))
 }
 
 function normalizeProtocol(
@@ -254,6 +259,11 @@ function normalizeProtocol(
     thumbnailLabel: protocol?.thumbnailLabel?.trim() || 'QUEST',
     thumbnailUrl: protocol?.thumbnailUrl ?? null,
     priority: normalizePriority(protocol?.priority),
+    stepXp: normalizeProtocolXp(protocol?.stepXp, 10),
+    completionXp: normalizeProtocolXp(protocol?.completionXp, 25),
+    recallStepXpAwardedIds: Array.isArray(protocol?.recallStepXpAwardedIds)
+      ? protocol!.recallStepXpAwardedIds.filter((stepId): stepId is string => typeof stepId === 'string')
+      : [],
     active: !!protocol?.active,
     pausedAt: protocol?.pausedAt ?? null,
     archivedAt: protocol?.archivedAt ?? null,
@@ -275,6 +285,11 @@ function normalizeProtocol(
     thumbnailLabel: protocol?.thumbnailLabel?.trim() || 'QUEST',
     thumbnailUrl: protocol?.thumbnailUrl ?? null,
     priority: normalizePriority(protocol?.priority),
+    stepXp: normalizeProtocolXp(protocol?.stepXp, 10),
+    completionXp: normalizeProtocolXp(protocol?.completionXp, 25),
+    recallStepXpAwardedIds: Array.isArray(protocol?.recallStepXpAwardedIds)
+      ? protocol!.recallStepXpAwardedIds.filter((stepId): stepId is string => typeof stepId === 'string')
+      : [],
     active: !!protocol?.active,
     pausedAt: protocol?.pausedAt ?? null,
     archivedAt: protocol?.archivedAt ?? null,
