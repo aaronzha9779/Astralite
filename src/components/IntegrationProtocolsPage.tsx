@@ -495,7 +495,7 @@ export function IntegrationProtocolsPage({
       archivedAt: null,
       completedAt: null,
       structure: 'standard' as const,
-      intervalHours: null,
+      intervalMinutes: null,
       deadline: null,
       rewardId: null,
       rewardName: null,
@@ -698,13 +698,13 @@ export function IntegrationProtocolsPage({
       updateProtocol(prev, protocolId, (protocol) => ({
         ...protocol,
         structure,
-        intervalHours: structure === 'recall' ? protocol.intervalHours ?? 24 : null,
+        intervalMinutes: structure === 'recall' ? protocol.intervalMinutes ?? 24 * 60 : null,
         recallCurrentStepId:
           structure === 'recall'
             ? normalizeProtocolCurrentStepId({
                 ...protocol,
                 structure,
-                intervalHours: protocol.intervalHours ?? 24,
+                intervalMinutes: protocol.intervalMinutes ?? 24 * 60,
               })
             : protocol.recallCurrentStepId,
         recallLastReviewedAt: structure === 'recall' ? protocol.recallLastReviewedAt ?? new Date().toISOString() : null,
@@ -792,11 +792,11 @@ export function IntegrationProtocolsPage({
     )
   }
 
-  function handleIntervalChange(protocolId: string, intervalHours: number) {
+  function handleIntervalChange(protocolId: string, intervalMinutes: number) {
     onUpdateProtocols((prev) =>
       updateProtocol(prev, protocolId, (protocol) => ({
         ...protocol,
-        intervalHours,
+        intervalMinutes,
         updatedAt: new Date().toISOString(),
       })),
     )
@@ -1194,18 +1194,18 @@ export function IntegrationProtocolsPage({
                       </label>
                       {protocol.structure === 'recall' ? (
                         <label className="protocol-card__field">
-                          <span>Recall interval (hrs)</span>
+                          <span>Recall interval (mins)</span>
                           <input
                             className="protocol-card__select"
                             type="number"
-                            min={0.25}
-                            step={0.25}
-                            max={720}
-                            value={protocol.intervalHours ?? 24}
+                            min={1}
+                            step={1}
+                            max={43200}
+                            value={protocol.intervalMinutes ?? 24 * 60}
                             onChange={(e) =>
                               handleIntervalChange(
                                 protocol.id,
-                                Math.max(0.25, Number(e.target.value) || 0.25),
+                                Math.max(1, Math.round(Number(e.target.value) || 1)),
                               )
                             }
                           />

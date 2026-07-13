@@ -228,13 +228,16 @@ function normalizePriority(priority: unknown): number {
   return Math.min(5, Math.max(1, Math.round(value * 2) / 2))
 }
 
-function normalizeIntervalHours(protocol: Partial<IntegrationProtocol> | undefined): number | null {
-  const legacyProtocol = protocol as (Partial<IntegrationProtocol> & { intervalDays?: number }) | undefined
-  if (protocol?.intervalHours != null) {
-    return Math.max(0.25, Number(protocol.intervalHours) || 0.25)
+function normalizeIntervalMinutes(protocol: Partial<IntegrationProtocol> | undefined): number | null {
+  const legacyProtocol = protocol as (Partial<IntegrationProtocol> & { intervalDays?: number; intervalHours?: number }) | undefined
+  if (protocol?.intervalMinutes != null) {
+    return Math.max(1, Math.round(Number(protocol.intervalMinutes) || 1))
   }
   if (legacyProtocol?.intervalDays != null) {
-    return Math.max(0.25, legacyProtocol.intervalDays * 24)
+    return Math.max(1, Math.round(legacyProtocol.intervalDays * 24 * 60))
+  }
+  if (legacyProtocol?.intervalHours != null) {
+    return Math.max(1, Math.round(Number(legacyProtocol.intervalHours) * 60 || 1))
   }
   return null
 }
@@ -269,7 +272,7 @@ function normalizeProtocol(
     archivedAt: protocol?.archivedAt ?? null,
     completedAt: protocol?.completedAt ?? null,
     structure,
-    intervalHours: structure === 'recall' ? normalizeIntervalHours(protocol) ?? 24 : null,
+    intervalMinutes: structure === 'recall' ? normalizeIntervalMinutes(protocol) ?? 24 * 60 : null,
     deadline: protocol?.deadline ?? null,
     rewardId: protocol?.rewardId ?? null,
     rewardName: protocol?.rewardName?.trim() ?? null,
@@ -295,7 +298,7 @@ function normalizeProtocol(
     archivedAt: protocol?.archivedAt ?? null,
     completedAt: protocol?.completedAt ?? null,
     structure,
-    intervalHours: structure === 'recall' ? normalizeIntervalHours(protocol) ?? 24 : null,
+    intervalMinutes: structure === 'recall' ? normalizeIntervalMinutes(protocol) ?? 24 * 60 : null,
     deadline: protocol?.deadline ?? null,
     rewardId: protocol?.rewardId ?? null,
     rewardName: protocol?.rewardName?.trim() ?? null,
