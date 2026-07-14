@@ -96,8 +96,8 @@ export function getProtocolRecallCountdown(
 
   if (!isProtocolComplete(protocol.steps)) return null
 
-  const intervalMinutes = Math.max(1, protocol.intervalMinutes ?? 24 * 60)
-  const nextCheckAt = new Date(protocol.recallLastReviewedAt).getTime() + intervalMinutes * 60 * 1000
+  const intervalHours = Math.max(0.25, protocol.intervalHours ?? 24)
+  const nextCheckAt = new Date(protocol.recallLastReviewedAt).getTime() + intervalHours * 60 * 60 * 1000
   const remainingMs = nextCheckAt - now.getTime()
   return formatCountdown(Math.max(0, remainingMs))
 }

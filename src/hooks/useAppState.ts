@@ -365,9 +365,8 @@ function applyRecallProtocolTimeBoundary(
 
     const complete = isProtocolComplete(protocol.steps)
     const flatSteps = flattenProtocolSteps(protocol.steps)
-    const intervalMinutes = Math.max(1, protocol.intervalMinutes ?? 24 * 60)
-    const minutesElapsed = hoursElapsed * 60
-    if (minutesElapsed < intervalMinutes) return protocol
+    const intervalHours = Math.max(0.25, protocol.intervalHours ?? 24)
+    if (hoursElapsed < intervalHours) return protocol
     if (complete) {
       return {
         ...protocol,

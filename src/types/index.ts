@@ -59,7 +59,7 @@ export type IntegrationProtocol = {
   archivedAt: string | null
   completedAt: string | null
   structure: ProtocolStructure
-  intervalMinutes: number | null
+  intervalHours: number | null
   deadline: string | null
   rewardId: string | null
   rewardName: string | null
