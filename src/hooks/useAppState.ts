@@ -366,9 +366,9 @@ function applyRecallProtocolTimeBoundary(
     const complete = isProtocolComplete(protocol.steps)
     const flatSteps = flattenProtocolSteps(protocol.steps)
     const intervalMinutes = Math.max(1, protocol.intervalMinutes ?? 24 * 60)
-    const missedWindows = Math.floor((hoursElapsed * 60) / intervalMinutes)
+    const minutesElapsed = hoursElapsed * 60
+    if (minutesElapsed < intervalMinutes) return protocol
     if (complete) {
-      if (missedWindows <= 0) return protocol
       return {
         ...protocol,
         active: false,
@@ -377,8 +377,6 @@ function applyRecallProtocolTimeBoundary(
         updatedAt: now,
       }
     }
-
-    if (missedWindows <= 0) return protocol
 
     if (flatSteps.length === 0) {
       return {
@@ -395,12 +393,10 @@ function applyRecallProtocolTimeBoundary(
     const currentStepId = normalizeProtocolCurrentStepId(protocol)
     const currentIndex = getProtocolStepIndex(protocol.steps, currentStepId)
     const currentStep = currentStepId ? flatSteps[currentIndex]?.step ?? null : null
-    let nextCurrentStepId = currentStepId
-
-    if (missedWindows > 0 && currentStep && !currentStep.done) {
-      const nextIndex = Math.max(0, currentIndex - missedWindows)
-      nextCurrentStepId = flatSteps[nextIndex]?.step.id ?? currentStepId
-    }
+    const nextIndex = currentStep?.done
+      ? Math.min(flatSteps.length - 1, currentIndex + 1)
+      : Math.max(0, currentIndex - 1)
+    const nextCurrentStepId = flatSteps[nextIndex]?.step.id ?? currentStepId
 
     return {
       ...protocol,

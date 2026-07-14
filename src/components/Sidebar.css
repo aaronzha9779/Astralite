@@ -252,10 +252,10 @@
   margin: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.12rem;
-  font-size: 0.75rem;
+  gap: 0.16rem;
+  font-size: 0.78rem;
   color: var(--text);
-  line-height: 1.3;
+  line-height: 1.4;
 }
 
 .profile-card__quest-title-row {

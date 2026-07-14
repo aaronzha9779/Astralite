@@ -5,7 +5,6 @@ import {
   clearProtocolStepCompletion,
   findProtocolStepPathById,
   findProtocolStepById,
-  flattenProtocolSteps,
   getProtocolStepCount,
   getProtocolTrackerLabel,
   isProtocolComplete,
@@ -14,6 +13,41 @@ import {
 import './IntegrationProtocolsPage.css'
 
 const PROTOCOLS_COLLAPSE_STORAGE_KEY = 'habitup-protocols-collapse-state-v1'
+
+type ProtocolCollapseState = {
+  archived: boolean
+  completed: boolean
+  settingsByProtocolId: Record<string, boolean>
+  protocolsByProtocolId: Record<string, boolean>
+}
+
+function loadProtocolCollapseState(): ProtocolCollapseState {
+  try {
+    const raw = window.localStorage.getItem(PROTOCOLS_COLLAPSE_STORAGE_KEY)
+    if (!raw) {
+      return {
+        archived: false,
+        completed: false,
+        settingsByProtocolId: {},
+        protocolsByProtocolId: {},
+      }
+    }
+    const parsed = JSON.parse(raw) as Partial<ProtocolCollapseState>
+    return {
+      archived: !!parsed.archived,
+      completed: !!parsed.completed,
+      settingsByProtocolId: parsed.settingsByProtocolId ?? {},
+      protocolsByProtocolId: parsed.protocolsByProtocolId ?? {},
+    }
+  } catch {
+    return {
+      archived: false,
+      completed: false,
+      settingsByProtocolId: {},
+      protocolsByProtocolId: {},
+    }
+  }
+}
 
 type IntegrationProtocolsPageProps = {
   protocols: IntegrationProtocol[]
@@ -387,28 +421,15 @@ export function IntegrationProtocolsPage({
   const [selectedProtocolId, setSelectedProtocolId] = useState(protocols[0]?.id ?? '')
   const [draggedId, setDraggedId] = useState<string | null>(null)
   const [draggedStepId, setDraggedStepId] = useState<string | null>(null)
-  const [collapsedSettings, setCollapsedSettings] = useState<Record<string, boolean>>({})
-  const [collapsedProtocols, setCollapsedProtocols] = useState<Record<string, boolean>>({})
-  const [collapsedArchived, setCollapsedArchived] = useState(() => {
-    try {
-      const raw = window.localStorage.getItem(PROTOCOLS_COLLAPSE_STORAGE_KEY)
-      if (!raw) return false
-      const parsed = JSON.parse(raw) as Partial<{ archived: boolean; completed: boolean }>
-      return !!parsed.archived
-    } catch {
-      return false
-    }
-  })
-  const [collapsedCompleted, setCollapsedCompleted] = useState(() => {
-    try {
-      const raw = window.localStorage.getItem(PROTOCOLS_COLLAPSE_STORAGE_KEY)
-      if (!raw) return false
-      const parsed = JSON.parse(raw) as Partial<{ archived: boolean; completed: boolean }>
-      return !!parsed.completed
-    } catch {
-      return false
-    }
-  })
+  const initialCollapseState = useMemo(() => loadProtocolCollapseState(), [])
+  const [collapsedSettings, setCollapsedSettings] = useState<Record<string, boolean>>(
+    initialCollapseState.settingsByProtocolId,
+  )
+  const [collapsedProtocols, setCollapsedProtocols] = useState<Record<string, boolean>>(
+    initialCollapseState.protocolsByProtocolId,
+  )
+  const [collapsedArchived, setCollapsedArchived] = useState(initialCollapseState.archived)
+  const [collapsedCompleted, setCollapsedCompleted] = useState(initialCollapseState.completed)
   const [draftByProtocol, setDraftByProtocol] = useState<Record<string, string>>({})
   const [deletePhraseByProtocol, setDeletePhraseByProtocol] = useState<Record<string, string>>({})
 
@@ -419,12 +440,14 @@ export function IntegrationProtocolsPage({
         JSON.stringify({
           archived: collapsedArchived,
           completed: collapsedCompleted,
+          settingsByProtocolId: collapsedSettings,
+          protocolsByProtocolId: collapsedProtocols,
         }),
       )
     } catch {
       // Ignore storage failures and keep the UI responsive.
     }
-  }, [collapsedArchived, collapsedCompleted])
+  }, [collapsedArchived, collapsedCompleted, collapsedSettings, collapsedProtocols])
 
   const selectedProtocol =
     protocols.find((protocol) => protocol.id === selectedProtocolId) ??
@@ -569,11 +592,6 @@ export function IntegrationProtocolsPage({
             nextPausedAt = protocol.pausedAt
             nextRecallCurrentStepId = currentStepId
             nextRecallLastReviewedAt = now
-          } else if (stepId === currentStepId && !protocol.completedAt) {
-            const flattened = flattenProtocolSteps(nextSteps)
-            const currentIndex = flattened.findIndex(({ step }) => step.id === stepId)
-            const nextStep = flattened[currentIndex + 1]?.step ?? flattened[currentIndex]?.step ?? null
-            nextRecallCurrentStepId = nextStep?.id ?? currentStepId
           }
         } else if (complete) {
           nextCompletedAt = protocol.completedAt ?? now
@@ -895,11 +913,8 @@ export function IntegrationProtocolsPage({
           const selected = protocol.id === selectedProtocol?.id
           const deadlineLabel = formatDate(protocol.deadline)
           const isStandardArc = protocol.structure === 'standard'
-          const waitingForRecallCheck =
-            protocol.structure === 'recall' && !protocol.completedAt && isProtocolComplete(protocol.steps)
-          const currentPointerPath = waitingForRecallCheck
-            ? null
-            : protocol.structure === 'recall'
+          const currentPointerPath =
+            protocol.structure === 'recall'
               ? findProtocolStepPathById(
                   protocol.steps,
                   normalizeProtocolCurrentStepId(protocol),
