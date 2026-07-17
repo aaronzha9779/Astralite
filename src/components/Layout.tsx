@@ -14,6 +14,7 @@ import './Layout.css'
 
 export function Layout() {
   const [activeNavId, setActiveNavId] = useState('dashboard')
+  const [selectedProtocolId, setSelectedProtocolId] = useState<string | null>(null)
   const {
     activeAccountId,
     accounts,
@@ -112,6 +113,16 @@ export function Layout() {
     [protocols],
   )
 
+  const resolvedSelectedProtocolId =
+    selectedProtocolId && protocols.some((protocol) => protocol.id === selectedProtocolId)
+      ? selectedProtocolId
+      : protocols[0]?.id ?? null
+
+  function handleOpenProtocol(protocolId: string) {
+    setSelectedProtocolId(protocolId)
+    setActiveNavId('protocols')
+  }
+
   function renderMain() {
     if (activeNavId === 'dashboard') {
       return (
@@ -154,6 +165,8 @@ export function Layout() {
         <IntegrationProtocolsPage
           protocols={protocols}
           rewards={rewards}
+          selectedProtocolId={resolvedSelectedProtocolId}
+          onSelectProtocolId={setSelectedProtocolId}
           onDeleteProtocol={deleteProtocol}
           onUpdateProtocols={updateProtocols}
         />
@@ -281,6 +294,7 @@ export function Layout() {
           onSwitchAccount={switchAccount}
           onExportSaveFile={exportSaveFile}
           onImportSaveFile={importSaveFile}
+          onOpenProtocol={handleOpenProtocol}
         />
         {uxpBurst ? (
           <div className="layout__uxp-burst" role="status" aria-live="polite">

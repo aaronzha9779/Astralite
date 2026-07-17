@@ -153,7 +153,6 @@ function getProtocolXpGain(
     if (!prev) return next
 
     const awardedStepIds = new Set(next.recallStepXpAwardedIds ?? [])
-    let nextAwardedStepIds = next.recallStepXpAwardedIds ?? []
     let awardedChanged = false
     const stepXp = Math.max(0, Math.round(next.stepXp ?? 0))
     const prevDoneIds = new Set(
@@ -183,10 +182,9 @@ function getProtocolXpGain(
     }
 
     if (awardedChanged) {
-      nextAwardedStepIds = Array.from(awardedStepIds)
       return {
         ...next,
-        recallStepXpAwardedIds: nextAwardedStepIds,
+        recallStepXpAwardedIds: Array.from(awardedStepIds),
       }
     }
 

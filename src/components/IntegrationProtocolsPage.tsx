@@ -52,6 +52,8 @@ function loadProtocolCollapseState(): ProtocolCollapseState {
 type IntegrationProtocolsPageProps = {
   protocols: IntegrationProtocol[]
   rewards: Reward[]
+  selectedProtocolId: string | null
+  onSelectProtocolId: (protocolId: string) => void
   onDeleteProtocol: (protocolId: string) => boolean
   onUpdateProtocols: (
     updater: (protocols: IntegrationProtocol[]) => IntegrationProtocol[],
@@ -415,13 +417,15 @@ function ProtocolStepRow({
 export function IntegrationProtocolsPage({
   protocols,
   rewards,
+  selectedProtocolId,
+  onSelectProtocolId,
   onDeleteProtocol,
   onUpdateProtocols,
 }: IntegrationProtocolsPageProps) {
-  const [selectedProtocolId, setSelectedProtocolId] = useState(protocols[0]?.id ?? '')
   const [draggedId, setDraggedId] = useState<string | null>(null)
   const [draggedStepId, setDraggedStepId] = useState<string | null>(null)
   const initialCollapseState = useMemo(() => loadProtocolCollapseState(), [])
+  const protocolCardRefs = useRef<Record<string, HTMLElement | null>>({})
   const [collapsedSettings, setCollapsedSettings] = useState<Record<string, boolean>>(
     initialCollapseState.settingsByProtocolId,
   )
@@ -453,6 +457,13 @@ export function IntegrationProtocolsPage({
     protocols.find((protocol) => protocol.id === selectedProtocolId) ??
     protocols[0] ??
     null
+
+  useEffect(() => {
+    if (!selectedProtocol?.id) return
+    const card = protocolCardRefs.current[selectedProtocol.id]
+    if (!card) return
+    card.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }, [selectedProtocol?.id])
 
   const rewardMap = useMemo(
     () => new Map(rewards.map((reward) => [reward.id, reward])),
@@ -536,7 +547,7 @@ export function IntegrationProtocolsPage({
     }
 
     onUpdateProtocols((prev) => [protocol, ...prev])
-    setSelectedProtocolId(protocol.id)
+    onSelectProtocolId(protocol.id)
   }
 
   function setStepDraft(protocolId: string, value: string) {
@@ -924,10 +935,13 @@ export function IntegrationProtocolsPage({
           const currentPointerLabel = getProtocolTrackerLabel(protocol)
 
           return (
-            <article
-              key={protocol.id}
-              className={`protocol-card${protocol.active ? ' protocol-card--active' : ''}${selected ? ' protocol-card--selected' : ''}${protocol.archivedAt ? ' protocol-card--archived' : ''}${protocol.completedAt ? ' protocol-card--completed' : ''}${collapsed ? ' protocol-card--collapsed' : ''}`}
-              onClick={() => setSelectedProtocolId(protocol.id)}
+              <article
+                key={protocol.id}
+                className={`protocol-card${protocol.active ? ' protocol-card--active' : ''}${selected ? ' protocol-card--selected' : ''}${protocol.archivedAt ? ' protocol-card--archived' : ''}${protocol.completedAt ? ' protocol-card--completed' : ''}${collapsed ? ' protocol-card--collapsed' : ''}`}
+              ref={(node) => {
+                protocolCardRefs.current[protocol.id] = node
+              }}
+              onClick={() => onSelectProtocolId(protocol.id)}
               onDragOver={(e) => e.preventDefault()}
               onDrop={() => {
                 if (!draggedId || draggedId === protocol.id) return
@@ -954,7 +968,7 @@ export function IntegrationProtocolsPage({
                   className="protocol-card__thumbnail"
                   onClick={(e) => {
                     e.stopPropagation()
-                    setSelectedProtocolId(protocol.id)
+                    onSelectProtocolId(protocol.id)
                   }}
                 >
                   {protocol.thumbnailUrl ? (
@@ -1395,7 +1409,7 @@ export function IntegrationProtocolsPage({
                   <article
                     key={protocol.id}
                     className="protocol-card protocol-card--archived protocol-card--archived-visible"
-                    onClick={() => setSelectedProtocolId(protocol.id)}
+                    onClick={() => onSelectProtocolId(protocol.id)}
                   >
                     <header className="protocol-card__header">
                       <button
@@ -1585,7 +1599,7 @@ export function IntegrationProtocolsPage({
                   <article
                     key={protocol.id}
                     className="protocol-card protocol-card--completed protocol-card--archived-visible"
-                    onClick={() => setSelectedProtocolId(protocol.id)}
+                    onClick={() => onSelectProtocolId(protocol.id)}
                   >
                   <header className="protocol-card__header">
                     <button

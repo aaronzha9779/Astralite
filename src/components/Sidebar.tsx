@@ -22,6 +22,7 @@ type SidebarProps = {
   onSwitchAccount: (accountId: string) => void
   onExportSaveFile: () => string
   onImportSaveFile: (raw: string) => boolean
+  onOpenProtocol: (protocolId: string) => void
 }
 
 function getInitials(name: string) {
@@ -43,6 +44,7 @@ export function Sidebar({
   onSwitchAccount,
   onExportSaveFile,
   onImportSaveFile,
+  onOpenProtocol,
 }: SidebarProps) {
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const [xpPulse, setXpPulse] = useState(false)
@@ -238,13 +240,18 @@ export function Sidebar({
                 <span className="profile-card__quest-progress">
                   {quest.completedSteps}/{quest.totalSteps}
                 </span>
-                <div className="profile-card__quest-thumb" aria-hidden="true">
+                <button
+                  type="button"
+                  className="profile-card__quest-thumb profile-card__quest-thumb--button"
+                  aria-label={`Open ${quest.title} in Protocols`}
+                  onClick={() => onOpenProtocol(quest.id)}
+                >
                   {quest.thumbnailUrl ? (
                     <img className="profile-card__quest-thumb-img" src={quest.thumbnailUrl} alt="" />
                   ) : (
                     <span className="profile-card__quest-thumb-label">{quest.thumbnailLabel}</span>
                   )}
-                </div>
+                </button>
                 <div className="profile-card__quest-copy">
                   <p className="profile-card__quest-task">
                     <span className="profile-card__quest-title-row">
