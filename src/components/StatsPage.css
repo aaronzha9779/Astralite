@@ -266,6 +266,47 @@
   gap: 0.75rem;
 }
 
+.stats-page__history-month {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.stats-page__history-month-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.85rem 0.95rem;
+  cursor: pointer;
+  list-style: none;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent);
+}
+
+.stats-page__history-month-summary::-webkit-details-marker {
+  display: none;
+}
+
+.stats-page__history-month-label {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.stats-page__history-month-meta {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  text-align: right;
+}
+
+.stats-page__history-month-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  padding: 0 0.85rem 0.85rem;
+}
+
 .stats-page__history-day {
   border: 1px solid var(--border);
   border-radius: 10px;

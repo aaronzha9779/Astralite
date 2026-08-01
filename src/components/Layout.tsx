@@ -63,6 +63,8 @@ export function Layout() {
     setBountiesOpen,
     setChecksOpen,
     setCategoryCollapsed,
+    setHistoryOpen,
+    setHistoryMonthOpen,
     setSidebarOpen,
     setWeeklyOpen,
     setSettingsSectionOpen,
@@ -213,10 +215,13 @@ export function Layout() {
           completions={completions}
           timeRecords={timeRecords}
           stats={statsPageSummary}
+          dashboard={dashboard}
           onAddCoreAspect={addCoreAspect}
           onIncrementCoreAspect={incrementCoreAspect}
           onAddGoal={addGoal}
           onIncrementGoal={incrementGoal}
+          onSetHistoryOpen={setHistoryOpen}
+          onSetHistoryMonthOpen={setHistoryMonthOpen}
         />
       )
     }

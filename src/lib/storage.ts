@@ -137,6 +137,8 @@ const defaultDashboard: DashboardPrefs = {
   bountiesOpen: false,
   checksOpen: false,
   weeklyOpen: false,
+  historyOpen: true,
+  historyMonthOpen: {},
   sidebarOpen: true,
   settingsSections: {
     accounts: true,
@@ -383,6 +385,10 @@ function normalizeState(state: AppState): AppState {
       settingsSections: {
         ...defaultDashboard.settingsSections,
         ...state.dashboard?.settingsSections,
+      },
+      historyMonthOpen: {
+        ...defaultDashboard.historyMonthOpen,
+        ...state.dashboard?.historyMonthOpen,
       },
       quotes:
         state.dashboard?.quotes?.length

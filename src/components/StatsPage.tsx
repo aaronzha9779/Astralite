@@ -1,6 +1,7 @@
-import { useMemo, useState, type FormEvent } from 'react'
+import { useMemo, useState, type FormEvent, type SyntheticEvent } from 'react'
 import {
   formatHistoryDay,
+  groupRecentHistoryByMonth,
   formatHistoryTime,
   getRecentHistory,
 } from '../lib/statsPage'
@@ -8,6 +9,7 @@ import type {
   CompletionRecord,
   CoreAspect,
   DashboardStat,
+  DashboardPrefs,
   GoalTracker,
   Habit,
   IntegrationProtocol,
@@ -25,10 +27,13 @@ type StatsPageProps = {
   completions: CompletionRecord[]
   timeRecords: TimeRecord[]
   stats: DashboardStat[]
+  dashboard: DashboardPrefs
   onAddCoreAspect: (name: string) => void
   onIncrementCoreAspect: (id: string) => void
   onAddGoal: (name: string, target: number) => void
   onIncrementGoal: (id: string) => void
+  onSetHistoryOpen: (open: boolean) => void
+  onSetHistoryMonthOpen: (monthKey: string, open: boolean) => void
 }
 
 export function StatsPage({
@@ -39,10 +44,13 @@ export function StatsPage({
   completions,
   timeRecords,
   stats,
+  dashboard,
   onAddCoreAspect,
   onIncrementCoreAspect,
   onAddGoal,
   onIncrementGoal,
+  onSetHistoryOpen,
+  onSetHistoryMonthOpen,
 }: StatsPageProps) {
   const [coreAspectName, setCoreAspectName] = useState('')
   const [goalName, setGoalName] = useState('')
@@ -50,6 +58,10 @@ export function StatsPage({
   const history = useMemo(
     () => getRecentHistory(completions, 25),
     [completions],
+  )
+  const historyByMonth = useMemo(
+    () => groupRecentHistoryByMonth(history),
+    [history],
   )
   const linkedHabitNamesByAspect = useMemo(() => {
     const map: Record<string, string[]> = {}
@@ -89,6 +101,14 @@ export function StatsPage({
     onAddGoal(goalName, target)
     setGoalName('')
     setGoalTarget('10')
+  }
+
+  function handleHistoryToggle(event: SyntheticEvent<HTMLDetailsElement>) {
+    onSetHistoryOpen(event.currentTarget.open)
+  }
+
+  function handleMonthToggle(monthKey: string, event: SyntheticEvent<HTMLDetailsElement>) {
+    onSetHistoryMonthOpen(monthKey, event.currentTarget.open)
   }
 
   return (
@@ -322,43 +342,70 @@ export function StatsPage({
       </section>
 
       <section className="stats-page__section">
-        <details className="stats-page__history-panel" open>
+        <details
+          className="stats-page__history-panel"
+          open={dashboard.historyOpen}
+          onToggle={handleHistoryToggle}
+        >
           <summary className="stats-page__history-summary">
             <span className="dashboard__section-title">Recent history</span>
             <span className="stats-page__history-meta">
               {history.length} recent day{history.length === 1 ? '' : 's'}
             </span>
           </summary>
-        {history.length === 0 ? (
-          <p className="dashboard__empty">No completions logged yet.</p>
-        ) : (
-          <div className="stats-page__history">
-            {history.map((day) => (
-              <details key={day.date} className="stats-page__history-day">
-                <summary className="stats-page__history-day-summary">
-                  <span className="stats-page__history-day-date">
-                    {formatHistoryDay(day.date)}
-                  </span>
-                  <span className="stats-page__history-day-meta">
-                    {day.count} completion{day.count === 1 ? '' : 's'}
-                  </span>
-                </summary>
-                <ul className="stats-page__history-list">
-                  {day.entries.map((entry) => (
-                    <li key={entry.id} className="stats-page__history-item">
-                      <span className="stats-page__history-time">
-                        {formatHistoryTime(entry.completedAt)}
+          {history.length === 0 ? (
+            <p className="dashboard__empty">No completions logged yet.</p>
+          ) : (
+            <div className="stats-page__history">
+              {historyByMonth.map((month, monthIndex) => {
+                const defaultOpen = monthIndex === 0
+                const isOpen = dashboard.historyMonthOpen[month.monthKey] ?? defaultOpen
+                return (
+                  <details
+                    key={month.monthKey}
+                    className="stats-page__history-month"
+                    open={isOpen}
+                    onToggle={(event) => handleMonthToggle(month.monthKey, event)}
+                  >
+                    <summary className="stats-page__history-month-summary">
+                      <span className="stats-page__history-month-label">
+                        {month.label}
                       </span>
-                      <span className="stats-page__history-name">
-                        {entry.habitName}
+                      <span className="stats-page__history-month-meta">
+                        {month.days.length} day{month.days.length === 1 ? '' : 's'} · {month.count} completion{month.count === 1 ? '' : 's'}
                       </span>
-                    </li>
-                  ))}
-                </ul>
-              </details>
-            ))}
-          </div>
-        )}
+                    </summary>
+                    <div className="stats-page__history-month-body">
+                      {month.days.map((day) => (
+                        <details key={day.date} className="stats-page__history-day">
+                          <summary className="stats-page__history-day-summary">
+                            <span className="stats-page__history-day-date">
+                              {formatHistoryDay(day.date)}
+                            </span>
+                            <span className="stats-page__history-day-meta">
+                              {day.count} completion{day.count === 1 ? '' : 's'}
+                            </span>
+                          </summary>
+                          <ul className="stats-page__history-list">
+                            {day.entries.map((entry) => (
+                              <li key={entry.id} className="stats-page__history-item">
+                                <span className="stats-page__history-time">
+                                  {formatHistoryTime(entry.completedAt)}
+                                </span>
+                                <span className="stats-page__history-name">
+                                  {entry.habitName}
+                                </span>
+                              </li>
+                            ))}
+                          </ul>
+                        </details>
+                      ))}
+                    </div>
+                  </details>
+                )
+              })}
+            </div>
+          )}
         </details>
       </section>
     </main>

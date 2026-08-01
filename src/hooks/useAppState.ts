@@ -1632,6 +1632,26 @@ export function useAppState() {
     }))
   }, [updateCurrentState])
 
+  const setHistoryOpen = useCallback((open: boolean) => {
+    updateCurrentState((prev) => ({
+      ...prev,
+      dashboard: { ...prev.dashboard, historyOpen: open },
+    }))
+  }, [updateCurrentState])
+
+  const setHistoryMonthOpen = useCallback((monthKey: string, open: boolean) => {
+    updateCurrentState((prev) => ({
+      ...prev,
+      dashboard: {
+        ...prev.dashboard,
+        historyMonthOpen: {
+          ...prev.dashboard.historyMonthOpen,
+          [monthKey]: open,
+        },
+      },
+    }))
+  }, [updateCurrentState])
+
   const updateProtocols = useCallback(
     (updater: (protocols: IntegrationProtocol[]) => IntegrationProtocol[]) => {
       let protocolUxpBonus = 0
@@ -2319,6 +2339,8 @@ export function useAppState() {
     setCategoryCollapsed,
     setSidebarOpen,
     setWeeklyOpen,
+    setHistoryOpen,
+    setHistoryMonthOpen,
     updateProtocols,
     updateProtocolReward,
     deleteProtocol,

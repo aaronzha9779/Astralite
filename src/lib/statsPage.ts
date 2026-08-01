@@ -15,6 +15,13 @@ export type RecentHistoryDay = {
   entries: CompletionRecord[]
 }
 
+export type RecentHistoryMonth = {
+  monthKey: string
+  label: string
+  count: number
+  days: RecentHistoryDay[]
+}
+
 export function getStatsPageSummary(
   habits: Habit[],
   completions: CompletionRecord[],
@@ -131,12 +138,41 @@ export function getRecentHistory(
     }))
 }
 
+export function groupRecentHistoryByMonth(
+  history: RecentHistoryDay[],
+): RecentHistoryMonth[] {
+  const grouped = new Map<string, RecentHistoryDay[]>()
+  for (const day of history) {
+    const monthKey = day.date.slice(0, 7)
+    const existing = grouped.get(monthKey) ?? []
+    existing.push(day)
+    grouped.set(monthKey, existing)
+  }
+
+  return [...grouped.entries()]
+    .sort(([a], [b]) => b.localeCompare(a))
+    .map(([monthKey, days]) => ({
+      monthKey,
+      label: formatHistoryMonth(monthKey),
+      count: days.reduce((sum, day) => sum + day.count, 0),
+      days,
+    }))
+}
+
 export function formatHistoryDay(iso: string): string {
   const [y, m, d] = iso.split('-').map(Number)
   return new Date(y, m - 1, d).toLocaleDateString(undefined, {
     weekday: 'long',
     month: 'short',
     day: 'numeric',
+    year: 'numeric',
+  })
+}
+
+export function formatHistoryMonth(isoMonth: string): string {
+  const [y, m] = isoMonth.split('-').map(Number)
+  return new Date(y, m - 1, 1).toLocaleDateString(undefined, {
+    month: 'long',
     year: 'numeric',
   })
 }

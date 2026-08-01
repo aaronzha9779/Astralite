@@ -337,6 +337,8 @@ export const defaultAppState: AppState = {
     bountiesOpen: false,
     checksOpen: false,
     weeklyOpen: false,
+    historyOpen: true,
+    historyMonthOpen: {},
     sidebarOpen: true,
     settingsSections: {
       accounts: true,
@@ -389,6 +391,8 @@ export function createEmptyAppState(): AppState {
       bountiesOpen: false,
       checksOpen: false,
       weeklyOpen: false,
+      historyOpen: true,
+      historyMonthOpen: {},
       sidebarOpen: true,
       settingsSections: {
         accounts: true,
