@@ -314,6 +314,7 @@ function buildSampleCompletions(habits: Habit[]): CompletionRecord[] {
 export const defaultAppState: AppState = {
   habits: seedHabits,
   coreAspects: seedCoreAspects,
+  goals: [],
   bountyTasks: [
     { id: 'b1', name: 'Ship the important thing', done: false },
   ],
@@ -373,6 +374,7 @@ export function createEmptyAppState(): AppState {
   return {
     habits: [],
     coreAspects: [],
+    goals: [],
     bountyTasks: [],
     checks: [],
     weeklyTasks: [],

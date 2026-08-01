@@ -12,6 +12,7 @@ import type {
   IntegrationProtocol,
   Habit,
   HabitCategory,
+  GoalTracker,
   ProtocolStep,
 } from '../types'
 
@@ -117,6 +118,7 @@ function migrate(raw: unknown): AppState | null {
     purchasedRewards: [],
     lastDailySpinDate: null,
     coreAspects: [],
+    goals: [],
     bountyTasks: [],
     checks: [],
     weeklyTasks: [],
@@ -206,6 +208,16 @@ function normalizeCoreAspect(
     name: aspect?.name?.trim() || `Core aspect ${index + 1}`,
     progressToday: Math.max(0, Math.round(aspect?.progressToday ?? 0)),
     totalProgress: Math.max(0, Math.round(aspect?.totalProgress ?? 0)),
+  }
+}
+
+function normalizeGoal(goal: Partial<GoalTracker> | undefined, index: number): GoalTracker {
+  return {
+    id: goal?.id ?? `goal-${index + 1}`,
+    name: goal?.name?.trim() || `Goal ${index + 1}`,
+    target: Math.max(1, Math.round(goal?.target ?? 1)),
+    progressToday: Math.max(0, Math.round(goal?.progressToday ?? 0)),
+    totalProgress: Math.max(0, Math.round(goal?.totalProgress ?? 0)),
   }
 }
 
@@ -354,6 +366,7 @@ function normalizeState(state: AppState): AppState {
     coreAspects: (state.coreAspects ?? []).map((aspect, index) =>
       normalizeCoreAspect(aspect, index),
     ),
+    goals: (state.goals ?? []).map((goal, index) => normalizeGoal(goal, index)),
     bountyTasks: state.bountyTasks ?? [],
     checks: state.checks ?? [],
     weeklyTasks: state.weeklyTasks ?? [],

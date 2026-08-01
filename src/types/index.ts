@@ -101,6 +101,14 @@ export type CoreAspect = {
   totalProgress: number
 }
 
+export type GoalTracker = {
+  id: string
+  name: string
+  target: number
+  progressToday: number
+  totalProgress: number
+}
+
 export type WeeklyTask = {
   id: string
   name: string
@@ -113,6 +121,8 @@ export type DashboardPrefs = {
   bountiesOpen: boolean
   checksOpen: boolean
   weeklyOpen: boolean
+  historyOpen: boolean
+  historyMonthOpen: Partial<Record<string, boolean>>
   sidebarOpen: boolean
   settingsSections: Partial<Record<SettingsSection, boolean>>
   collapsedCategories: Partial<Record<HabitCategory, boolean>>
@@ -172,6 +182,7 @@ export type ProfileData = {
 export type AppState = {
   habits: Habit[]
   coreAspects: CoreAspect[]
+  goals: GoalTracker[]
   bountyTasks: WeeklyTask[]
   checks: WeeklyTask[]
   weeklyTasks: WeeklyTask[]

@@ -45,6 +45,7 @@ import type {
   CoreAspect,
   DashboardPrefs,
   IntegrationProtocol,
+  GoalTracker,
   Habit,
   HabitCategory,
   Reward,
@@ -249,6 +250,10 @@ function prepareState(base: AppState): AppState {
     base.lastActiveDate === today
       ? base.coreAspects
       : base.coreAspects.map((aspect) => ({ ...aspect, progressToday: 0 }))
+  const goals =
+    base.lastActiveDate === today
+      ? base.goals
+      : base.goals.map((goal) => ({ ...goal, progressToday: 0 }))
   const bountyState =
     base.lastActiveDate === today
       ? { bountyTasks: base.bountyTasks, preferences: base.preferences }
@@ -268,6 +273,7 @@ function prepareState(base: AppState): AppState {
     habits,
     protocols,
     coreAspects,
+    goals,
     bountyTasks:
       base.lastActiveDate === today
         ? base.bountyTasks
@@ -331,6 +337,21 @@ function applyCoreAspectIncrements(
       ...aspect,
       progressToday: aspect.progressToday + increment,
       totalProgress: aspect.totalProgress + increment,
+    }
+  })
+}
+
+function applyGoalIncrements(
+  goals: GoalTracker[],
+  goalCounts: Record<string, number>,
+): GoalTracker[] {
+  return goals.map((goal) => {
+    const increment = goalCounts[goal.id] ?? 0
+    if (increment <= 0) return goal
+    return {
+      ...goal,
+      progressToday: goal.progressToday + increment,
+      totalProgress: goal.totalProgress + increment,
     }
   })
 }
@@ -1384,6 +1405,26 @@ export function useAppState() {
     }))
   }, [updateCurrentState])
 
+  const addGoal = useCallback((name: string, target: number) => {
+    const trimmed = name.trim()
+    const normalizedTarget = Math.max(1, Math.round(target))
+    if (!trimmed) return
+
+    updateCurrentState((prev) => ({
+      ...prev,
+      goals: [
+        ...prev.goals,
+        {
+          id: crypto.randomUUID(),
+          name: trimmed,
+          target: normalizedTarget,
+          progressToday: 0,
+          totalProgress: 0,
+        },
+      ],
+    }))
+  }, [updateCurrentState])
+
   const addCheck = useCallback((name: string) => {
     const trimmed = name.trim()
     if (!trimmed) return
@@ -1538,6 +1579,14 @@ export function useAppState() {
             }
           : aspect,
       ),
+    }))
+  }, [updateCurrentState])
+
+  const incrementGoal = useCallback((id: string) => {
+    playCompletionChime()
+    updateCurrentState((prev) => ({
+      ...prev,
+      goals: applyGoalIncrements(prev.goals, { [id]: 1 }),
     }))
   }, [updateCurrentState])
 
@@ -1764,6 +1813,9 @@ export function useAppState() {
       const coreAspects = prev.coreAspects.map((aspect) =>
         aspect.progressToday > 0 ? { ...aspect, progressToday: 0 } : aspect,
       )
+      const goals = prev.goals.map((goal) =>
+        goal.progressToday > 0 ? { ...goal, progressToday: 0 } : goal,
+      )
       const completions = prev.completions.filter((entry) => entry.date !== today)
       const checks = prev.checks.map((item) =>
         item.done ? { ...item, done: false } : item,
@@ -1771,28 +1823,32 @@ export function useAppState() {
       const bountyTasks = bountyState.bountyTasks.map((item) =>
         item.done ? { ...item, done: false } : item,
       )
-        const weeklyTasks = prev.weeklyTasks.map((item) =>
-          item.done ? { ...item, done: false } : item,
-        )
-          const protocols = applyRecallProtocolTimeBoundary(prev.protocols ?? [], getNowLocalISO())
+      const weeklyTasks = prev.weeklyTasks.map((item) =>
+        item.done ? { ...item, done: false } : item,
+      )
+      const protocols = applyRecallProtocolTimeBoundary(
+        prev.protocols ?? [],
+        getNowLocalISO(),
+      )
 
-        return {
-          ...prev,
+      return {
+        ...prev,
         dashboard:
           prev.dashboard.activeQuoteDate === today && hasValidQuoteIndex(prev.dashboard)
             ? prev.dashboard
             : refreshDashboardQuote(prev.dashboard, today),
         habits,
         coreAspects,
+        goals,
         bountyTasks,
-          checks,
-          weeklyTasks,
-          protocols,
-          completions,
-          preferences: bountyState.preferences,
-          lastActiveDate: today,
-        }
-      })
+        checks,
+        weeklyTasks,
+        protocols,
+        completions,
+        preferences: bountyState.preferences,
+        lastActiveDate: today,
+      }
+    })
   }, [updateCurrentState])
 
   const resetBestDay = useCallback(() => {
@@ -2214,6 +2270,7 @@ export function useAppState() {
     habits: activeHabits,
     archivedHabits,
     coreAspects: state.coreAspects,
+    goals: state.goals,
     bountyTasks: state.bountyTasks,
     checks: state.checks,
     weeklyTasks: state.weeklyTasks,
@@ -2244,9 +2301,11 @@ export function useAppState() {
     setHabitWeights,
     addHabit,
     addCoreAspect,
+    addGoal,
     addBountyTask,
     incrementHobby,
     incrementCoreAspect,
+    incrementGoal,
     addCheck,
     addWeeklyTask,
     toggleBountyTask,

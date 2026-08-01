@@ -21,6 +21,7 @@ export function Layout() {
     habits,
     archivedHabits,
     coreAspects,
+    goals,
     bountyTasks,
     checks,
     weeklyTasks,
@@ -47,10 +48,12 @@ export function Layout() {
     deleteHabit,
     addHabit,
     addCoreAspect,
+    addGoal,
     addBountyTask,
     addCheck,
     addWeeklyTask,
     incrementCoreAspect,
+    incrementGoal,
     toggleBountyTask,
     toggleCheck,
     toggleWeeklyTask,
@@ -205,12 +208,15 @@ export function Layout() {
         <StatsPage
           habits={habits}
           coreAspects={coreAspects}
+          goals={goals}
           protocols={protocols}
           completions={completions}
           timeRecords={timeRecords}
           stats={statsPageSummary}
           onAddCoreAspect={addCoreAspect}
           onIncrementCoreAspect={incrementCoreAspect}
+          onAddGoal={addGoal}
+          onIncrementGoal={incrementGoal}
         />
       )
     }

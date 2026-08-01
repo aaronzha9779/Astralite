@@ -8,6 +8,7 @@ import type {
   CompletionRecord,
   CoreAspect,
   DashboardStat,
+  GoalTracker,
   Habit,
   IntegrationProtocol,
   TimeRecord,
@@ -19,25 +20,33 @@ import './StatsPage.css'
 type StatsPageProps = {
   habits: Habit[]
   coreAspects: CoreAspect[]
+  goals: GoalTracker[]
   protocols: IntegrationProtocol[]
   completions: CompletionRecord[]
   timeRecords: TimeRecord[]
   stats: DashboardStat[]
   onAddCoreAspect: (name: string) => void
   onIncrementCoreAspect: (id: string) => void
+  onAddGoal: (name: string, target: number) => void
+  onIncrementGoal: (id: string) => void
 }
 
 export function StatsPage({
   habits,
   coreAspects,
+  goals,
   protocols,
   completions,
   timeRecords,
   stats,
   onAddCoreAspect,
   onIncrementCoreAspect,
+  onAddGoal,
+  onIncrementGoal,
 }: StatsPageProps) {
   const [coreAspectName, setCoreAspectName] = useState('')
+  const [goalName, setGoalName] = useState('')
+  const [goalTarget, setGoalTarget] = useState('10')
   const history = useMemo(
     () => getRecentHistory(completions, 25),
     [completions],
@@ -71,6 +80,15 @@ export function StatsPage({
     if (!coreAspectName.trim()) return
     onAddCoreAspect(coreAspectName)
     setCoreAspectName('')
+  }
+
+  function handleGoalSubmit(event: FormEvent) {
+    event.preventDefault()
+    const target = Math.max(1, Number(goalTarget) || 0)
+    if (!goalName.trim()) return
+    onAddGoal(goalName, target)
+    setGoalName('')
+    setGoalTarget('10')
   }
 
   return (
@@ -154,6 +172,85 @@ export function StatsPage({
                     ) : (
                       <p className="stats-page__core-links">No linked dashboard items yet.</p>
                     )}
+                  </div>
+                </article>
+              )
+            })}
+          </div>
+        )}
+      </section>
+
+      <section className="stats-page__section">
+        <div className="stats-page__section-head">
+          <h2 className="dashboard__section-title">Goals</h2>
+          <p className="stats-page__hint">
+            Set a target, then tap + to track progress against it.
+          </p>
+        </div>
+
+        <form className="stats-page__goal-form" onSubmit={handleGoalSubmit}>
+          <input
+            className="stats-page__goal-input stats-page__goal-input--name"
+            type="text"
+            value={goalName}
+            onChange={(e) => setGoalName(e.target.value)}
+            placeholder="Add goal…"
+            maxLength={80}
+          />
+          <input
+            className="stats-page__goal-input stats-page__goal-input--target"
+            type="number"
+            min={1}
+            step={1}
+            value={goalTarget}
+            onChange={(e) => setGoalTarget(e.target.value)}
+            aria-label="Goal target number"
+          />
+          <button
+            type="submit"
+            className="stats-page__goal-add"
+            disabled={!goalName.trim()}
+          >
+            Add
+          </button>
+        </form>
+
+        {goals.length === 0 ? (
+          <p className="dashboard__empty">No goals yet.</p>
+        ) : (
+          <div className="stats-page__goal-grid">
+            {goals.map((goal) => {
+              const current = goal.totalProgress
+              const target = Math.max(1, goal.target)
+              const percent = Math.min((current / target) * 100, 100)
+              const completed = current >= target
+              return (
+                <article key={goal.id} className="stats-page__goal-card">
+                  <button
+                    type="button"
+                    className="stats-page__goal-plus"
+                    onClick={() => onIncrementGoal(goal.id)}
+                    aria-label={`Add progress to ${goal.name}`}
+                  >
+                    +
+                  </button>
+                  <div className="stats-page__goal-copy">
+                    <div className="stats-page__goal-head">
+                      <h3 className="stats-page__goal-name">{goal.name}</h3>
+                      <span className="stats-page__goal-target">Target {target}</span>
+                    </div>
+                    <div className="stats-page__goal-progress" aria-hidden="true">
+                      <span
+                        className="stats-page__goal-progress-fill"
+                        style={{ width: `${percent}%` }}
+                      />
+                    </div>
+                    <p className="stats-page__goal-meta">
+                      {current}/{target} total {goal.progressToday > 0 ? `· ${goal.progressToday} gained today` : ''}
+                    </p>
+                    <p className="stats-page__goal-status">
+                      {completed ? 'Goal reached' : 'Keep going'}
+                    </p>
                   </div>
                 </article>
               )
