@@ -2,6 +2,7 @@ import { useMemo, useRef, useState } from 'react'
 import type {
   AccountSummary,
   AppPreferences,
+  GoalGroup,
   RankTier,
   Reward,
   SettingsSection,
@@ -15,6 +16,7 @@ type SettingsPageProps = {
   activeAccountId: string
   preferences: AppPreferences
   rewards: Reward[]
+  goalGroups: GoalGroup[]
   settingsSections: Partial<Record<SettingsSection, boolean>>
   onUpdateProfile: (patch: {
     name?: string
@@ -26,6 +28,8 @@ type SettingsPageProps = {
   onCreateAccount: (name: string, handle?: string) => void
   onDeleteAccount: (accountId: string) => void
   onUpdatePreferences: (patch: Partial<AppPreferences>) => void
+  onDeleteGoalGroup: (groupId: string) => boolean
+  onDeleteGoal: (groupId: string, goalId: string) => boolean
   onResetBestDay: () => boolean
   canResetBestDay: boolean
   onSoftReset: () => void
@@ -476,11 +480,14 @@ export function SettingsPage({
   activeAccountId,
   preferences,
   rewards,
+  goalGroups,
   settingsSections,
   onUpdateProfile,
   onCreateAccount,
   onDeleteAccount,
   onUpdatePreferences,
+  onDeleteGoalGroup,
+  onDeleteGoal,
   onResetBestDay,
   canResetBestDay,
   onSoftReset,
@@ -840,6 +847,82 @@ export function SettingsPage({
           />
         </details>
       </section>
+
+      <details
+        className="settings-page__details settings-page__card"
+        open={settingsSections.goals ?? true}
+        onToggle={(e) => onSettingsSectionOpenChange('goals', e.currentTarget.open)}
+      >
+        <summary className="settings-page__details-summary">
+          <span className="dashboard__section-title">Goals</span>
+          <span className="settings-page__hint">
+            Delete goal cards here to keep the stats view focused on tracking.
+          </span>
+        </summary>
+        <div className="settings-page__details-body">
+          {goalGroups.length === 0 ? (
+            <p className="settings-page__hint">No goal folders have been created yet.</p>
+          ) : (
+            <div className="settings-page__goal-groups">
+              {goalGroups.map((group) => (
+                <article key={group.id} className="settings-page__goal-folder">
+                  <div className="settings-page__goal-folder-head">
+                    <div>
+                      <h3 className="settings-page__goal-folder-name">{group.name}</h3>
+                      <p className="settings-page__hint">
+                        {group.goals.length} goal{group.goals.length === 1 ? '' : 's'}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      className="settings-page__goal-folder-delete"
+                      onClick={() => {
+                        const deleted = onDeleteGoalGroup(group.id)
+                        if (deleted) {
+                          showMessage(`Deleted ${group.name}.`)
+                        }
+                      }}
+                      aria-label={`Delete folder ${group.name}`}
+                      title={`Delete folder ${group.name}`}
+                    >
+                      ×
+                    </button>
+                  </div>
+                  {group.goals.length === 0 ? (
+                    <p className="settings-page__hint">No goals in this folder.</p>
+                  ) : (
+                    <div className="settings-page__goal-list">
+                      {group.goals.map((goal) => (
+                        <div key={goal.id} className="settings-page__goal-row">
+                          <div className="settings-page__goal-row-copy">
+                            <strong className="settings-page__goal-row-name">{goal.name}</strong>
+                            <span className="settings-page__goal-row-meta">
+                              Target {goal.target} · {goal.totalProgress} progress
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            className="settings-page__goal-row-delete"
+                            onClick={() => {
+                              const deleted = onDeleteGoal(group.id, goal.id)
+                              if (deleted) {
+                                showMessage(`Deleted ${goal.name}.`)
+                              }
+                            }}
+                            aria-label={`Delete goal ${goal.name}`}
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </article>
+              ))}
+            </div>
+          )}
+        </div>
+      </details>
 
       <details
         className="settings-page__details settings-page__card settings-page__card--danger"

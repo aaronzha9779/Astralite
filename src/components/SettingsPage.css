@@ -238,6 +238,104 @@
   cursor: not-allowed;
 }
 
+.settings-page__goal-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.settings-page__goal-folder {
+  padding: 0.85rem 0.9rem;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.settings-page__goal-folder-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.55rem;
+}
+
+.settings-page__goal-folder-name {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.settings-page__goal-folder-delete {
+  width: 1.5rem;
+  height: 1.5rem;
+  flex-shrink: 0;
+  display: inline-grid;
+  place-items: center;
+  padding: 0;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, #ef4444 40%, var(--border));
+  background: color-mix(in srgb, #ef4444 8%, var(--surface));
+  color: #ef4444;
+  font: inherit;
+  font-size: 0.95rem;
+  font-weight: 800;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.settings-page__goal-folder-delete:hover {
+  border-color: #ef4444;
+}
+
+.settings-page__goal-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.settings-page__goal-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.85rem;
+  padding: 0.65rem 0.75rem;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface-raised);
+}
+
+.settings-page__goal-row-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.settings-page__goal-row-name {
+  font-size: 0.875rem;
+  color: var(--text);
+}
+
+.settings-page__goal-row-meta {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.settings-page__goal-row-delete {
+  padding: 0.4rem 0.75rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, #ef4444 40%, var(--border));
+  background: color-mix(in srgb, #ef4444 8%, var(--surface));
+  color: #ef4444;
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.settings-page__goal-row-delete:hover {
+  border-color: #ef4444;
+}
+
 .settings-page__swatch-wrap {
   display: flex;
   flex-direction: column;

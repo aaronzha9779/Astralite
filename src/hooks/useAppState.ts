@@ -44,8 +44,8 @@ import type {
   CompletionRecord,
   CoreAspect,
   DashboardPrefs,
+  GoalGroup,
   IntegrationProtocol,
-  GoalTracker,
   Habit,
   HabitCategory,
   Reward,
@@ -250,10 +250,15 @@ function prepareState(base: AppState): AppState {
     base.lastActiveDate === today
       ? base.coreAspects
       : base.coreAspects.map((aspect) => ({ ...aspect, progressToday: 0 }))
-  const goals =
+  const goalGroups =
     base.lastActiveDate === today
-      ? base.goals
-      : base.goals.map((goal) => ({ ...goal, progressToday: 0 }))
+      ? base.goalGroups
+      : base.goalGroups.map((group) => ({
+          ...group,
+          goals: group.goals.map((goal) =>
+            goal.progressToday > 0 ? { ...goal, progressToday: 0 } : goal,
+          ),
+        }))
   const bountyState =
     base.lastActiveDate === today
       ? { bountyTasks: base.bountyTasks, preferences: base.preferences }
@@ -273,7 +278,7 @@ function prepareState(base: AppState): AppState {
     habits,
     protocols,
     coreAspects,
-    goals,
+    goalGroups,
     bountyTasks:
       base.lastActiveDate === today
         ? base.bountyTasks
@@ -342,18 +347,70 @@ function applyCoreAspectIncrements(
 }
 
 function applyGoalIncrements(
-  goals: GoalTracker[],
+  goalGroups: GoalGroup[],
   goalCounts: Record<string, number>,
-): GoalTracker[] {
-  return goals.map((goal) => {
-    const increment = goalCounts[goal.id] ?? 0
-    if (increment <= 0) return goal
-    return {
-      ...goal,
-      progressToday: goal.progressToday + increment,
-      totalProgress: goal.totalProgress + increment,
+): GoalGroup[] {
+  return goalGroups.map((group) => ({
+    ...group,
+    goals: group.goals.map((goal) => {
+      const increment = goalCounts[goal.id] ?? 0
+      if (increment <= 0) return goal
+      return {
+        ...goal,
+        progressToday: goal.progressToday + increment,
+        totalProgress: goal.totalProgress + increment,
+      }
+    }),
+  }))
+}
+
+function resetGoalGroupProgress(goalGroups: GoalGroup[]): GoalGroup[] {
+  return goalGroups.map((group) => ({
+    ...group,
+    goals: group.goals.map((goal) =>
+      goal.progressToday > 0 ? { ...goal, progressToday: 0 } : goal,
+    ),
+  }))
+}
+
+function moveGoalBetweenGroups(
+  goalGroups: GoalGroup[],
+  goalId: string,
+  fromGroupId: string,
+  toGroupId: string,
+  targetGoalId?: string | null,
+): GoalGroup[] {
+  const fromIndex = goalGroups.findIndex((group) => group.id === fromGroupId)
+  const toIndex = goalGroups.findIndex((group) => group.id === toGroupId)
+  if (fromIndex === -1 || toIndex === -1) return goalGroups
+
+  const fromGroup = goalGroups[fromIndex]
+  const goalIndex = fromGroup.goals.findIndex((goal) => goal.id === goalId)
+  if (goalIndex === -1) return goalGroups
+
+  const movedGoal = fromGroup.goals[goalIndex]
+  const nextGroups = goalGroups.map((group) => ({
+    ...group,
+    goals: [...group.goals],
+  }))
+
+  nextGroups[fromIndex].goals.splice(goalIndex, 1)
+
+  const destinationGroup = nextGroups[toIndex]
+  if (!destinationGroup) return goalGroups
+
+  if (targetGoalId) {
+    const targetIndex = destinationGroup.goals.findIndex((goal) => goal.id === targetGoalId)
+    if (targetIndex === -1) {
+      destinationGroup.goals.push(movedGoal)
+    } else {
+      destinationGroup.goals.splice(targetIndex, 0, movedGoal)
     }
-  })
+  } else {
+    destinationGroup.goals.push(movedGoal)
+  }
+
+  return nextGroups
 }
 
 function getHoursDifference(fromISO: string, toISO: string): number {
@@ -1405,24 +1462,171 @@ export function useAppState() {
     }))
   }, [updateCurrentState])
 
-  const addGoal = useCallback((name: string, target: number) => {
+  const addGoalGroup = useCallback((name: string) => {
+    const trimmed = name.trim()
+    if (!trimmed) return
+
+    updateCurrentState((prev) => ({
+      ...prev,
+      goalGroups: [
+        ...prev.goalGroups,
+        {
+          id: crypto.randomUUID(),
+          name: trimmed,
+          collapsed: false,
+          goals: [],
+        },
+      ],
+    }))
+  }, [updateCurrentState])
+
+  const addGoal = useCallback((groupId: string, name: string, target: number) => {
     const trimmed = name.trim()
     const normalizedTarget = Math.max(1, Math.round(target))
     if (!trimmed) return
 
     updateCurrentState((prev) => ({
       ...prev,
-      goals: [
-        ...prev.goals,
-        {
-          id: crypto.randomUUID(),
-          name: trimmed,
-          target: normalizedTarget,
-          progressToday: 0,
-          totalProgress: 0,
-        },
-      ],
+      goalGroups: prev.goalGroups.map((group) =>
+        group.id === groupId
+          ? {
+              ...group,
+              goals: [
+                ...group.goals,
+                {
+                  id: crypto.randomUUID(),
+                  name: trimmed,
+                  target: normalizedTarget,
+                  progressToday: 0,
+                  totalProgress: 0,
+                },
+              ],
+            }
+          : group,
+      ),
     }))
+  }, [updateCurrentState])
+
+  const renameGoalGroup = useCallback((groupId: string, name: string) => {
+    const trimmed = name.trim()
+    if (!trimmed) return
+
+    updateCurrentState((prev) => ({
+      ...prev,
+      goalGroups: prev.goalGroups.map((group) =>
+        group.id === groupId ? { ...group, name: trimmed } : group,
+      ),
+    }))
+  }, [updateCurrentState])
+
+  const toggleGoalGroupCollapsed = useCallback((groupId: string) => {
+    updateCurrentState((prev) => ({
+      ...prev,
+      goalGroups: prev.goalGroups.map((group) =>
+        group.id === groupId
+          ? { ...group, collapsed: !group.collapsed }
+          : group,
+      ),
+    }))
+  }, [updateCurrentState])
+
+  const deleteGoalGroup = useCallback((groupId: string) => {
+    let deleted = false
+    updateCurrentState((prev) => {
+      if (!prev.goalGroups.some((group) => group.id === groupId)) return prev
+      deleted = true
+      return {
+        ...prev,
+        goalGroups: prev.goalGroups.filter((group) => group.id !== groupId),
+      }
+    })
+    return deleted
+  }, [updateCurrentState])
+
+  const reorderGoalGroup = useCallback((draggedId: string, targetId: string) => {
+    if (draggedId === targetId) return false
+
+    let reordered = false
+    updateCurrentState((prev) => {
+      const from = prev.goalGroups.findIndex((group) => group.id === draggedId)
+      const to = prev.goalGroups.findIndex((group) => group.id === targetId)
+      if (from === -1 || to === -1) return prev
+
+      const next = [...prev.goalGroups]
+      const [moved] = next.splice(from, 1)
+      next.splice(to, 0, moved)
+      reordered = true
+
+      return {
+        ...prev,
+        goalGroups: next,
+      }
+    })
+    return reordered
+  }, [updateCurrentState])
+
+  const renameGoal = useCallback((groupId: string, goalId: string, name: string) => {
+    const trimmed = name.trim()
+    if (!trimmed) return
+
+    updateCurrentState((prev) => ({
+      ...prev,
+      goalGroups: prev.goalGroups.map((group) =>
+        group.id === groupId
+          ? {
+              ...group,
+              goals: group.goals.map((goal) =>
+                goal.id === goalId ? { ...goal, name: trimmed } : goal,
+              ),
+            }
+          : group,
+      ),
+    }))
+  }, [updateCurrentState])
+
+  const deleteGoal = useCallback((groupId: string, goalId: string) => {
+    let deleted = false
+    updateCurrentState((prev) => {
+      const group = prev.goalGroups.find((entry) => entry.id === groupId)
+      if (!group || !group.goals.some((goal) => goal.id === goalId)) return prev
+      deleted = true
+      return {
+        ...prev,
+        goalGroups: prev.goalGroups.map((entry) =>
+          entry.id === groupId
+            ? { ...entry, goals: entry.goals.filter((goal) => goal.id !== goalId) }
+            : entry,
+        ),
+      }
+    })
+    return deleted
+  }, [updateCurrentState])
+
+  const reorderGoal = useCallback((
+    goalId: string,
+    fromGroupId: string,
+    toGroupId: string,
+    targetGoalId?: string | null,
+  ) => {
+    if (fromGroupId === toGroupId && targetGoalId === goalId) return false
+
+    let reordered = false
+    updateCurrentState((prev) => {
+      const nextGroups = moveGoalBetweenGroups(
+        prev.goalGroups,
+        goalId,
+        fromGroupId,
+        toGroupId,
+        targetGoalId,
+      )
+      if (nextGroups === prev.goalGroups) return prev
+      reordered = true
+      return {
+        ...prev,
+        goalGroups: nextGroups,
+      }
+    })
+    return reordered
   }, [updateCurrentState])
 
   const addCheck = useCallback((name: string) => {
@@ -1582,11 +1786,11 @@ export function useAppState() {
     }))
   }, [updateCurrentState])
 
-  const incrementGoal = useCallback((id: string) => {
+  const incrementGoal = useCallback((goalId: string) => {
     playCompletionChime()
     updateCurrentState((prev) => ({
       ...prev,
-      goals: applyGoalIncrements(prev.goals, { [id]: 1 }),
+      goalGroups: applyGoalIncrements(prev.goalGroups, { [goalId]: 1 }),
     }))
   }, [updateCurrentState])
 
@@ -1833,9 +2037,7 @@ export function useAppState() {
       const coreAspects = prev.coreAspects.map((aspect) =>
         aspect.progressToday > 0 ? { ...aspect, progressToday: 0 } : aspect,
       )
-      const goals = prev.goals.map((goal) =>
-        goal.progressToday > 0 ? { ...goal, progressToday: 0 } : goal,
-      )
+      const goalGroups = resetGoalGroupProgress(prev.goalGroups)
       const completions = prev.completions.filter((entry) => entry.date !== today)
       const checks = prev.checks.map((item) =>
         item.done ? { ...item, done: false } : item,
@@ -1859,7 +2061,7 @@ export function useAppState() {
             : refreshDashboardQuote(prev.dashboard, today),
         habits,
         coreAspects,
-        goals,
+        goalGroups,
         bountyTasks,
         checks,
         weeklyTasks,
@@ -2290,7 +2492,7 @@ export function useAppState() {
     habits: activeHabits,
     archivedHabits,
     coreAspects: state.coreAspects,
-    goals: state.goals,
+    goalGroups: state.goalGroups,
     bountyTasks: state.bountyTasks,
     checks: state.checks,
     weeklyTasks: state.weeklyTasks,
@@ -2321,7 +2523,15 @@ export function useAppState() {
     setHabitWeights,
     addHabit,
     addCoreAspect,
+    addGoalGroup,
     addGoal,
+    renameGoalGroup,
+    toggleGoalGroupCollapsed,
+    deleteGoalGroup,
+    reorderGoalGroup,
+    renameGoal,
+    deleteGoal,
+    reorderGoal,
     addBountyTask,
     incrementHobby,
     incrementCoreAspect,

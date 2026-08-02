@@ -21,7 +21,7 @@ export function Layout() {
     habits,
     archivedHabits,
     coreAspects,
-    goals,
+    goalGroups,
     bountyTasks,
     checks,
     weeklyTasks,
@@ -48,7 +48,15 @@ export function Layout() {
     deleteHabit,
     addHabit,
     addCoreAspect,
+    addGoalGroup,
     addGoal,
+    renameGoalGroup,
+    toggleGoalGroupCollapsed,
+    deleteGoalGroup,
+    reorderGoalGroup,
+    renameGoal,
+    deleteGoal,
+    reorderGoal,
     addBountyTask,
     addCheck,
     addWeeklyTask,
@@ -210,7 +218,7 @@ export function Layout() {
         <StatsPage
           habits={habits}
           coreAspects={coreAspects}
-          goals={goals}
+          goalGroups={goalGroups}
           protocols={protocols}
           completions={completions}
           timeRecords={timeRecords}
@@ -218,8 +226,14 @@ export function Layout() {
           dashboard={dashboard}
           onAddCoreAspect={addCoreAspect}
           onIncrementCoreAspect={incrementCoreAspect}
+          onAddGoalGroup={addGoalGroup}
           onAddGoal={addGoal}
           onIncrementGoal={incrementGoal}
+          onRenameGoalGroup={renameGoalGroup}
+          onToggleGoalGroupCollapsed={toggleGoalGroupCollapsed}
+          onReorderGoalGroup={reorderGoalGroup}
+          onRenameGoal={renameGoal}
+          onReorderGoal={reorderGoal}
           onSetHistoryOpen={setHistoryOpen}
           onSetHistoryMonthOpen={setHistoryMonthOpen}
         />
@@ -264,7 +278,10 @@ export function Layout() {
           onDeleteAccount={deleteAccount}
           preferences={preferences}
           rewards={rewards}
+          goalGroups={goalGroups}
           onUpdatePreferences={updatePreferences}
+          onDeleteGoalGroup={deleteGoalGroup}
+          onDeleteGoal={deleteGoal}
           onResetBestDay={resetBestDay}
           canResetBestDay={statsPageSummary.some((stat) => stat.id === 'best-day' && stat.value !== '—')}
           onSoftReset={softReset}

@@ -33,7 +33,7 @@ export type UserProfile = {
 
 export type HabitCategory = 'daily' | 'hobby' | 'habit'
 
-export type SettingsSection = 'accounts' | 'visuals' | 'progression' | 'danger'
+export type SettingsSection = 'accounts' | 'visuals' | 'progression' | 'goals' | 'danger'
 
 export type ProtocolStructure = 'standard' | 'recall'
 
@@ -109,6 +109,13 @@ export type GoalTracker = {
   totalProgress: number
 }
 
+export type GoalGroup = {
+  id: string
+  name: string
+  collapsed: boolean
+  goals: GoalTracker[]
+}
+
 export type WeeklyTask = {
   id: string
   name: string
@@ -182,7 +189,7 @@ export type ProfileData = {
 export type AppState = {
   habits: Habit[]
   coreAspects: CoreAspect[]
-  goals: GoalTracker[]
+  goalGroups: GoalGroup[]
   bountyTasks: WeeklyTask[]
   checks: WeeklyTask[]
   weeklyTasks: WeeklyTask[]

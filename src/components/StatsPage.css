@@ -44,14 +44,15 @@
   cursor: not-allowed;
 }
 
-.stats-page__goal-form {
+.stats-page__group-form {
   display: flex;
   gap: 0.6rem;
   margin-bottom: 0.9rem;
   flex-wrap: wrap;
 }
 
-.stats-page__goal-input {
+.stats-page__group-input,
+.stats-page__goal-inline-input {
   padding: 0.65rem 0.75rem;
   border-radius: 10px;
   border: 1px solid var(--border);
@@ -60,15 +61,11 @@
   font: inherit;
 }
 
-.stats-page__goal-input--name {
+.stats-page__group-input {
   flex: 1 1 220px;
 }
 
-.stats-page__goal-input--target {
-  width: 9rem;
-}
-
-.stats-page__goal-add {
+.stats-page__group-add {
   padding: 0.65rem 0.95rem;
   border-radius: 10px;
   border: none;
@@ -79,9 +76,213 @@
   cursor: pointer;
 }
 
-.stats-page__goal-add:disabled {
+.stats-page__group-add:disabled {
   opacity: 0.45;
   cursor: not-allowed;
+}
+
+.stats-page__goal-group-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.stats-page__goal-group-card {
+  padding: 1rem;
+  border-radius: 16px;
+  border: 1px solid color-mix(in srgb, var(--accent) 20%, var(--border));
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent),
+    var(--surface-raised);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.12);
+}
+
+.stats-page__goal-group-card--dragging {
+  opacity: 0.82;
+  transform: translateY(-1px);
+}
+
+.stats-page__goal-group-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.8rem;
+}
+
+.stats-page__goal-group-copy {
+  flex: 1 1 220px;
+}
+
+.stats-page__goal-group-drag,
+.stats-page__goal-drag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  font-size: 1.05rem;
+  letter-spacing: 0.08em;
+  user-select: none;
+  cursor: grab;
+  margin-top: 0.15rem;
+}
+
+.stats-page__goal-group-actions,
+.stats-page__goal-actions,
+.stats-page__goal-group-edit-actions,
+.stats-page__goal-edit-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+}
+
+.stats-page__goal-group-collapse,
+.stats-page__goal-action,
+.stats-page__goal-group-save,
+.stats-page__goal-group-cancel,
+.stats-page__goal-edit-save,
+.stats-page__goal-edit-cancel {
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.stats-page__goal-group-collapse {
+  width: 1.65rem;
+  height: 1.65rem;
+  display: inline-grid;
+  place-items: center;
+  padding: 0;
+  border-color: color-mix(in srgb, var(--accent) 24%, var(--border));
+  background: color-mix(in srgb, var(--accent) 10%, var(--surface));
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.stats-page__goal-group-collapse:hover {
+  color: var(--accent);
+}
+
+.stats-page__goal-group-delete {
+  width: 1.65rem;
+  height: 1.65rem;
+  display: inline-grid;
+  place-items: center;
+  padding: 0;
+  font-size: 0.95rem;
+  line-height: 1;
+  color: #ef4444;
+}
+
+.stats-page__goal-group-delete:hover,
+.stats-page__goal-group-save:hover,
+.stats-page__goal-group-cancel:hover,
+.stats-page__goal-edit-save:hover,
+.stats-page__goal-edit-cancel:hover {
+  border-color: var(--border-strong);
+}
+
+.stats-page__goal-group-edit,
+.stats-page__goal-edit {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.stats-page__goal-group-edit-input,
+.stats-page__goal-edit-input {
+  padding: 0.65rem 0.75rem;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+}
+
+.stats-page__goal-group-edit-input {
+  min-width: min(100%, 20rem);
+}
+
+.stats-page__goal-edit-input {
+  min-width: min(100%, 16rem);
+}
+
+.stats-page__goal-group-name-button,
+.stats-page__goal-name-button {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.35rem;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: text;
+}
+
+.stats-page__goal-group-name {
+  margin: 0.45rem 0 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.stats-page__goal-group-meta,
+.stats-page__goal-group-empty {
+  margin: 0.35rem 0 0;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.stats-page__goal-inline-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1.9fr) 5.75rem auto;
+  gap: 0.95rem;
+  margin-bottom: 0.75rem;
+}
+
+.stats-page__goal-inline-input--name {
+  min-width: 0;
+  min-width: 12rem;
+}
+
+.stats-page__goal-inline-input--target {
+  width: 4.5rem;
+  flex: 0 0 4.5rem;
+  margin-left: 2rem;
+}
+
+.stats-page__goal-inline-add {
+  padding: 0.65rem 0.95rem;
+  border-radius: 10px;
+  border: none;
+  background: var(--accent);
+  color: var(--bg);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.stats-page__goal-inline-add:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.stats-page__goal-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.stats-page__goal-card--dragging {
+  opacity: 0.82;
+  transform: translateY(-1px);
 }
 
 .stats-page__core-grid {
@@ -100,36 +301,26 @@
   background: var(--surface-raised);
 }
 
-.stats-page__goal-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 0.85rem;
-}
-
-.stats-page__goal-card {
+.stats-page__goal-card,
+.stats-page__core-card {
   display: flex;
-  align-items: flex-start;
-  gap: 0.8rem;
-  padding: 0.95rem 1rem;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.9rem 0.95rem;
   border-radius: 12px;
   border: 1px solid var(--border);
   background: var(--surface-raised);
 }
 
-.stats-page__core-plus {
-  width: 2.5rem;
-  height: 2.5rem;
-  flex-shrink: 0;
-  border-radius: 10px;
-  border: 1px solid var(--border-strong);
-  background: var(--surface);
-  color: var(--accent);
-  font: inherit;
-  font-size: 1.4rem;
-  font-weight: 800;
-  cursor: pointer;
+.stats-page__goal-copy {
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.3rem;
 }
 
+.stats-page__core-plus,
 .stats-page__goal-plus {
   width: 2.5rem;
   height: 2.5rem;
@@ -144,14 +335,16 @@
   cursor: pointer;
 }
 
-.stats-page__core-copy {
-  flex: 1;
-  min-width: 0;
-}
-
-.stats-page__goal-copy {
-  flex: 1;
-  min-width: 0;
+.stats-page__goal-action--primary {
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 30%, var(--border));
+  width: 2.5rem;
+  height: 2.5rem;
+  display: inline-grid;
+  place-items: center;
+  padding: 0;
+  border-radius: 10px;
+  font-size: 1.4rem;
 }
 
 .stats-page__core-head {
@@ -161,51 +354,39 @@
   gap: 0.75rem;
 }
 
-.stats-page__goal-head {
+.stats-page__goal-head,
+.stats-page__core-head {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
   gap: 0.75rem;
+  width: 100%;
 }
 
+.stats-page__goal-name,
 .stats-page__core-name {
   margin: 0;
   font-size: 1rem;
 }
 
-.stats-page__goal-name {
-  margin: 0;
-  font-size: 1rem;
-}
-
+.stats-page__goal-target,
 .stats-page__core-level {
   font-size: 0.75rem;
   color: var(--accent);
   font-weight: 700;
 }
 
-.stats-page__goal-target {
-  font-size: 0.75rem;
-  color: var(--accent);
-  font-weight: 700;
-}
-
+.stats-page__goal-progress,
 .stats-page__core-progress {
   height: 0.35rem;
-  margin-top: 0.6rem;
+  margin-top: 0.2rem;
   border-radius: 999px;
   background: var(--border);
   overflow: hidden;
+  width: 100%;
 }
 
-.stats-page__goal-progress {
-  height: 0.35rem;
-  margin-top: 0.6rem;
-  border-radius: 999px;
-  background: var(--border);
-  overflow: hidden;
-}
-
+.stats-page__goal-progress-fill,
 .stats-page__core-progress-fill {
   display: block;
   height: 100%;
@@ -213,23 +394,10 @@
   background: var(--accent);
 }
 
-.stats-page__goal-progress-fill {
-  display: block;
-  height: 100%;
-  border-radius: inherit;
-  background: var(--accent);
-}
-
+.stats-page__goal-meta,
 .stats-page__core-meta,
 .stats-page__core-links {
-  margin: 0.55rem 0 0;
-  font-size: 0.75rem;
-  color: var(--text-muted);
-}
-
-.stats-page__goal-meta,
-.stats-page__goal-status {
-  margin: 0.55rem 0 0;
+  margin: 0.45rem 0 0;
   font-size: 0.75rem;
   color: var(--text-muted);
 }

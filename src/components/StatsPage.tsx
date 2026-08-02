@@ -1,4 +1,10 @@
-import { useMemo, useState, type FormEvent, type SyntheticEvent } from 'react'
+import {
+  useMemo,
+  useState,
+  type DragEvent,
+  type FormEvent,
+  type SyntheticEvent,
+} from 'react'
 import {
   formatHistoryDay,
   groupRecentHistoryByMonth,
@@ -10,7 +16,7 @@ import type {
   CoreAspect,
   DashboardStat,
   DashboardPrefs,
-  GoalTracker,
+  GoalGroup,
   Habit,
   IntegrationProtocol,
   TimeRecord,
@@ -22,7 +28,7 @@ import './StatsPage.css'
 type StatsPageProps = {
   habits: Habit[]
   coreAspects: CoreAspect[]
-  goals: GoalTracker[]
+  goalGroups: GoalGroup[]
   protocols: IntegrationProtocol[]
   completions: CompletionRecord[]
   timeRecords: TimeRecord[]
@@ -30,8 +36,19 @@ type StatsPageProps = {
   dashboard: DashboardPrefs
   onAddCoreAspect: (name: string) => void
   onIncrementCoreAspect: (id: string) => void
-  onAddGoal: (name: string, target: number) => void
+  onAddGoalGroup: (name: string) => void
+  onAddGoal: (groupId: string, name: string, target: number) => void
   onIncrementGoal: (id: string) => void
+  onRenameGoalGroup: (groupId: string, name: string) => void
+  onToggleGoalGroupCollapsed: (groupId: string) => void
+  onReorderGoalGroup: (draggedId: string, targetId: string) => boolean
+  onRenameGoal: (groupId: string, goalId: string, name: string) => void
+  onReorderGoal: (
+    goalId: string,
+    fromGroupId: string,
+    toGroupId: string,
+    targetGoalId?: string | null,
+  ) => boolean
   onSetHistoryOpen: (open: boolean) => void
   onSetHistoryMonthOpen: (monthKey: string, open: boolean) => void
 }
@@ -39,7 +56,7 @@ type StatsPageProps = {
 export function StatsPage({
   habits,
   coreAspects,
-  goals,
+  goalGroups,
   protocols,
   completions,
   timeRecords,
@@ -47,14 +64,26 @@ export function StatsPage({
   dashboard,
   onAddCoreAspect,
   onIncrementCoreAspect,
+  onAddGoalGroup,
   onAddGoal,
   onIncrementGoal,
+  onRenameGoalGroup,
+  onToggleGoalGroupCollapsed,
+  onReorderGoalGroup,
+  onRenameGoal,
+  onReorderGoal,
   onSetHistoryOpen,
   onSetHistoryMonthOpen,
 }: StatsPageProps) {
   const [coreAspectName, setCoreAspectName] = useState('')
-  const [goalName, setGoalName] = useState('')
-  const [goalTarget, setGoalTarget] = useState('10')
+  const [goalGroupName, setGoalGroupName] = useState('')
+  const [editingGroupId, setEditingGroupId] = useState<string | null>(null)
+  const [groupRenameDraft, setGroupRenameDraft] = useState('')
+  const [editingGoal, setEditingGoal] = useState<{ groupId: string; goalId: string } | null>(null)
+  const [goalRenameDraft, setGoalRenameDraft] = useState('')
+  const [goalDrafts, setGoalDrafts] = useState<Record<string, { name: string; target: string }>>({})
+  const [draggedGroupId, setDraggedGroupId] = useState<string | null>(null)
+  const [draggedGoal, setDraggedGoal] = useState<{ groupId: string; goalId: string } | null>(null)
   const history = useMemo(
     () => getRecentHistory(completions, 25),
     [completions],
@@ -94,13 +123,117 @@ export function StatsPage({
     setCoreAspectName('')
   }
 
-  function handleGoalSubmit(event: FormEvent) {
+  function handleGoalGroupSubmit(event: FormEvent) {
     event.preventDefault()
-    const target = Math.max(1, Number(goalTarget) || 0)
-    if (!goalName.trim()) return
-    onAddGoal(goalName, target)
-    setGoalName('')
-    setGoalTarget('10')
+    if (!goalGroupName.trim()) return
+    onAddGoalGroup(goalGroupName)
+    setGoalGroupName('')
+  }
+
+  function updateGoalDraft(groupId: string, patch: Partial<{ name: string; target: string }>) {
+    setGoalDrafts((prev) => ({
+      ...prev,
+      [groupId]: {
+        name: patch.name ?? prev[groupId]?.name ?? '',
+        target: patch.target ?? prev[groupId]?.target ?? '10',
+      },
+    }))
+  }
+
+  function handleGoalSubmit(groupId: string, event: FormEvent) {
+    event.preventDefault()
+    const draft = goalDrafts[groupId] ?? { name: '', target: '10' }
+    const target = Math.max(1, Number(draft.target) || 0)
+    if (!draft.name.trim()) return
+    onAddGoal(groupId, draft.name, target)
+    setGoalDrafts((prev) => ({
+      ...prev,
+      [groupId]: { name: '', target: '10' },
+    }))
+  }
+
+  function beginGroupRename(groupId: string, name: string) {
+    setEditingGoal(null)
+    setGoalRenameDraft('')
+    setEditingGroupId(groupId)
+    setGroupRenameDraft(name)
+  }
+
+  function saveGroupRename(groupId: string) {
+    if (!groupRenameDraft.trim()) return
+    onRenameGoalGroup(groupId, groupRenameDraft)
+    setEditingGroupId(null)
+    setGroupRenameDraft('')
+  }
+
+  function cancelGroupRename() {
+    setEditingGroupId(null)
+    setGroupRenameDraft('')
+  }
+
+  function beginGoalRename(groupId: string, goalId: string, name: string) {
+    setEditingGroupId(null)
+    setGroupRenameDraft('')
+    setEditingGoal({ groupId, goalId })
+    setGoalRenameDraft(name)
+  }
+
+  function saveGoalRename(groupId: string, goalId: string) {
+    if (!goalRenameDraft.trim()) return
+    onRenameGoal(groupId, goalId, goalRenameDraft)
+    setEditingGoal(null)
+    setGoalRenameDraft('')
+  }
+
+  function cancelGoalRename() {
+    setEditingGoal(null)
+    setGoalRenameDraft('')
+  }
+
+  function handleGroupDragStart(groupId: string) {
+    setDraggedGoal(null)
+    setDraggedGroupId(groupId)
+  }
+
+  function handleGoalDragStart(groupId: string, goalId: string) {
+    setDraggedGroupId(null)
+    setDraggedGoal({ groupId, goalId })
+  }
+
+  function clearDragState() {
+    setDraggedGroupId(null)
+    setDraggedGoal(null)
+  }
+
+  function handleGroupDrop(targetGroupId: string) {
+    if (draggedGroupId) {
+      onReorderGoalGroup(draggedGroupId, targetGroupId)
+      clearDragState()
+      return
+    }
+    if (draggedGoal) {
+      onReorderGoal(draggedGoal.goalId, draggedGoal.groupId, targetGroupId)
+      clearDragState()
+    }
+  }
+
+  function handleGoalDrop(targetGroupId: string, targetGoalId: string) {
+    if (!draggedGoal) return
+    onReorderGoal(
+      draggedGoal.goalId,
+      draggedGoal.groupId,
+      targetGroupId,
+      targetGoalId,
+    )
+    clearDragState()
+  }
+
+  function handleGroupDragOver(event: DragEvent<HTMLElement>) {
+    event.preventDefault()
+  }
+
+  function handleGoalDragOver(event: DragEvent<HTMLElement>) {
+    event.preventDefault()
   }
 
   function handleHistoryToggle(event: SyntheticEvent<HTMLDetailsElement>) {
@@ -204,74 +337,234 @@ export function StatsPage({
         <div className="stats-page__section-head">
           <h2 className="dashboard__section-title">Goals</h2>
           <p className="stats-page__hint">
-            Set a target, then tap + to track progress against it.
+            Create folders for each goal set, then add goals inside the folder. Each goal keeps the same + progress mechanic.
           </p>
         </div>
 
-        <form className="stats-page__goal-form" onSubmit={handleGoalSubmit}>
+        <form className="stats-page__group-form" onSubmit={handleGoalGroupSubmit}>
           <input
-            className="stats-page__goal-input stats-page__goal-input--name"
+            className="stats-page__group-input"
             type="text"
-            value={goalName}
-            onChange={(e) => setGoalName(e.target.value)}
-            placeholder="Add goal…"
+            value={goalGroupName}
+            onChange={(e) => setGoalGroupName(e.target.value)}
+            placeholder="Add goal folder…"
             maxLength={80}
-          />
-          <input
-            className="stats-page__goal-input stats-page__goal-input--target"
-            type="number"
-            min={1}
-            step={1}
-            value={goalTarget}
-            onChange={(e) => setGoalTarget(e.target.value)}
-            aria-label="Goal target number"
           />
           <button
             type="submit"
-            className="stats-page__goal-add"
-            disabled={!goalName.trim()}
+            className="stats-page__group-add"
+            disabled={!goalGroupName.trim()}
           >
-            Add
+            Add folder
           </button>
         </form>
 
-        {goals.length === 0 ? (
-          <p className="dashboard__empty">No goals yet.</p>
+        {goalGroups.length === 0 ? (
+          <p className="dashboard__empty">No goal folders yet. Start with something like Financials.</p>
         ) : (
-          <div className="stats-page__goal-grid">
-            {goals.map((goal) => {
-              const current = goal.totalProgress
-              const target = Math.max(1, goal.target)
-              const percent = Math.min((current / target) * 100, 100)
-              const completed = current >= target
+          <div className="stats-page__goal-group-grid">
+            {goalGroups.map((group) => {
+              const draft = goalDrafts[group.id] ?? { name: '', target: '10' }
+              const isEditingGroup = editingGroupId === group.id
+              const isCollapsed = group.collapsed
               return (
-                <article key={goal.id} className="stats-page__goal-card">
-                  <button
-                    type="button"
-                    className="stats-page__goal-plus"
-                    onClick={() => onIncrementGoal(goal.id)}
-                    aria-label={`Add progress to ${goal.name}`}
-                  >
-                    +
-                  </button>
-                  <div className="stats-page__goal-copy">
-                    <div className="stats-page__goal-head">
-                      <h3 className="stats-page__goal-name">{goal.name}</h3>
-                      <span className="stats-page__goal-target">Target {target}</span>
+                <article
+                  key={group.id}
+                  className={`stats-page__goal-group-card${draggedGroupId === group.id ? ' stats-page__goal-group-card--dragging' : ''}`}
+                  draggable
+                  onDragStart={(event) => {
+                    event.dataTransfer.effectAllowed = 'move'
+                    handleGroupDragStart(group.id)
+                  }}
+                  onDragEnd={clearDragState}
+                  onDragOver={handleGroupDragOver}
+                  onDrop={() => handleGroupDrop(group.id)}
+                >
+                  <div className="stats-page__goal-group-head">
+                    <span className="stats-page__goal-group-drag" aria-hidden="true">
+                      ⋮⋮
+                    </span>
+                    <div className="stats-page__goal-group-copy">
+                      {isEditingGroup ? (
+                        <div className="stats-page__goal-group-edit">
+                          <input
+                            className="stats-page__goal-group-edit-input"
+                            type="text"
+                            value={groupRenameDraft}
+                            onChange={(e) => setGroupRenameDraft(e.target.value)}
+                            autoFocus
+                            maxLength={80}
+                          />
+                          <div className="stats-page__goal-group-edit-actions">
+                            <button
+                              type="button"
+                              className="stats-page__goal-group-save"
+                              onClick={() => saveGroupRename(group.id)}
+                              disabled={!groupRenameDraft.trim()}
+                            >
+                              Save
+                            </button>
+                            <button
+                              type="button"
+                              className="stats-page__goal-group-cancel"
+                              onClick={cancelGroupRename}
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          <button
+                            type="button"
+                            className="stats-page__goal-group-name-button"
+                            onClick={() => beginGroupRename(group.id, group.name)}
+                          >
+                            <h3 className="stats-page__goal-group-name">{group.name}</h3>
+                          </button>
+                          <p className="stats-page__goal-group-meta">
+                            {group.goals.length} goal{group.goals.length === 1 ? '' : 's'}
+                          </p>
+                        </>
+                      )}
                     </div>
-                    <div className="stats-page__goal-progress" aria-hidden="true">
-                      <span
-                        className="stats-page__goal-progress-fill"
-                        style={{ width: `${percent}%` }}
-                      />
-                    </div>
-                    <p className="stats-page__goal-meta">
-                      {current}/{target} total {goal.progressToday > 0 ? `· ${goal.progressToday} gained today` : ''}
-                    </p>
-                    <p className="stats-page__goal-status">
-                      {completed ? 'Goal reached' : 'Keep going'}
-                    </p>
+                    <button
+                      type="button"
+                      className="stats-page__goal-group-collapse"
+                      onClick={() => onToggleGoalGroupCollapsed(group.id)}
+                      aria-label={`${isCollapsed ? 'Expand' : 'Collapse'} ${group.name}`}
+                    >
+                      <span aria-hidden="true">{isCollapsed ? '▸' : '▾'}</span>
+                    </button>
                   </div>
+
+                  {!isCollapsed ? (
+                    <>
+                      <form
+                        className="stats-page__goal-inline-form"
+                        onSubmit={(event) => handleGoalSubmit(group.id, event)}
+                      >
+                        <input
+                          className="stats-page__goal-inline-input stats-page__goal-inline-input--name"
+                          type="text"
+                          value={draft.name}
+                          onChange={(e) => updateGoalDraft(group.id, { name: e.target.value })}
+                          placeholder={`Add goal to ${group.name}…`}
+                          maxLength={80}
+                        />
+                        <input
+                          className="stats-page__goal-inline-input stats-page__goal-inline-input--target"
+                          type="number"
+                          min={1}
+                          step={1}
+                          value={draft.target}
+                          onChange={(e) => updateGoalDraft(group.id, { target: e.target.value })}
+                          aria-label={`${group.name} target number`}
+                        />
+                        <button
+                          type="submit"
+                          className="stats-page__goal-inline-add"
+                          disabled={!draft.name.trim()}
+                        >
+                          Add
+                        </button>
+                      </form>
+
+                      {group.goals.length === 0 ? (
+                        <p className="stats-page__goal-group-empty">No goals in this folder yet.</p>
+                      ) : (
+                        <div className="stats-page__goal-stack">
+                          {group.goals.map((goal) => {
+                            const current = goal.totalProgress
+                            const target = Math.max(1, goal.target)
+                            const percent = Math.min((current / target) * 100, 100)
+                            const isEditing = editingGoal?.groupId === group.id && editingGoal.goalId === goal.id
+                            return (
+                              <article
+                                key={goal.id}
+                                className={`stats-page__goal-card${draggedGoal?.groupId === group.id && draggedGoal.goalId === goal.id ? ' stats-page__goal-card--dragging' : ''}`}
+                                draggable
+                                onDragStart={(event) => {
+                                  event.dataTransfer.effectAllowed = 'move'
+                                  handleGoalDragStart(group.id, goal.id)
+                                }}
+                                onDragEnd={clearDragState}
+                                onDragOver={handleGoalDragOver}
+                                onDrop={() => handleGoalDrop(group.id, goal.id)}
+                              >
+                                <span className="stats-page__goal-drag" aria-hidden="true">
+                                  ⋮⋮
+                                </span>
+                                <div className="stats-page__goal-copy">
+                                  {isEditing ? (
+                                    <div className="stats-page__goal-edit">
+                                      <input
+                                        className="stats-page__goal-edit-input"
+                                        type="text"
+                                        value={goalRenameDraft}
+                                        onChange={(e) => setGoalRenameDraft(e.target.value)}
+                                        autoFocus
+                                        maxLength={80}
+                                      />
+                                  <div className="stats-page__goal-edit-actions">
+                                    <button
+                                      type="button"
+                                      className="stats-page__goal-edit-save"
+                                      onClick={() => saveGoalRename(group.id, goal.id)}
+                                          disabled={!goalRenameDraft.trim()}
+                                        >
+                                          Save
+                                        </button>
+                                        <button
+                                          type="button"
+                                          className="stats-page__goal-edit-cancel"
+                                          onClick={cancelGoalRename}
+                                      >
+                                        Cancel
+                                      </button>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <>
+                                    <div className="stats-page__goal-head">
+                                      <button
+                                        type="button"
+                                        className="stats-page__goal-name-button"
+                                        onClick={() => beginGoalRename(group.id, goal.id, goal.name)}
+                                      >
+                                        <h4 className="stats-page__goal-name">{goal.name}</h4>
+                                      </button>
+                                      <span className="stats-page__goal-target">Target {target}</span>
+                                    </div>
+                                    <div className="stats-page__goal-progress" aria-hidden="true">
+                                      <span
+                                        className="stats-page__goal-progress-fill"
+                                        style={{ width: `${percent}%` }}
+                                      />
+                                    </div>
+                                    <p className="stats-page__goal-meta">
+                                      {current}/{target} total {goal.progressToday > 0 ? `· ${goal.progressToday} gained today` : ''}
+                                    </p>
+                                  </>
+                                  )}
+                                </div>
+                                <button
+                                  type="button"
+                                  className="stats-page__goal-action stats-page__goal-action--primary"
+                                  onClick={() => onIncrementGoal(goal.id)}
+                                  aria-label={`Add progress to ${goal.name}`}
+                                >
+                                  +
+                                </button>
+                              </article>
+                            )
+                          })}
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <p className="stats-page__goal-group-empty">Folder collapsed.</p>
+                  )}
                 </article>
               )
             })}

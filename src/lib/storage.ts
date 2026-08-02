@@ -9,6 +9,7 @@ import type {
   AppState,
   CoreAspect,
   DashboardPrefs,
+  GoalGroup,
   IntegrationProtocol,
   Habit,
   HabitCategory,
@@ -118,7 +119,7 @@ function migrate(raw: unknown): AppState | null {
     purchasedRewards: [],
     lastDailySpinDate: null,
     coreAspects: [],
-    goals: [],
+    goalGroups: [],
     bountyTasks: [],
     checks: [],
     weeklyTasks: [],
@@ -220,6 +221,20 @@ function normalizeGoal(goal: Partial<GoalTracker> | undefined, index: number): G
     target: Math.max(1, Math.round(goal?.target ?? 1)),
     progressToday: Math.max(0, Math.round(goal?.progressToday ?? 0)),
     totalProgress: Math.max(0, Math.round(goal?.totalProgress ?? 0)),
+  }
+}
+
+function normalizeGoalGroup(
+  group: Partial<GoalGroup> | undefined,
+  index: number,
+): GoalGroup {
+  return {
+    id: group?.id ?? `goal-group-${index + 1}`,
+    name: group?.name?.trim() || `Goal folder ${index + 1}`,
+    collapsed: !!group?.collapsed,
+    goals: (group?.goals ?? []).map((goal, goalIndex) =>
+      normalizeGoal(goal, goalIndex),
+    ),
   }
 }
 
@@ -362,13 +377,32 @@ function normalizeProfile(profile: LegacyProfile): AppState['profile'] {
 
 function normalizeState(state: AppState): AppState {
   const profile = normalizeProfile(state.profile as LegacyProfile)
+  const legacyGoals = Array.isArray((state as { goals?: unknown }).goals)
+    ? (((state as { goals?: unknown }).goals ?? []) as unknown[])
+    : []
+  const goalGroups = Array.isArray((state as { goalGroups?: unknown }).goalGroups)
+    ? (((state as { goalGroups?: unknown }).goalGroups ?? []) as unknown[]).map(
+        (group, index) => normalizeGoalGroup(group as Partial<GoalGroup>, index),
+      )
+    : legacyGoals.length > 0
+      ? [
+          {
+            id: 'goal-group-1',
+            name: 'Goals',
+            collapsed: false,
+            goals: legacyGoals.map((goal, index) =>
+              normalizeGoal(goal as Partial<GoalTracker>, index),
+            ),
+          },
+        ]
+      : []
   return {
     ...state,
     habits: state.habits.map((h, i) => normalizeHabit(h as LegacyHabit, i)),
     coreAspects: (state.coreAspects ?? []).map((aspect, index) =>
       normalizeCoreAspect(aspect, index),
     ),
-    goals: (state.goals ?? []).map((goal, index) => normalizeGoal(goal, index)),
+    goalGroups,
     bountyTasks: state.bountyTasks ?? [],
     checks: state.checks ?? [],
     weeklyTasks: state.weeklyTasks ?? [],
