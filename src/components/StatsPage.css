@@ -47,6 +47,7 @@
 .stats-page__group-form {
   display: flex;
   gap: 0.6rem;
+  margin-top: 1rem;
   margin-bottom: 0.9rem;
   flex-wrap: wrap;
 }

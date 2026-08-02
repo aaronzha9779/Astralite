@@ -23,6 +23,7 @@ import type {
 } from '../types'
 import { getProtocolStepTitles } from '../lib/protocols'
 import { ActivityHeatmap } from './ActivityHeatmap'
+import { ManualGoalProgressLog } from './ManualGoalProgressLog'
 import './StatsPage.css'
 
 type StatsPageProps = {
@@ -38,7 +39,7 @@ type StatsPageProps = {
   onIncrementCoreAspect: (id: string) => void
   onAddGoalGroup: (name: string) => void
   onAddGoal: (groupId: string, name: string, target: number) => void
-  onIncrementGoal: (id: string) => void
+  onIncrementGoal: (id: string, amount?: number) => void
   onRenameGoalGroup: (groupId: string, name: string) => void
   onToggleGoalGroupCollapsed: (groupId: string) => void
   onReorderGoalGroup: (draggedId: string, targetId: string) => boolean
@@ -337,9 +338,11 @@ export function StatsPage({
         <div className="stats-page__section-head">
           <h2 className="dashboard__section-title">Goals</h2>
           <p className="stats-page__hint">
-            Create folders for each goal set, then add goals inside the folder. Each goal keeps the same + progress mechanic.
+            Create folders for each goal set, then add goals inside the folder. Use the helper to log larger progress jumps when +1 is too small.
           </p>
         </div>
+
+        <ManualGoalProgressLog goalGroups={goalGroups} onLog={onIncrementGoal} />
 
         <form className="stats-page__group-form" onSubmit={handleGoalGroupSubmit}>
           <input
@@ -551,7 +554,7 @@ export function StatsPage({
                                 <button
                                   type="button"
                                   className="stats-page__goal-action stats-page__goal-action--primary"
-                                  onClick={() => onIncrementGoal(goal.id)}
+                                  onClick={() => onIncrementGoal(goal.id, 1)}
                                   aria-label={`Add progress to ${goal.name}`}
                                 >
                                   +

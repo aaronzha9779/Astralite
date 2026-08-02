@@ -1786,11 +1786,12 @@ export function useAppState() {
     }))
   }, [updateCurrentState])
 
-  const incrementGoal = useCallback((goalId: string) => {
+  const incrementGoal = useCallback((goalId: string, amount = 1) => {
+    const increment = Math.max(1, Math.round(amount))
     playCompletionChime()
     updateCurrentState((prev) => ({
       ...prev,
-      goalGroups: applyGoalIncrements(prev.goalGroups, { [goalId]: 1 }),
+      goalGroups: applyGoalIncrements(prev.goalGroups, { [goalId]: increment }),
     }))
   }, [updateCurrentState])
 
