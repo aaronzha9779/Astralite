@@ -60,7 +60,6 @@ export function uncompleteHabit(habit: Habit, today: string): Habit {
 
   let { streak, lastCompletedDate } = habit
   let bestStreak = habit.bestStreak ?? habit.streak
-  let bestStreak = habit.bestStreak ?? habit.streak
 
   if (lastCompletedDate === today) {
     const yesterday = getYesterdayISO()
@@ -87,6 +86,7 @@ export function uncompleteHabit(habit: Habit, today: string): Habit {
 export function applyCompletionOnDate(habit: Habit, date: string): Habit {
   if (habit.archivedAt) return habit
   let { streak, lastCompletedDate } = habit
+  let bestStreak = habit.bestStreak ?? habit.streak
 
   if (lastCompletedDate === date) {
     const today = getTodayISO()

@@ -150,6 +150,7 @@ const seedHabits: Habit[] = [
     category: 'hobby',
     archivedAt: null,
     streak: 14,
+    bestStreak: 14,
     doneToday: false,
     progressToday: 67,
     totalProgress: 367,
