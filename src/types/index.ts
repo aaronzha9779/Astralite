@@ -76,6 +76,8 @@ export type Habit = {
   /** Null when active; set to a date when archived. */
   archivedAt: string | null
   streak: number
+  /** Highest streak ever reached for this habit. */
+  bestStreak: number
   doneToday: boolean
   progressToday: number
   totalProgress: number

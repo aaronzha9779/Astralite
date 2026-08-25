@@ -20,6 +20,7 @@ export function applyDailyReset(habits: Habit[], lastActiveDate: string): Habit[
       // carry across days even though daily completion state resets.
       progressToday: habit.category === 'hobby' ? habit.progressToday : 0,
       streak: keptStreak ? habit.streak : 0,
+      bestStreak: habit.bestStreak ?? habit.streak,
     }
   })
 }
@@ -28,6 +29,7 @@ export function completeHabit(habit: Habit, today: string): Habit {
   if (habit.archivedAt) return habit
   const yesterday = getYesterdayISO()
   let streak = habit.streak
+  let bestStreak = habit.bestStreak ?? habit.streak
 
   if (habit.lastCompletedDate === today) {
     return habit
@@ -44,6 +46,7 @@ export function completeHabit(habit: Habit, today: string): Habit {
     doneToday: true,
     progressToday: habit.category === 'hobby' ? Math.max(1, habit.progressToday) : habit.progressToday,
     streak,
+    bestStreak: Math.max(bestStreak, streak),
     lastCompletedDate: today,
   }
 }
@@ -56,6 +59,8 @@ export function uncompleteHabit(habit: Habit, today: string): Habit {
   }
 
   let { streak, lastCompletedDate } = habit
+  let bestStreak = habit.bestStreak ?? habit.streak
+  let bestStreak = habit.bestStreak ?? habit.streak
 
   if (lastCompletedDate === today) {
     const yesterday = getYesterdayISO()
@@ -73,6 +78,7 @@ export function uncompleteHabit(habit: Habit, today: string): Habit {
     doneToday: false,
     progressToday: habit.category === 'hobby' ? habit.progressToday : 0,
     streak,
+    bestStreak: Math.max(bestStreak, streak),
     lastCompletedDate,
   }
 }
@@ -99,6 +105,7 @@ export function applyCompletionOnDate(habit: Habit, date: string): Habit {
   } else {
     streak = Math.max(streak, 1)
   }
+  bestStreak = Math.max(bestStreak, streak)
 
   if (!lastCompletedDate || date > lastCompletedDate) {
     lastCompletedDate = date
@@ -108,6 +115,7 @@ export function applyCompletionOnDate(habit: Habit, date: string): Habit {
   return {
     ...habit,
     streak,
+    bestStreak,
     lastCompletedDate,
     doneToday: date === today ? true : habit.doneToday,
     progressToday:
@@ -125,6 +133,7 @@ export function createHabit(name: string, category: HabitCategory = 'habit'): Ha
     category,
     archivedAt: null,
     streak: 0,
+    bestStreak: 0,
     doneToday: false,
     progressToday: 0,
     totalProgress: 0,

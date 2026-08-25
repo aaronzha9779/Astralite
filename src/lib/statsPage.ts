@@ -31,7 +31,7 @@ export function getStatsPageSummary(
   totalMinutes: number,
 ): DashboardStat[] {
   const totalCompletions = completions.length
-  const bestStreak = habits.reduce((max, h) => Math.max(max, h.streak), 0)
+  const bestStreak = habits.reduce((max, h) => Math.max(max, h.bestStreak ?? h.streak), 0)
   const bestDay = getBestDay(habits, completions, timeRecords, preferences)
 
   return [
