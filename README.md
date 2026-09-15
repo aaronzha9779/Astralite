@@ -1,73 +1,175 @@
-# React + TypeScript + Vite
+# Astralite
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+> A gamified habit and productivity system built around habits, XP, quests, rewards, and long-term progression.
 
-Currently, two official plugins are available:
+**[Live Demo](https://astralite-ruddy.vercel.app/)** · **[Source Code](https://github.com/aaronzha9779/Astralite)**
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Overview
 
-## React Compiler
+Astralite is a personal habit-tracking application designed to make consistency feel more like progressing through a game by giving the user a multitude of customizable tracking options. 
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Instead of simply checking off habits, Astralite turns daily actions into a progression system with **XP, levels, quests, rewards, statistics, streaks, and customizable goals**.
 
-## Expanding the ESLint configuration
+The project started as a personal productivity tool and evolved into a larger frontend application focused on state management, persistent user data, and building a cohesive interactive experience. I built it as a way of consolidating multiple workspaces and trackers into one place so that I would no longer be overwhelmed. 
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## Features
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+### Dashboard
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+* Track daily habits, hobbies, and activities
+* Monitor daily goals, tasks, and progress
+* Complete bounties, checks, and weekly tasks
+* Earn XP from completed activities
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+### Progression System
+
+* Gain XP from habit completion and other activities
+* Clear and Visual progress
+* Maintain streaks
+
+### Protocols / Quests
+
+* Create multi-step protocols that break big goals into smaller manageable tasks
+* View active quests directly from the sidebar
+* Link protocols to the broader progression system
+
+### Goals & Statistics
+
+* Track core aspects and long-term objectives
+* Review completion history and time records
+* Monitor productivity statistics
+
+### Reward Shop
+
+* Create custom rewards for completing tasks and habits
+* Purchase rewards using earned XP
+* Archive and restore rewards
+
+### Accounts & Save Files
+
+* Create and switch between multiple local accounts
+* Customize profiles
+* Export account data as JSON
+* Import previously exported save files
+* Reset or restore application data
+
+## Tech Stack
+
+* **React 19**
+* **TypeScript**
+* **Vite**
+* **CSS**
+* **ESLint**
+* **partycles** for visual effects
+
+The application is built as a client-side React application with application state managed through custom React hooks and persisted through local save data.
+
+## Getting Started
+
+### Prerequisites
+
+* Node.js
+* npm
+
+### Installation
+
+Clone the repository:
+
+```bash
+git clone https://github.com/aaronzha9779/Astralite.git
+cd Astralite
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+Install dependencies:
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm install
 ```
+
+Start the development server:
+
+```bash
+npm run dev
+```
+
+Vite will provide a local development URL in the terminal.
+
+### Production Build
+
+Create a production build:
+
+```bash
+npm run build
+```
+
+Preview the production build locally:
+
+```bash
+npm run preview
+```
+
+### Linting
+
+Run ESLint with:
+
+```bash
+npm run lint
+```
+
+## How to Use
+
+1. Open Astralite and create or configure your profile.
+2. Add the habits and goals you want to track.
+3. Complete activities throughout the day to earn XP.
+4. Use the dashboard to monitor daily progress.
+5. Build larger goals into multi-step protocols.
+6. Spend earned XP on custom rewards.
+7. Use the statistics page to review your progress over time.
+8. Export your save file periodically if you want a portable backup.
+9. Use daily to manage your tasks and habits in one place!
+
+
+## Engineering Highlights
+
+* Designing a centralized application state model for habits, goals, rewards, accounts, protocols, statistics, and progression.
+* Building reusable React components around a shared state layer.
+* Implementing XP and level progression.
+* Creating multi-step protocol/quest tracking.
+* Supporting multiple local user accounts.
+* Implementing JSON-based save-file export and import.
+* Building persistent UI state for dashboards, settings, history, and navigation.
+* Creating a custom reward economy around earned XP.
+* Developing the application as a responsive, interactive frontend rather than a collection of isolated pages.
+
+## Project Structure
+
+```text
+src/
+├── components/     # UI components and application pages
+├── data/            # Application data and defaults
+├── hooks/           # Application state and reusable React hooks
+├── lib/             # Utility and protocol logic
+├── types/           # TypeScript types
+├── App.tsx
+└── main.tsx
+```
+
+## Future Improvements/Updates
+
+* Cloud synchronization
+* Authentication
+* Cross-device account syncing
+* Mobile-first improvements
+* More advanced analytics
+* Additional progression systems
+* Social/accountability features
+* Automated reminders and notifications
+
+## Status
+
+Astralite is an actively evolving personal project.
+The current version focuses on the core habit, progression, quest, reward, and save-file systems.
+
+---
+
+Built by **Aaron Zhang**.
