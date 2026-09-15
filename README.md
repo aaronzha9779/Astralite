@@ -2,7 +2,7 @@
 
 > A responsive habit and productivity system built around habits, XP, quests, rewards, and long-term progression.
 
-**(https://astralite-ruddy.vercel.app/)** · **[Source Code](https://github.com/aaronzha9779/Astralite)**
+**(https://astralite-ruddy.vercel.app/)**
 
 ## Overview
 
@@ -129,7 +129,7 @@ npm run lint
 9. Use daily to manage your tasks and habits in one place!
 
 
-## Engineering Highlights
+## Engineering Notes
 
 * Designing a centralized application state model for habits, goals, rewards, accounts, protocols, statistics, and progression.
 * Building reusable React components around a shared state layer.
