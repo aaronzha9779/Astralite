@@ -1,8 +1,8 @@
 # Astralite
 
-> A gamified habit and productivity system built around habits, XP, quests, rewards, and long-term progression.
+> A responsive habit and productivity system built around habits, XP, quests, rewards, and long-term progression.
 
-**[Live Demo](https://astralite-ruddy.vercel.app/)** · **[Source Code](https://github.com/aaronzha9779/Astralite)**
+**(https://astralite-ruddy.vercel.app/)** · **[Source Code](https://github.com/aaronzha9779/Astralite)**
 
 ## Overview
 
