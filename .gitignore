@@ -35,3 +35,10 @@ dist/
 !.env.example
 
 .DS_Store
+.env
+.env.local
+.env.production
+*.pem
+*.key
+credentials.json
+secrets.json
