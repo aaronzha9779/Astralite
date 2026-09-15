@@ -23,3 +23,15 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+
+node_modules/
+dist/
+.vite/
+*.tsbuildinfo
+
+.env
+.env.*
+!.env.example
+
+.DS_Store
