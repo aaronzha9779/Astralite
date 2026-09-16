@@ -745,7 +745,7 @@ export function Shop({
                 ref={imageInputRef}
                 className="shop__file"
                 type="file"
-                accept="image/png,image/jpeg,image/webp"
+                accept="image/png,image/jpeg,image/gif,image/webp"
                 onChange={(e) => {
                   const file = e.target.files?.[0] ?? null
                   void handleImageUpload(file)

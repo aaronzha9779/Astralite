@@ -1350,7 +1350,7 @@ export function IntegrationProtocolsPage({
                         <input
                           className="protocol-card__select"
                           type="file"
-                          accept="image/png,image/jpeg,image/webp"
+                          accept="image/png,image/jpeg,image/gif,image/webp"
                           onChange={(e) => {
                             void handleThumbnailUpload(protocol.id, e.target.files?.[0] ?? null)
                             e.currentTarget.value = ''
