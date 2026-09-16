@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { playReward } from '../lib/audio'
 import type { PurchasedReward, Reward, UserProfile } from '../types'
 import './Shop.css'
+import { validateImageFile } from '../lib/fileValidation'
 
 type PurchaseResult = 'success' | 'owned' | 'insufficient' | 'missing'
 type DailySpinResult =
@@ -315,8 +316,9 @@ export function Shop({
 
   async function handleImageUpload(file: File | null) {
     if (!file) return
-    if (!file.type.startsWith('image/')) {
-      showMessage('Please choose an image file for the reward symbol.')
+    const validationError = await validateImageFile(file)
+    if (validationError) {
+      showMessage(validationError)
       return
     }
 
@@ -743,7 +745,7 @@ export function Shop({
                 ref={imageInputRef}
                 className="shop__file"
                 type="file"
-                accept="image/*"
+                accept="image/png,image/jpeg,image/webp"
                 onChange={(e) => {
                   const file = e.target.files?.[0] ?? null
                   void handleImageUpload(file)

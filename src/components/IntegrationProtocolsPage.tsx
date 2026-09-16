@@ -11,6 +11,7 @@ import {
   normalizeProtocolCurrentStepId,
 } from '../lib/protocols'
 import './IntegrationProtocolsPage.css'
+import { validateImageFile } from '../lib/fileValidation'
 
 const PROTOCOLS_COLLAPSE_STORAGE_KEY = 'habitup-protocols-collapse-state-v1'
 
@@ -778,6 +779,7 @@ export function IntegrationProtocolsPage({
 
   async function handleThumbnailUpload(protocolId: string, file: File | null) {
     if (!file) return
+    if (await validateImageFile(file)) return
     const imageUrl = await readFileAsDataUrl(file)
     const label = createThumbnailLabel(file.name.replace(/\.[^.]+$/, ''))
 
@@ -1348,7 +1350,7 @@ export function IntegrationProtocolsPage({
                         <input
                           className="protocol-card__select"
                           type="file"
-                          accept="image/*"
+                          accept="image/png,image/jpeg,image/webp"
                           onChange={(e) => {
                             void handleThumbnailUpload(protocol.id, e.target.files?.[0] ?? null)
                             e.currentTarget.value = ''

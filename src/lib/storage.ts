@@ -3,6 +3,7 @@ import { DEFAULT_RANKS, normalizeRanks } from '../data/ranks'
 import { rewards as defaultRewards } from '../data/rewards'
 import { normalizeProtocolCurrentStepId } from './protocols'
 import { getNowLocalISO, getTodayISO } from './dates'
+import { sanitizeImageSource } from './fileValidation'
 import type {
   AccountSummary,
   AppPreferences,
@@ -292,7 +293,7 @@ function normalizeProtocol(
     title: protocol?.title?.trim() || `Protocol ${index + 1}`,
     summary: protocol?.summary?.trim() || 'Integration protocol',
     thumbnailLabel: protocol?.thumbnailLabel?.trim() || 'QUEST',
-    thumbnailUrl: protocol?.thumbnailUrl ?? null,
+    thumbnailUrl: sanitizeImageSource(protocol?.thumbnailUrl),
     priority: normalizePriority(protocol?.priority),
     stepXp: normalizeProtocolXp(protocol?.stepXp, 10),
     completionXp: normalizeProtocolXp(protocol?.completionXp, 25),
@@ -318,7 +319,7 @@ function normalizeProtocol(
     title: protocol?.title?.trim() || `Protocol ${index + 1}`,
     summary: protocol?.summary?.trim() || 'Integration protocol',
     thumbnailLabel: protocol?.thumbnailLabel?.trim() || 'QUEST',
-    thumbnailUrl: protocol?.thumbnailUrl ?? null,
+    thumbnailUrl: sanitizeImageSource(protocol?.thumbnailUrl),
     priority: normalizePriority(protocol?.priority),
     stepXp: normalizeProtocolXp(protocol?.stepXp, 10),
     completionXp: normalizeProtocolXp(protocol?.completionXp, 25),
@@ -353,10 +354,10 @@ function normalizeProfile(profile: LegacyProfile): AppState['profile'] {
   return {
     name: profile.name ?? 'Grinder',
     handle: profile.handle ?? '@you',
-    avatarUrl: profile.avatarUrl ?? null,
+    avatarUrl: sanitizeImageSource(profile.avatarUrl),
     accentColor: profile.accentColor ?? '#a3e635',
     streakSymbol: profile.streakSymbol ?? '🔥',
-    streakSymbolImageUrl: profile.streakSymbolImageUrl ?? null,
+    streakSymbolImageUrl: sanitizeImageSource(profile.streakSymbolImageUrl),
     totalMinutes,
     spentMinutes,
     totalXp:
@@ -476,7 +477,7 @@ function normalizeState(state: AppState): AppState {
     profile,
     rewards: (state.rewards?.length ? state.rewards : defaultRewards).map((reward) => ({
       ...reward,
-      imageUrl: reward.imageUrl ?? null,
+      imageUrl: sanitizeImageSource(reward.imageUrl),
       archivedAt: reward.archivedAt ?? null,
     })),
     completions: (state.completions ?? []).map((completion) => ({

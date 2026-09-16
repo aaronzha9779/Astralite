@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { AccountSummary, UserProfile } from '../types'
 import './Sidebar.css'
+import { MAX_SAVE_FILE_BYTES } from '../lib/fileValidation'
 
 type ActiveProtocolTrackerItem = {
   id: string
@@ -80,6 +81,14 @@ export function Sidebar({
 
   async function handleImportFile(file: File | null) {
     if (!file) return
+    if (file.size === 0 || file.size > MAX_SAVE_FILE_BYTES) {
+      window.alert('Save files must be valid JSON and 2 MB or smaller.')
+      return
+    }
+    if (file.type && file.type !== 'application/json' && !file.name.toLowerCase().endsWith('.json')) {
+      window.alert('Please select a JSON save file.')
+      return
+    }
     const raw = await file.text()
     const success = onImportSaveFile(raw)
     if (!success) {

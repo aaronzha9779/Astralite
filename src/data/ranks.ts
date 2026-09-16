@@ -1,4 +1,5 @@
 import type { RankTier } from '../types'
+import { sanitizeImageSource } from '../lib/fileValidation'
 
 export const DEFAULT_RANKS: RankTier[] = [
   { id: 'rank-1', name: 'Rookie', minLevel: 1, imageUrl: null },
@@ -17,7 +18,7 @@ export function normalizeRanks(ranks: RankTier[] | undefined): RankTier[] {
       id: rank.id || `rank-${index + 1}`,
       name: rank.name?.trim() || `Rank ${index + 1}`,
       minLevel: Math.max(1, Math.round(rank.minLevel || index + 1)),
-      imageUrl: rank.imageUrl ?? null,
+      imageUrl: sanitizeImageSource(rank.imageUrl),
     }))
 }
 

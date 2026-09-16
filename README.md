@@ -64,6 +64,12 @@ The project started as a personal productivity tool and evolved into a larger fr
 
 The application is built as a client-side React application with application state managed through custom React hooks and persisted through local save data.
 
+## Security model
+
+Astralite currently has no server, authentication service, database, API keys, or network data API. Each browser keeps its own app data in IndexedDB, so accounts are local profiles rather than security boundaries. The app now restricts save imports and image uploads to bounded, validated formats, sanitizes persisted image sources, and ships static-host security headers in `public/_headers` (supported by Netlify and Cloudflare Pages).
+
+If cloud sync or accounts are added, implement authentication, login rate limiting and bot protection, server-side authorization for every request, parameterized database access, row-level security keyed to the authenticated user, encrypted storage for sensitive data, secure HttpOnly/SameSite cookies, and server-enforced record ownership. Use only a public client database key in the browser; keep all privileged keys server-side and out of Git history.
+
 ## Getting Started
 
 ### Prerequisites

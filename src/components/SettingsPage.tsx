@@ -9,6 +9,7 @@ import type {
   UserProfile,
 } from '../types'
 import './SettingsPage.css'
+import { validateImageFile } from '../lib/fileValidation'
 
 type SettingsPageProps = {
   profile: UserProfile
@@ -194,6 +195,11 @@ function ProgressionEditor({
 
   async function handleRankImageUpload(rankId: string, file: File | null) {
     if (!file) return
+    const validationError = await validateImageFile(file)
+    if (validationError) {
+      showMessage(validationError)
+      return
+    }
     const dataUrl = await readFileAsDataUrl(file)
     setRanks((prev) =>
       prev.map((rank) =>
@@ -513,6 +519,11 @@ export function SettingsPage({
 
   async function handleAvatarUpload(file: File | null) {
     if (!file) return
+    const validationError = await validateImageFile(file)
+    if (validationError) {
+      showMessage(validationError)
+      return
+    }
     const dataUrl = await readFileAsDataUrl(file)
     onUpdateProfile({ avatarUrl: dataUrl })
     showMessage('Profile picture updated.')
@@ -521,6 +532,11 @@ export function SettingsPage({
 
   async function handleStreakUpload(file: File | null) {
     if (!file) return
+    const validationError = await validateImageFile(file)
+    if (validationError) {
+      showMessage(validationError)
+      return
+    }
     const dataUrl = await readFileAsDataUrl(file)
     onUpdateProfile({ streakSymbolImageUrl: dataUrl })
     showMessage('Streak symbol image updated.')
@@ -602,7 +618,7 @@ export function SettingsPage({
               ref={avatarInputRef}
               className="settings-page__file"
               type="file"
-              accept="image/*"
+              accept="image/png,image/jpeg,image/webp"
               onChange={(e) => {
                 const file = e.target.files?.[0] ?? null
                 void handleAvatarUpload(file)
