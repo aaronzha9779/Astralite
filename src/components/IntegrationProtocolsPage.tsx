@@ -779,7 +779,11 @@ export function IntegrationProtocolsPage({
 
   async function handleThumbnailUpload(protocolId: string, file: File | null) {
     if (!file) return
-    if (await validateImageFile(file)) return
+    const validationError = await validateImageFile(file)
+    if (validationError) {
+      window.alert(validationError)
+      return
+    }
     const imageUrl = await readFileAsDataUrl(file)
     const label = createThumbnailLabel(file.name.replace(/\.[^.]+$/, ''))
 
@@ -1350,7 +1354,7 @@ export function IntegrationProtocolsPage({
                         <input
                           className="protocol-card__select"
                           type="file"
-                          accept="image/png,image/jpeg,image/gif,image/webp"
+                          accept="image/png,image/jpeg,image/jpg,image/gif,image/webp,image/avif"
                           onChange={(e) => {
                             void handleThumbnailUpload(protocol.id, e.target.files?.[0] ?? null)
                             e.currentTarget.value = ''
